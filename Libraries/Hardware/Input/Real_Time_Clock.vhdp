@@ -1,0 +1,441 @@
+/*
+    Name: Real Time Clock
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 17.08.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of 
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+    HDL Code without restriction, including without limitation the rights to use, 
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important:   -I2C.vhdp and I2C_Array.vhdp has to be added to your project too
+                 -This component is made for the DS3231 real time clock
+                 -The numbers are seperated in digits so for 10:48:54: Time_Out.Second10 = 5 and Time_Out.Second = 4
+                  This helps with displaying the time 
+                  17.08.2019 10:48:54 -> (Date10 Date) . (Month10 Month) . (20 Year10 Year)  (Hour10 Hour) : (Minute10 Minute) : (Second10 Second)
+                 -If you set an alarm, wait for a signal from the INT pin of the RTC
+                 
+    Description: This component allows to read and set the current time, read the temperature and set two alarms
+    
+    Insertion:   -Right click on Real_Time_Clock.vhdp, I2C_Array.vhdp and I2C.vhdp -> Add to project
+                 -Add NewComponent of Real_Time_Clock in your code
+                 -Remove CLK_Frequency if you use a VHDP Core and no PLL
+                 -Add this to your Main IOs and connect them with the instance IOs and the RTC Pins (modify the names if already in use)
+                  SDA  : INOUT STD_LOGIC;
+                  SCL  : INOUT STD_LOGIC;
+                 -Right click the name Real_Time_Clock next to NewComponent and create the needed signals 
+    
+    Function:    Setup: -Set Config_Time to the current time and date,
+                         the alarms if you want to use them and C_24h_12h.
+                        -Set Config from '0' to '1'
+                 Read:  -The current values are updated every second
+                        -Read the current time with Time_Out and the temperature with Temp (Temp25 for more precision)
+    
+    Example:     Real_Time_Clock_Example
+*/
+
+Component Real_Time_Clock
+(
+    Package Date_Time_Package
+    (
+        TYPE Date_Time_Type IS RECORD
+            Second10    : NATURAL range 0 to 5; --00-59 Seconds
+            Second      : NATURAL range 0 to 9; 
+            Minute10    : NATURAL range 0 to 5; --00-59 Minutes
+            Minute      : NATURAL range 0 to 9;
+            Hour10      : NATURAL range 0 to 2; --1-12/00-23 Hours
+            Hour        : NATURAL range 0 to 9;
+            Day         : NATURAL range 1 to 7; --Day in Week
+            Date10      : NATURAL range 0 to 3; --01-31 Day in Month
+            Date        : NATURAL range 0 to 9;
+            Month10     : NATURAL range 0 to 1; --01-12 Month
+            Month       : NATURAL range 0 to 9;
+            Year10      : NATURAL range 0 to 9; --00-99 Year
+            Year        : NATURAL range 0 to 9;
+        END RECORD Date_Time_Type;
+    );
+    
+    Generic
+    (
+        CLK_Frequency  : NATURAL := 12000000;
+    );
+    
+    Reset       : IN    STD_LOGIC := '0';           --active high reset
+
+    SDA         : INOUT STD_LOGIC := 'Z';           --serial data output of i2c bus
+    SCL         : INOUT STD_LOGIC := 'Z';           --serial clock output of i2c bus
+    
+    Config      : IN    STD_LOGIC := '0';           --Change from '0' to '1' configures the RTC with the Values from Generic
+    
+    C_24h_12h   : IN    STD_LOGIC := '0';           --'0' = 24h
+    Config_Time : IN    Date_Time_Type := (Day => 1, others => 0);
+    
+    Alarm1_En   : IN    STD_LOGIC := '0';
+    Alarm1_DyDt : IN    STD_LOGIC := '0';           --'0' = Alarm on this Day in Month, '1' = Alarm on this Day in Week
+    Alarm1_Type : IN    NATURAL range 0 to 3 := 0;  --0 = when Day, Hour, Minute and Second Match, 3 = when Second Match
+    Alarm1_Time : IN    Date_Time_Type := (Day => 1, others => 0);
+    Alarm2_En   : IN    STD_LOGIC := '0';
+    Alarm2_DyDt : IN    STD_LOGIC := '0';
+    Alarm2_Type : IN    NATURAL range 0 to 2 := 0;  
+    Alarm2_Time : IN    Date_Time_Type := (Day => 1, others => 0);
+    
+    Time_Out    : OUT   Date_Time_Type := (Day => 1, others => 0);
+    Temp        : OUT   INTEGER range -128 to 127 := 0; -- -128°C-127°C
+    Temp25      : OUT   NATURAL range 0 to 3 := 0;      -- 0-0.75°C (1 = 0.25°C)
+)
+{
+    CONSTANT max_bytes         : NATURAL := 2;
+    SIGNAL I2C_Array_ena       : STD_LOGIC := '0';
+    SIGNAL I2C_Array_wr_bytes  : NATURAL          range 0 to max_bytes;
+    SIGNAL I2C_Array_data_wr   : I2C_Data_Array   (max_bytes-1 downto 0);
+    SIGNAL I2C_Array_busy      : STD_LOGIC;
+    SIGNAL I2C_Array_rd_bytes  : NATURAL          range 0 to max_bytes;
+    SIGNAL I2C_Array_data_rd   : I2C_Data_Array   (max_bytes-1 downto 0);
+    SIGNAL I2C_Array_ack_error : STD_LOGIC;
+    
+    CONSTANT Slave_Addr        : STD_LOGIC_VECTOR (6 downto 0) := "1101000";
+    SIGNAL Register_Count      : UNSIGNED (7 downto 0) := (others => '0');
+    
+    NewComponent I2C_Array 
+    (
+        CLK_Frequency => CLK_Frequency,
+        Bus_CLK       => 400000,
+        Max_Bytes     => max_bytes,
+
+        Reset         => Reset,
+        Enable        => I2C_Array_ena,
+        Address       => Slave_Addr,
+        WR_Bytes      => I2C_Array_wr_bytes,
+        Data_WR       => I2C_Array_data_wr,
+        Busy          => I2C_Array_busy,
+        RD_Bytes      => I2C_Array_rd_bytes,
+        Data_RD       => I2C_Array_data_rd,
+        Ack_Error     => I2C_Array_ack_error,
+        SDA           => SDA,
+        SCL           => SCL,
+    );
+    
+    Process I2C_Process
+    (
+        VARIABLE update_cnt : NATURAL range 0 to CLK_Frequency := 0;
+        VARIABLE wait_fin   : STD_LOGIC := '0';
+        VARIABLE conf_prev  : STD_LOGIC := '0';
+        VARIABLE write_en   : STD_LOGIC := '0';
+    )
+    {
+        If(Reset = '1')
+        {
+            wait_fin       := '0';
+            update_cnt     := 0;
+            I2C_Array_ena  <= '0';
+            Register_Count <= (others => '0');
+            conf_prev      := '0';
+            write_en       := '0';
+        }
+        Else
+        {
+            If(conf_prev = '0' AND Config = '1')
+            {
+                write_en := '1';
+                wait_fin := '0';
+                Register_Count <= (others => '0');
+            }
+            conf_prev := Config;
+            
+            If(write_en = '1')
+            {
+                If(wait_fin = '0')
+                {
+                    I2C_Array_data_wr(0) <= STD_LOGIC_VECTOR(Register_Count);
+                    I2C_Array_data_wr(1) <= x"00";
+                    Case(Register_Count)
+                    {
+                        When(x"00")
+                        {
+                            I2C_Array_data_wr(1)(6 downto 4) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Config_Time.Second10, 3));
+                            I2C_Array_data_wr(1)(3 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Config_Time.Second, 4));
+                        }
+                        When(x"01")
+                        {
+                            I2C_Array_data_wr(1)(6 downto 4) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Config_Time.Minute10, 3));
+                            I2C_Array_data_wr(1)(3 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Config_Time.Minute, 4));
+                        }
+                        When(x"02")
+                        {
+                            I2C_Array_data_wr(1)(6)          <= C_24h_12h;
+                            I2C_Array_data_wr(1)(5 downto 4) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Config_Time.Hour10, 2));
+                            I2C_Array_data_wr(1)(3 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Config_Time.Hour, 4));
+                        }
+                        When(x"03")
+                        {
+                            I2C_Array_data_wr(1)(2 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Config_Time.Day, 3));
+                        }
+                        When(x"04")
+                        {
+                            I2C_Array_data_wr(1)(5 downto 4) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Config_Time.Date10, 2));
+                            I2C_Array_data_wr(1)(3 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Config_Time.Date, 4));
+                        }
+                        When(x"05")
+                        {
+                            I2C_Array_data_wr(1)(4 downto 4) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Config_Time.Month10, 1));
+                            I2C_Array_data_wr(1)(3 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Config_Time.Month, 4));
+                        }
+                        When(x"06")
+                        {
+                            I2C_Array_data_wr(1)(7 downto 4) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Config_Time.Year10, 4));
+                            I2C_Array_data_wr(1)(3 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Config_Time.Year, 4));
+                        }
+                        When(x"07")
+                        {
+                            If(Alarm1_Type = 3)
+                            {
+                                I2C_Array_data_wr(1)(7)      <= '1';
+                            }
+                            Else
+                            {
+                                I2C_Array_data_wr(1)(7)      <= '0';
+                            }
+                            I2C_Array_data_wr(1)(6 downto 4) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Alarm1_Time.Second10, 3));
+                            I2C_Array_data_wr(1)(3 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Alarm1_Time.Second, 4));
+                        }
+                        When(x"08")
+                        {
+                            If(Alarm1_Type > 1)
+                            {
+                                I2C_Array_data_wr(1)(7)      <= '1';
+                            }
+                            Else
+                            {
+                                I2C_Array_data_wr(1)(7)      <= '0';
+                            }
+                            I2C_Array_data_wr(1)(6 downto 4) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Alarm1_Time.Minute10, 3));
+                            I2C_Array_data_wr(1)(3 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Alarm1_Time.Minute, 4));
+                        }
+                        When(x"09")
+                        {
+                            If(Alarm1_Type > 0)
+                            {
+                                I2C_Array_data_wr(1)(7)      <= '1';
+                            }
+                            Else
+                            {
+                                I2C_Array_data_wr(1)(7)      <= '0';
+                            }
+                            I2C_Array_data_wr(1)(6)          <= C_24h_12h;
+                            I2C_Array_data_wr(1)(5 downto 4) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Alarm1_Time.Hour10, 2));
+                            I2C_Array_data_wr(1)(3 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Alarm1_Time.Hour, 4));
+                        }
+                        When(x"0A")
+                        {
+                            I2C_Array_data_wr(1)(6) <= Alarm1_DyDt;
+                            
+                            If(Alarm1_Type /= 0)
+                            {
+                                I2C_Array_data_wr(1)(7)      <= '1';
+                            }
+                            Else
+                            {
+                                I2C_Array_data_wr(1)(7)      <= '0';
+                            }
+                            
+                            If(Alarm1_DyDt = '1')   --Day in Week
+                            {
+                                I2C_Array_data_wr(1)(2 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Alarm1_Time.Day, 3));
+                            }
+                            Else
+                            {
+                                I2C_Array_data_wr(1)(5 downto 4) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Alarm1_Time.Date10, 2));
+                                I2C_Array_data_wr(1)(3 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Alarm1_Time.Date, 4));
+                            }
+                        }
+                        When(x"0B")
+                        {
+                            If(Alarm2_Type > 1)
+                            {
+                                I2C_Array_data_wr(1)(7)      <= '1';
+                            }
+                            Else
+                            {
+                                I2C_Array_data_wr(1)(7)      <= '0';
+                            }
+                            I2C_Array_data_wr(1)(6 downto 4) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Alarm2_Time.Minute10, 3));
+                            I2C_Array_data_wr(1)(3 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Alarm2_Time.Minute, 4));
+                        }
+                        When(x"0C")
+                        {
+                            If(Alarm2_Type > 0)
+                            {
+                                I2C_Array_data_wr(1)(7)      <= '1';
+                            }
+                            Else
+                            {
+                                I2C_Array_data_wr(1)(7)      <= '0';
+                            }
+                            I2C_Array_data_wr(1)(6)          <= C_24h_12h;
+                            I2C_Array_data_wr(1)(5 downto 4) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Alarm2_Time.Hour10, 2));
+                            I2C_Array_data_wr(1)(3 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Alarm2_Time.Hour, 4));
+                        }
+                        When(x"0D")
+                        {
+                            I2C_Array_data_wr(1)(6) <= Alarm2_DyDt;
+                            
+                            If(Alarm2_Type /= 0)
+                            {
+                                I2C_Array_data_wr(1)(7)      <= '1';
+                            }
+                            Else
+                            {
+                                I2C_Array_data_wr(1)(7)      <= '0';
+                            }
+                            
+                            If(Alarm2_DyDt = '1')   --Day in Week
+                            {
+                                I2C_Array_data_wr(1)(2 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Alarm2_Time.Day, 3));
+                            }
+                            Else
+                            {
+                                I2C_Array_data_wr(1)(5 downto 4) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Alarm2_Time.Date10, 2));
+                                I2C_Array_data_wr(1)(3 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Alarm2_Time.Date, 4));
+                            }
+                        }
+                        When(x"0E")
+                        {
+                            I2C_Array_data_wr(1)(2 downto 7)     <= "000111";
+                            I2C_Array_data_wr(1)(1)              <= Alarm2_En;
+                            I2C_Array_data_wr(1)(0)              <= Alarm1_En;                          
+                        }
+                        When(others)
+                        {
+                            write_en := '0';
+                        }
+                    }
+                    I2C_Array_wr_bytes   <= 2;
+                    I2C_Array_rd_bytes   <= 0;
+                    I2C_Array_ena        <= '1';
+                    If(I2C_Array_busy = '1')
+                    {
+                        wait_fin         := '1';
+                    }
+                }
+                Else
+                {
+                    I2C_Array_ena        <= '0';
+                    If(I2C_Array_busy = '0')
+                    {
+                        wait_fin       := '0';
+                        If(Register_Count = x"0E")
+                        {
+                            write_en := '0';
+                        }
+                        Else
+                        {
+                            Register_Count <= Register_Count + 1;
+                        }
+                    }
+                }
+            }
+            Else
+            {
+                If(update_cnt < CLK_Frequency)
+                {
+                    update_cnt     := update_cnt + 1;
+                    Register_Count <= (others => '0');
+                }
+                Else
+                {
+                    If(wait_fin = '0')
+                    {
+                        I2C_Array_data_wr(0) <= STD_LOGIC_VECTOR(Register_Count);
+                        I2C_Array_wr_bytes   <= 1;
+                        I2C_Array_rd_bytes   <= 1;
+                        I2C_Array_ena        <= '1';
+                        If(I2C_Array_busy = '1')
+                        {
+                            wait_fin         := '1';
+                        }
+                    }
+                    Else
+                    {
+                        I2C_Array_ena        <= '0';
+                        If(I2C_Array_busy = '0')
+                        {
+                            Case(Register_Count)
+                            {
+                                When(x"00")
+                                {
+                                    Time_Out.Second   <= TO_INTEGER(UNSIGNED(I2C_Array_data_rd(0)(3 downto 0)));
+                                    Time_Out.Second10 <= TO_INTEGER(UNSIGNED(I2C_Array_data_rd(0)(6 downto 4)));
+                                }
+                                When(x"01")
+                                {
+                                    Time_Out.Minute   <= TO_INTEGER(UNSIGNED(I2C_Array_data_rd(0)(3 downto 0)));
+                                    Time_Out.Minute10 <= TO_INTEGER(UNSIGNED(I2C_Array_data_rd(0)(6 downto 4)));
+                                }
+                                When(x"02")
+                                {
+                                    Time_Out.Hour   <= TO_INTEGER(UNSIGNED(I2C_Array_data_rd(0)(3 downto 0)));
+                                    Time_Out.Hour10 <= TO_INTEGER(UNSIGNED(I2C_Array_data_rd(0)(5 downto 4)));
+                                }
+                                When(x"03")
+                                {
+                                    Time_Out.Day    <= TO_INTEGER(UNSIGNED(I2C_Array_data_rd(0)(2 downto 0)));
+                                }
+                                When(x"04")
+                                {
+                                    Time_Out.Date   <= TO_INTEGER(UNSIGNED(I2C_Array_data_rd(0)(3 downto 0)));
+                                    Time_Out.Date10 <= TO_INTEGER(UNSIGNED(I2C_Array_data_rd(0)(5 downto 4)));
+                                }
+                                When(x"05")
+                                {
+                                    Time_Out.Month   <= TO_INTEGER(UNSIGNED(I2C_Array_data_rd(0)(3 downto 0)));
+                                    Time_Out.Month10 <= TO_INTEGER(UNSIGNED(I2C_Array_data_rd(0)(4 downto 4)));
+                                }
+                                When(x"06")
+                                {
+                                    Time_Out.Year   <= TO_INTEGER(UNSIGNED(I2C_Array_data_rd(0)(3 downto 0)));
+                                    Time_Out.Year10 <= TO_INTEGER(UNSIGNED(I2C_Array_data_rd(0)(7 downto 4)));
+                                }
+                                When(x"11")
+                                {
+                                    Temp   <= TO_INTEGER(SIGNED(I2C_Array_data_rd(0)));
+                                }
+                                When(x"12")
+                                {
+                                    Temp25 <= TO_INTEGER(UNSIGNED(I2C_Array_data_rd(0)(7 downto 6)));
+                                    update_cnt := 0;
+                                }
+                                When(others)
+                                {
+                                    update_cnt := 0;
+                                }
+                            }
+                            wait_fin       := '0';
+                            If(Register_Count = x"06")
+                            {
+                                Register_Count <= x"11";
+                            }
+                            Else
+                            {
+                                Register_Count <= Register_Count + 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

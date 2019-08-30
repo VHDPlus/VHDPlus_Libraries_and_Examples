@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Path />
+  <Items xsi:type="ProjectFolder">
+    <Path>Input</Path>
+    <Items xsi:type="ProjectFolder">
+      <Path>Input\MAX10_ADC</Path>
+      <Items xsi:type="ProjectFileVHDP">
+        <Path>Input\MAX10_ADC\ADC_MAX10.vhdp</Path>
+      </Items>
+      <Items xsi:type="ProjectFile">
+        <Path>Input\MAX10_ADC\ADC_QSYS.qsys</Path>
+      </Items>
+      <Items xsi:type="ProjectFileVHDP">
+        <Path>Input\MAX10_ADC\ADC_QSYS.qsys.vhdp</Path>
+      </Items>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>Input\Encoder.vhdp</Path>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>Input\Fingerprint.vhdp</Path>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>Input\Pressure_ADC.vhdp</Path>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>Input\Real_Time_Clock.vhdp</Path>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>Input\Ultrasonic.vhdp</Path>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Path>Output</Path>
+    <Items xsi:type="ProjectFolder">
+      <Path>Output\LED_Matrix</Path>
+      <Items xsi:type="ProjectFileVHDP">
+        <Path>Output\LED_Matrix\LED_Matrix.vhdp</Path>
+      </Items>
+      <Items xsi:type="ProjectFileVHDP">
+        <Path>Output\LED_Matrix\LED_Matrix_Text.vhdp</Path>
+      </Items>
+    </Items>
+    <Items xsi:type="ProjectFolder">
+      <Path>Output\Motor</Path>
+      <Items xsi:type="ProjectFileVHDP">
+        <Path>Output\Motor\Motor_Controller.vhdp</Path>
+      </Items>
+      <Items xsi:type="ProjectFileVHDP">
+        <Path>Output\Motor\Motor_Encoder.vhdp</Path>
+      </Items>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>Output\LCD.vhdp</Path>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>Output\Servo.vhdp</Path>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>Output\Shift_Register.vhdp</Path>
+    </Items>
+  </Items>
+</ProjectRoot>
