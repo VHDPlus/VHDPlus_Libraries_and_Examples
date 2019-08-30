@@ -1,0 +1,83 @@
+﻿/*
+    Name: UART String Example
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 05.08.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy of 
+	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+	HDL Code without restriction, including without limitation the rights to use, 
+	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+	subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+*/
+
+Main
+(
+	RX	: IN  STD_LOGIC := '0';
+	TX	: OUT STD_LOGIC := '0';
+	
+	led : OUT STD_LOGIC_VECTOR (7 downto 0) := (others => '0');
+)
+{
+	CONSTANT max_bytes			 : NATURAL := 4;
+	SIGNAL UART_Array_TX_Enable  : STD_LOGIC;
+	SIGNAL UART_Array_TX_Bytes   : NATURAL         range 0 to max_bytes;
+	SIGNAL UART_Array_TX_Data    : UART_Data_Array (max_bytes-1 downto 0);
+	SIGNAL UART_Array_TX_Busy    : STD_LOGIC;
+	SIGNAL UART_Array_RX_Bytes   : NATURAL         range 0 to max_bytes;
+	SIGNAL UART_Array_RX_Data    : UART_Data_Array (max_bytes-1 downto 0);
+	SIGNAL UART_Array_RX_Busy    : STD_LOGIC;
+	SIGNAL UART_Array_RX_Error   : STD_LOGIC;
+	
+	NewComponent UART_Array 
+	(
+		CLK_Frequency => 12000000,
+		Baudrate      => 115200,
+		Max_Bytes     => max_bytes,
+
+		Reset         => '0',
+		RX            => RX,
+		TX            => TX,
+		
+		TX_Enable     => UART_Array_TX_Enable,
+		TX_Bytes      => UART_Array_TX_Bytes,
+		TX_Data       => UART_Array_TX_Data,
+		TX_Busy       => UART_Array_TX_Busy,
+		
+		RX_Bytes      => UART_Array_RX_Bytes,
+		RX_Data       => UART_Array_RX_Data,
+		RX_Busy       => UART_Array_RX_Busy,
+		RX_Error      => UART_Array_RX_Error,
+	);
+	
+	Process 
+	(
+		VARIABLE busy_prev : STD_LOGIC := '0';
+	)
+	{
+		If(busy_prev = '1' AND UART_Array_RX_Busy = '0')	--New data received
+		{
+			UART_Array_TX_Data   <= UART_Array_RX_Data;		--Sends back
+			UART_Array_TX_Bytes  <= UART_Array_RX_Bytes;
+			UART_Array_TX_Enable <= '1';
+			led					 <= UART_Array_RX_Data(0);	--Shows first byte
+		}
+		Else
+		{
+			UART_Array_TX_Enable <= '0';
+		}
+		busy_prev := UART_Array_RX_Busy;
+	}
+}

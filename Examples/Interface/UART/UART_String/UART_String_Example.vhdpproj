@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<ArrayOfProjectEntry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <ProjectEntry xsi:type="ProjectFile">
+    <Path>\UART.vhdp</Path>
+    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Interface\UART\Example</ProjectPath>
+    <IsExpanded>false</IsExpanded>
+  </ProjectEntry>
+  <ProjectEntry xsi:type="ProjectFile">
+    <Path>\UART_String.vhdp</Path>
+    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Interface\UART\Example</ProjectPath>
+    <IsExpanded>false</IsExpanded>
+  </ProjectEntry>
+  <ProjectEntry xsi:type="ProjectFile">
+    <Path>\UART_String_Example.vhdp</Path>
+    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Interface\UART\Example</ProjectPath>
+    <IsExpanded>false</IsExpanded>
+  </ProjectEntry>
+</ArrayOfProjectEntry>
