@@ -1,0 +1,154 @@
+﻿/*
+    Name: Shift Register
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 16.08.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy of 
+	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+	HDL Code without restriction, including without limitation the rights to use, 
+	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+	subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+	Description: This component allows to set individual pins of one or multiple shift registers
+	
+    Insertion:   -Right click on Shift_Register.vhdp -> Add to project
+			     -Add NewComponent of Shift_Register in your code
+			     -Remove CLK_Frequency if you use a VHDP Core and no PLL
+			     -Set Register_CLK_Frequency and look in the datasheet of your shift register to make shure it isn't to high
+			     -Set Bits to the total of outputs of your shift registers 
+			      (to connect multiple registers together, connect CLK and SET to every register and connect Q7' with the next Data input)
+			     -Add this to your Main IOs and connect them with the instance IOs and the shift register pins (modify the names if already in use)
+			      DI_O	: OUT STD_LOGIC;
+				  CLK_O	: OUT STD_LOGIC;
+				  SET_O	: OUT STD_LOGIC;
+			     -Right click the name Shift_Register next to NewComponent and create the needed signals 
+	
+    Function:    The register ouptuts are updated depending on the Register_CLK_Frequency
+                 Set the first output of the first register high with Data(0) <= '1'
+	
+    Example:     Shift_Register_Example
+*/
+
+Component Shift_Register
+(
+	Generic
+	(
+		CLK_Frequency		    : NATURAL := 12000000;		--Clock Frequency in HZ
+		Register_CLK_Frequency	: NATURAL := 100000;		--Clock Frequency to shift register
+		Bits					: NATURAL := 8;				--Number of shift register outputs
+	);
+	
+	DI_O	: OUT STD_LOGIC;						--Register Inputs
+	CLK_O	: OUT STD_LOGIC;
+	SET_O	: OUT STD_LOGIC;
+	
+	Reset	: IN  STD_LOGIC;						--Active High Reset
+	Data	: IN  STD_LOGIC_VECTOR(Bits-1 downto 0)	--Data to output
+)
+{
+	AttributeDeclaration
+	{
+		SIGNAL OUT_DI   : STD_LOGIC := '0';
+		SIGNAL OUT_CLK  : STD_LOGIC := '0';
+		SIGNAL OUT_SET  : STD_LOGIC := '0';
+		
+		SIGNAL SEND		: STD_LOGIC := '0';
+		SIGNAL L_DATA	: STD_LOGIC_VECTOR(Bits-1 downto 0) := (others => '0');
+		SIGNAL WR_TRIG  : STD_LOGIC := '0';
+		SIGNAL BIT_CLK	: NATURAL range 0 to Bits := 0;
+	}
+
+	DI_O <= OUT_DI;
+	CLK_O <= OUT_CLK;
+	SET_O <= OUT_SET;
+	
+	--Handles Data and Set Output
+	Process Data_Handler ()
+	{
+		If(Reset = '1')			--resets Signals
+		{
+			OUT_DI  <= '0';
+			OUT_SET <= '0';
+			SEND    <= '0';
+			BIT_CLK <= Bits;
+		}
+		Else
+		{
+			If(SEND = '0')			--Waits for new Data
+			{
+				If(L_DATA /= Data)
+				{
+					BIT_CLK <= Bits;		--Starts Transmission
+					SEND    <= '1';
+				}
+			}
+			Else
+			{
+				If(WR_TRIG = '1')		--Writes on every falling Edge
+				{
+					If(OUT_SET = '0')	--Shifts Out Data when not ready
+					{
+						If(BIT_CLK = 0)			--Sets SET Output to '1' if redy with all bits
+						{
+							OUT_SET <= '1';
+						}
+						Else
+						{
+							OUT_DI  <= Data(BIT_CLK-1);
+							L_DATA(BIT_CLK-1) <= Data(BIT_CLK-1);	--saves exactly the data that is send in case DATA changes while writing
+						}
+						BIT_CLK <= BIT_CLK - 1;
+					}
+					Else				--If ready with bits and set OUT_SET to '1' 
+					{
+						OUT_SET <= '0';	--Goes back to waiting for new data
+						SEND    <= '0';
+					}
+				}
+			}
+		}
+	}
+	
+	--Generates CLK for shift register
+	Process CLK_Generator 
+	(
+		VARIABLE cnt		: NATURAL range 0 to (CLK_Frequency/Register_CLK_Frequency)/2 := 0;
+	)
+	{
+		If(Reset = '1')
+		{
+			cnt := 0;
+			OUT_CLK <= '0';
+		}
+		Else
+		{
+			If(cnt = (CLK_Frequency/Register_CLK_Frequency)/2)		--Changes state on double frequency
+			{
+				If(OUT_CLK = '1')		--sets WR_TRIG on falling edge
+				{
+					WR_TRIG <= '1';
+				}
+				OUT_CLK <= NOT OUT_CLK;
+				cnt := 0;
+			}
+			Else
+			{
+				WR_TRIG <= '0';
+				cnt := cnt + 1;
+			}
+		}
+	}
+}

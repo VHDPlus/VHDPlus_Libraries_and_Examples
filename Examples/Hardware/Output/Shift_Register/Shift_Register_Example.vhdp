@@ -1,0 +1,78 @@
+﻿/*
+    Name: Shift Register
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 16.08.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy of 
+	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+	HDL Code without restriction, including without limitation the rights to use, 
+	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+	subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+*/
+
+Main
+(
+	DI_O	: OUT STD_LOGIC;						--Register Inputs
+	CLK_O	: OUT STD_LOGIC;
+	SET_O	: OUT STD_LOGIC;
+)
+{
+
+	SIGNAL Shift_Register_DATA                   : STD_LOGIC_VECTOR (15 downto 0);
+	
+	NewComponent Shift_Register 
+	(
+		CLK_Frequency          => 12000000,			--12MHz
+		Register_CLK_Frequency => 100000,			--100KHz
+		Bits 				   => 16,				--2 Registers
+		
+		DI_O                   => DI_O,
+		CLK_O                  => CLK_O,
+		SET_O                  => SET_O,
+		Reset                  => '0',
+		Data                   => Shift_Register_DATA,
+	);
+	
+	Process 
+	(
+		VARIABLE count		: NATURAL range 0 to 16 := 0;
+	)
+	{
+		Thread
+		{
+			Shift_Register_DATA <= "0101010101010101";
+			Wait(25000000);
+			Shift_Register_DATA <= "0101010110101010";
+			Wait(25000000);
+			While(count < 16)		--sets every pin to 1 one by one
+			{
+				Shift_Register_DATA        <= (others => '0');
+				Shift_Register_DATA(count) <= '1';
+				count := count + 1;
+				Wait(10000000);
+			}
+			count := 0;
+			Shift_Register_DATA        <= (others => '0');
+			While(count < 16)		--lights every pin to 1 one by one and keeps them turned on
+			{
+				Shift_Register_DATA(count) <= '1';
+				count := count + 1;
+				Wait(10000000);
+			}
+			count := 0;
+		}
+	}
+}

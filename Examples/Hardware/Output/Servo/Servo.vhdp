@@ -1,0 +1,114 @@
+/*
+    Name: Servo
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 08.06.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy of 
+	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+	HDL Code without restriction, including without limitation the rights to use, 
+	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+	subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+	
+	Important:   -Some servo motors can't reach all positions (don't use positions in that the motor vibrates)
+	 			 -The power delived by the USB port isn't enought to power the Servos too.
+
+    Insertion:   -Right click on Servo.vhdp -> Add to project
+			     -Add NewComponent of Servo in your code
+			     -Remove CLK_Frequency if you use a VHDP Core and no PLL
+			     -Remove Reset or connect it to a signal or input
+			     -Add this to your Main IOs and connect it with the instance Output and the Servo Pin (modify the name if already in use)
+			      Servo	: OUT STD_LOGIC;
+			     -Right click the name Servo next to NewComponent and create the needed signal for the position
+    
+    Function:    -Set the position of the servo with a value between 0 to 127, but first try the number in the middle
+	
+    Example:     Servo_Example
+*/
+
+Component Servo_Controller
+(
+	Generic
+	(
+		CLK_Frequency			    : NATURAL := 12000000;		--Clock Frequency in HZ
+	);
+	
+	Reset	: IN  STD_LOGIC := '0';
+	Pos		: IN  NATURAL range 0 to 127 := 0;
+	Servo	: OUT STD_LOGIC := '0';
+)
+{
+	AttributeDeclaration
+	{
+		signal clk64khz : STD_LOGIC;
+    	signal counter  : integer range 0 to CLK_Frequency/64000 := 0;
+
+	    signal cnt : unsigned(10 downto 0);
+	    signal pwmi: unsigned(7 downto 0);
+	}
+	
+	Process freq_divider ()
+	{
+		If(Reset = '1')
+		{
+			clk64khz <= '0';
+            counter  <= 0;
+		}
+		Else
+		{
+			If (counter = CLK_Frequency/64000)
+			{
+                clk64khz <= '1';
+                counter  <= 0;
+            }
+            Else
+            {
+            	clk64khz <= '0';
+                counter <= counter + 1;
+            }
+		}
+	}
+	
+	
+    pwmi <= TO_UNSIGNED(Pos, 8) + 32;		--0.5ms minimum
+	Process ()
+	{
+		If(Reset = '1')
+		{
+			cnt <= (others => '0');
+			Servo <= '0';
+		}
+		Elsif(clk64khz = '1')				--counts from 0 to 1279
+		{
+			If(cnt = 1279)
+			{
+				cnt <= (others => '0');
+			}
+			Else
+			{
+				cnt <= cnt + 1;
+			}
+			
+			If(cnt < pwmi)					--controls servo position
+			{
+				Servo <= '1';
+			}
+			Else
+			{
+				Servo <= '0';
+			}
+		}
+	}
+}

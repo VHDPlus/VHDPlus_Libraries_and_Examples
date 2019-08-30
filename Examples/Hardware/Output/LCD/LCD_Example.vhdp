@@ -1,0 +1,54 @@
+﻿/*
+    Name: LCD Example
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 07.06.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy of 
+	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+	HDL Code without restriction, including without limitation the rights to use, 
+	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+	subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+*/
+
+Main
+(
+	rst          : in  std_logic;
+	LCD_E        : out std_logic;
+	LCD_RS       : out std_logic;
+	LCD_RW       : out std_logic;
+	LCD_DB       : out std_logic_vector(7 downto 0)
+)
+{
+	AttributeDeclaration
+	{
+		--Strings to display
+		--Use String-Creator to create vectors
+		--You have to add spaces until you have 16 chars
+		signal top_line : std_logic_vector(127 downto 0) := x"56484450204c43442054657374202020"; 	--"VHDP LCD Test   "
+		signal bottom_line : std_logic_vector(127 downto 0) :=  x"5375636365737366756c6c2020202020";--"Successfull     "
+	}
+	
+	NewComponent LCD_Controller 
+	(
+		Reset => rst,
+		RW    => LCD_RW,
+		RS    => LCD_RS
+		E     => LCD_E,
+		Data  => LCD_DB,
+		Line1_Buffer => top_line,
+		Line2_Buffer => bottom_line
+	);
+}

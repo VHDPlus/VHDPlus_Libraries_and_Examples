@@ -1,0 +1,435 @@
+/*
+    Name: Motor Controller
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 08.06.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy of 
+	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+	HDL Code without restriction, including without limitation the rights to use, 
+	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+	subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+	
+	Important:   -Motor_Encoder.vhdp and PWM.vhdp has to be added to your project too
+	             -Two dc motors with encoder are needed for this component
+	
+	Description: -This Component is build for two motors with encoder to drive an exact route
+	             -The motors correct the speed to drive streight
+				 -You can set the length to drive for each motor and the speed
+				 -While driving you get information about the driven length and the current speed
+	
+    Insertion:   -Right click on Motor_Controller.vhdp, Motor_Encoder.vhdp and PWM.vhdp -> Add to project
+			     -Add NewComponent of Motor_Controller in your code
+			     -Remove CLK_Frequency if you use a VHDP Core and no PLL
+			     -Remove or set the parameters (information next to the declaration)
+			     -Set Holes_In_Disk, Gear_Ratio and Wheel_Circumference to the values of your Motor to get the values in mm,
+			      otherwise Drive_L/R, Driven_L/R and Speed_L/R are in Encoder impules (per second), but you save Logic Elements.
+			      You can set the length to drive by writing Drive_L/R <= ([Length]*Wheel_Circumference)/(Holes_In_Disk*Gear_Ratio)
+			     -Add this to your Main IOs and connect them with the instance IOs and the Motor/Encoder Pins (modify the names if already in use)
+			      Encoder_L		: IN  STD_LOGIC;		--Encoder Input Left
+	              Encoder_R		: IN  STD_LOGIC;		--Encoder Input Right
+	
+	              Motor_LF		: OUT STD_LOGIC;		--Motor Left Forward   (1.1 if conntected with left motor)
+	              Motor_LB		: OUT STD_LOGIC;		--Motor Left Backward  (1.2)
+	              Motor_RF		: OUT STD_LOGIC;		--Motor Right Forward  (2.1)
+	              Motor_RB		: OUT STD_LOGIC;		--Motor Right Backward (2.2)
+			     -Right click the name Motor_Controller next to NewComponent and create the needed signals (Max_Length, Bits_Resolution and Length_Corr_Step in the declarations have to be replaced with the values you chose or you have to use a constant)
+	
+    Function:    1. Set DriveL/R to the length you want to drive in mm or use ([Length]*Wheel_Circumference)/(Holes_In_Disk*Gear_Ratio)
+	             2. Set the Speed with that you want to drive. For a Bits_Resolution of 8, you can set the speed to 0-255. The speed can be changed while driving.
+				 3. Enable has to be '1'
+				 4. Set RST_Drive to '1'. This resets the driven length.
+				 5. Set RST_Drive to '0' in the next cycle. Because the driven length is 0, the motor starts driving.
+				    Here an exampe on how to start the motor:
+					
+				    Drive_L   <= 1000; --1m
+				    Drive_R   <= 1000; --1m
+				    Speed     <= 220;
+				    RST_Drive <= '1';
+				    Step{ RST_Drive <= '0'; }
+					
+				 6. Wait until Finished is '1' and note that Error becomes '1' if a motor hasn't moved for the time defined by Max_Time
+				    Example:
+					
+					While (Finished = '0')
+					{
+					    If (Error = '1')
+						{
+						    Enable    <= '0';
+							Error_LED <= '1';
+						}
+					}
+	
+    Example:     Motor_Controller_Example
+*/
+
+Component Motor_Controller
+(
+	Generic
+	(
+		CLK_Frequency       : NATURAL := 12000000;   --system clock frequency in Hz
+      	PWM_Frequency       : NATURAL := 100000;     --PWM switching frequency in Hz
+      	Bits_Resolution 	: NATURAL := 8;          --bits of resolution setting the duty cycle
+      	
+		Holes_In_Disk 		: NATURAL := 1; 		 --Changes from Low to High for one turn (Holes in Encoder Disk or Poles)
+		Gear_Ratio			: NATURAL := 1; 		 --20 = 1:20 Gear ratio
+		Wheel_Circumference	: NATURAL := 1; 		 --Diameter*π in mm or the unit you want to use for the outputs
+		Time_Invert_Divider : NATURAL := 50;		 --This value decides how precisely the Controller corrects the speed (more info in Motor_Encoder)
+		Max_Time			: NATURAL := 1000000;	 --Max_Time/(Frequency/Time_Invert_Divider) max seconds between holes
+		Max_Length			: NATURAL := 10000;		 --10m if you use mm as unit
+		Error_Delay			: NATURAL := 500;		 --time Controller waits with outputting error and stopping motors at the beginning
+		
+		Correction_Step		: NATURAL := 1;			 --Speed added to correct motor speed each rising edge of encoder
+		Length_Corr_Step	: NATURAL := 25;		 --Speed added if Length_L and Length_R are Max_Length_Diff apart (will take Length_Corr_Step encoder edges to go back to normal speed) 
+		Max_Length_Diff		: NATURAL := 10;		 --If Length_L and Length_R are Max_Length_Diff apart Length_Corr_Step is added to speed to correct
+	);
+	Reset		    : IN  STD_LOGIC := '0';
+	
+	----------------I/Os----------------
+	Encoder_L		: IN  STD_LOGIC := '0';		--Encoder Input Left
+	Encoder_R		: IN  STD_LOGIC := '0';		--Encoder Input Right
+	
+	Motor_LF		: OUT STD_LOGIC := '0';		--Motor Left Forward   (1.1 if conntected with left motor)
+	Motor_LB		: OUT STD_LOGIC := '0';		--Motor Left Backward  (1.2)
+	Motor_RF		: OUT STD_LOGIC := '0';		--Motor Right Forward  (2.1)
+	Motor_RB		: OUT STD_LOGIC := '0';		--Motor Right Backward (2.2)
+	
+	----------------Motor Control----------------
+	Enable			: IN  STD_LOGIC := '1';		--Stops Motor on '0'
+	RST_Drive		: IN  STD_LOGIC := '0';		--Resets Driven Length to drive next Length
+	
+	Drive_L			: IN  INTEGER range (-1)*Max_Length to Max_Length := 0;	--Length to drive with left Motor in mm (when generic is correct)
+	Drive_R			: IN  INTEGER range (-1)*Max_Length to Max_Length := 0;	--Length to drive with right Motor in mm
+	
+	Drive_Speed		: IN  NATURAL range 0 to (2**Bits_Resolution)-1 := 0;	--Speed of both motors fom 0 to 2^Bits_Resolution
+	
+	----------------Evaluation----------------
+	Speed_L			: OUT NATURAL range 0 to Max_Length := 0;	--Left Speed If Holes_In_Disk, Gear_Ratio are correct and Wheel_Circumference is in mm -> mm/s
+	Speed_R			: OUT NATURAL range 0 to Max_Length := 0;	--Right Speed
+	
+	Driven_L		: OUT NATURAL range 0 to Max_Length := 0;	--Driven Length of Left Motor
+	Driven_R		: OUT NATURAL range 0 to Max_Length := 0;	--Driven Length of Right Motor
+	
+	Finished		: OUT STD_LOGIC := '0';						--'1' if finished driving
+	Error			: OUT STD_LOGIC := '0';						--'1' if one encoder has a period time of more than Max_Time but should turn (waits 250ms on start)
+	
+	Correction		: OUT INTEGER range ((-1)*(2**Bits_Resolution))-Length_Corr_Step to (2**Bits_Resolution)+Length_Corr_Step := 0;	--Negative = Left normaly runs faster, Positive = Right normaly is slowed down
+)
+{
+	AttributeDeclaration
+	{
+		SIGNAL Motor_Left_PWM		: STD_LOGIC := '0';
+		SIGNAL Motor_Left_Speed		: STD_LOGIC_VECTOR(Bits_Resolution-1 DOWNTO 0) := (others => '0');
+		SIGNAL Motor_Right_PWM		: STD_LOGIC := '0';
+		SIGNAL Motor_Right_Speed	: STD_LOGIC_VECTOR(Bits_Resolution-1 DOWNTO 0) := (others => '0');
+		
+		SIGNAL Length_RST			: STD_LOGIC := '0';
+		SIGNAL Length_Left			: NATURAL range 0 to Max_Length;
+		SIGNAL New_Length_Left		: STD_LOGIC := '0';
+		SIGNAL Length_Right			: NATURAL range 0 to Max_Length;
+		SIGNAL New_Length_Right		: STD_LOGIC := '0';
+		
+		SIGNAL Time_Left			: NATURAL range 0 to Max_Time;
+		SIGNAL Time_Right			: NATURAL range 0 to Max_Time;
+		
+		SIGNAL Correct				: STD_LOGIC := '0';		--If '1' corrects speed to have both motors run at same speed ('0' if only one motor runs)
+		SIGNAL Correction_Buf		: INTEGER range ((-1)*(2**Bits_Resolution))-Length_Corr_Step to (2**Bits_Resolution)+Length_Corr_Step := 0;
+	
+		SIGNAL Stop_Right			: STD_LOGIC := '0';
+		SIGNAL Stop_Left			: STD_LOGIC := '0';
+		
+		SIGNAL Error_Out			: STD_LOGIC := '0';
+	}
+	
+	Correction <= Correction_Buf;
+	Driven_L   <= Length_Left;
+	Driven_R   <= Length_Right;
+	Error      <= Error_Out;
+	
+	NewComponent Motor_Encoder 
+	(
+		CLK_Frequency		=> CLK_Frequency,
+		Holes_In_Disk       => Holes_In_Disk,
+		Gear_Ratio          => Gear_Ratio,
+		Wheel_Circumference => Wheel_Circumference,
+		Max_Length          => Max_Length,
+		Time_Invert_Divider => Time_Invert_Divider,
+		Max_Time            => Max_Time,
+		
+		Encoder_In          => Encoder_L,
+		Reset               => Reset,
+		Length_RST          => Length_RST,
+		Length              => Length_Left,
+		New_Length			=> New_Length_Left,
+		Time                => Time_Left,
+		Speed				=> Speed_L,
+	);
+	
+	NewComponent Motor_Encoder 
+	(
+		CLK_Frequency		=> CLK_Frequency,
+		Holes_In_Disk       => Holes_In_Disk,
+		Gear_Ratio          => Gear_Ratio,
+		Wheel_Circumference => Wheel_Circumference,
+		Max_Length          => Max_Length,
+		Time_Invert_Divider => Time_Invert_Divider,
+		Max_Time            => Max_Time,
+		
+		Encoder_In          => Encoder_R,
+		Reset               => Reset,
+		Length_RST          => Length_RST,
+		Length              => Length_Right,
+		New_Length			=> New_Length_Right,
+		Time                => Time_Right,
+		Speed				=> Speed_R,
+	);
+	
+	NewComponent PWM_Generator 
+	(
+		CLK_Frequency   => CLK_Frequency,
+		PWM_Frequency   => PWM_Frequency,
+		Bits_Resolution => Bits_Resolution,
+		Phases          => 1,
+		
+		Reset           => Reset,
+		Enable          => '1',
+		Duty            => Motor_Left_Speed,
+		PWM_Out(0)      => Motor_Left_PWM,
+	);
+	
+	NewComponent PWM_Generator 
+	(
+		CLK_Frequency   => CLK_Frequency,
+		PWM_Frequency   => PWM_Frequency,
+		Bits_Resolution => Bits_Resolution,
+		Phases          => 1,
+		
+		Reset           => Reset,
+		Enable          => '1',
+		Duty            => Motor_Right_Speed,
+		PWM_Out(0)      => Motor_Right_PWM,
+	);
+	
+	Process Speed_Controller ()
+	{
+		If(Correct = '1' AND Reset = '0') --Checks if Speed should be synchronized
+		{
+			If(New_Length_Left = '1' OR New_Length_Right = '1')		--Checks if new Time is available
+			{
+				If(Time_Left < Time_Right AND Correction_Buf > (-1)*(2**Bits_Resolution))	--Left is faster
+				{
+					Correction_Buf <= Correction_Buf - Correction_Step;			--slows left down
+				}
+				Elsif(Time_Right < Time_Left AND Correction_Buf < (2**Bits_Resolution))		--Left is slower
+				{
+					Correction_Buf <= Correction_Buf + Correction_Step;			--slows right down
+				}
+			}
+			Elsif(abs(Length_Left-Length_Right) > Max_Length_Diff)				--Driven Length is more than Max_Length_Diff apart
+			{
+				If(Length_Left-Length_Right > Max_Length_Diff)					--Left driven more than right
+				{
+					If(Stop_Left = '0')
+					{
+						Correction_Buf <= Correction_Buf - Length_Corr_Step;	--slows left down
+					}
+					Stop_Left  <= '1';
+					Stop_Right <= '0';
+				}
+				Else
+				{
+					If(Stop_Right = '0')
+					{
+						Correction_Buf <= Correction_Buf + Length_Corr_Step;
+					}
+					Stop_Left  <= '0';
+					Stop_Right <= '1';
+				}
+			}
+			Elsif(Stop_Left = '1' AND Length_Left <= Length_Right)				--until length correct again
+			{
+				Stop_Left  <= '0';
+			}
+			Elsif(Stop_Right = '1' AND Length_Right <= Length_Left)
+			{
+				Stop_Right  <= '0';
+			}
+		}
+	}
+	
+	Process Drive_Controller 
+	(
+		VARIABLE start_count	: NATURAL range 0 to Error_Delay*(CLK_Frequency/1000) := 0;
+		VARIABLE problem_side	: NATURAL := 0;     --1 = left 2 = right
+		VARIABLE l_stop			: STD_LOGIC := '0'; --0 = driving, 1 = finished
+		VARIABLE r_stop			: STD_LOGIC := '0'; --0 = driving, 1 = finished
+	)
+	{
+		If(Reset = '1' OR RST_Drive = '1')
+		{
+			Length_RST  <= '1';
+			Motor_LF    <= '0';
+			Motor_LB    <= '0';
+			Motor_RF    <= '0';
+			Motor_RB    <= '0';
+			l_stop      := '0';
+			r_stop      := '0';
+			Correct     <= '0';
+			Finished    <= '1';
+			Error_Out   <= '0';
+			start_count := 0;
+			problem_side := 0;
+		}
+		Else
+		{
+			Length_RST <= '0';
+			
+			If(abs(Drive_L) > Length_Left OR abs(Drive_R) > Length_Right)	--Checks if finished route
+			{
+				Finished   <= '0';
+			}
+			Else
+			{
+				Finished   <= '1';
+			}
+			
+			--Outputs error if start time over, a motor doesn't turn and the motor isn't ready with the route
+			If(Error_Out = '0' AND start_count = Error_Delay*(CLK_Frequency/1000))
+			{
+				problem_side := 0;
+				If(Time_Right = Max_Time AND abs(Drive_R) > Length_Right)
+				{
+					problem_side := 2;
+				}
+				Elsif(Time_Left = Max_Time AND abs(Drive_L) > Length_Left)
+				{
+					problem_side := 1;
+				}
+				
+				If(problem_side > 0)
+				{
+					Error_Out  	<= '1';
+				}
+			}
+			Elsif (Error_Out = '1' AND ((Time_Right < Max_Time AND problem_side = 2) OR (Time_Left < Max_Time AND problem_side = 2)))
+			{
+				Error_Out    <= '0';
+				problem_side := 0;
+				start_count  := 0;	--starts start time after error reset
+			}
+			
+			If(Enable = '1')
+			{
+				If(start_count < Error_Delay*(CLK_Frequency/1000))
+				{
+					start_count := start_count + 1;
+				}
+				
+				--Isn't ready with route and the other motor turns (doesn't stop effected motor to see if problem fixed)
+				If(abs(Drive_L) > Length_Left AND (Error_Out = '0' OR problem_side = 1))
+				{				
+					If(Drive_Speed+Correction_Buf > (2**Bits_Resolution)-1)		--Check if Speed with Correction is out of range
+					{
+						Motor_Left_Speed	<= (others => '1');
+					}
+					Elsif(Drive_Speed+Correction_Buf < 0)
+					{
+						Motor_Left_Speed	<= (others => '0');
+					}
+					Else
+					{
+						Motor_Left_Speed	<= STD_LOGIC_VECTOR(TO_SIGNED(Drive_Speed+Correction_Buf, Bits_Resolution));
+					}
+					
+					If(Drive_L > 0)						--should go forward
+					{
+						Motor_LB <= '0';
+						Motor_LF <= Motor_Left_PWM;		--outputs pwm on forward output
+					}
+					Else								--should go backward
+					{
+						Motor_LF <= '0';
+						Motor_LB <= Motor_Left_PWM;		--outputs pwm on backward output
+					}
+					
+					l_stop := '0';
+				}
+				Else
+				{
+					Motor_Left_Speed 	<= (others => '0');	--otherwise stops motor
+					Motor_LF   			<= '0';
+					Motor_LB   			<= '0';
+					l_stop              := '1';
+				}
+				
+				If(abs(Drive_R) > Length_Right AND (Error_Out = '0' OR problem_side = 2))	--same as for left motor
+				{
+					If(Drive_Speed-Correction_Buf > (2**Bits_Resolution)-1)
+					{
+						Motor_Right_Speed	<= (others => '1');
+					}
+					Elsif(Drive_Speed-Correction_Buf < 0)
+					{
+						Motor_Right_Speed	<= (others => '0');
+					}
+					Else
+					{
+						Motor_Right_Speed	<= STD_LOGIC_VECTOR(TO_SIGNED(Drive_Speed-Correction_Buf, Bits_Resolution));
+					}
+					
+					If(Drive_R > 0)
+					{
+						Motor_RB <= '0';
+						Motor_RF <= Motor_Right_PWM;
+					}
+					Else
+					{
+						Motor_RF <= '0';
+						Motor_RB <= Motor_Right_PWM;
+					}
+					
+					r_stop := '0';
+				}
+				Else
+				{
+					Motor_Right_Speed 	<= (others => '0');
+					Motor_RF   			<= '0';
+					Motor_RB   			<= '0';
+					r_stop              := '1';
+				}
+				
+				If(r_stop = '0' AND l_stop = '0')		--if both motors are running the direction correction runs
+				{
+					Correct <= '1';
+				}
+				Else
+				{
+					Correct <= '0';
+				}
+			}
+			Else
+			{
+				start_count := 0;
+				problem_side := 0;
+				Error_Out   <= '0';
+				Correct 	<= '0';
+				Motor_LF   	<= '0';
+				Motor_LB   	<= '0';
+				Motor_RF   	<= '0';
+				Motor_RB   	<= '0';
+			}
+		}
+	}
+}
