@@ -1,0 +1,115 @@
+﻿/*
+    Name: SPI Example
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 07.06.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy of 
+	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+	HDL Code without restriction, including without limitation the rights to use, 
+	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+	subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+*/
+
+Main
+(
+	MISO		: IN  STD_LOGIC;
+	SCLK		: OUT STD_LOGIC;
+	SS			: OUT STD_LOGIC;
+	MOSI		: OUT STD_LOGIC;
+	
+	BTN			: IN  STD_LOGIC;
+	LED			: OUT STD_LOGIC_VECTOR(7 downto 0);
+)
+{
+	CONSTANT max_bytes            : NATURAL := 8;
+	CONSTANT max_bits             : NATURAL := 8;
+	
+	SIGNAL SPI_Interface_TX_Data  : STD_LOGIC_VECTOR (max_bits-1 downto 0);
+	SIGNAL SPI_Interface_Enable   : STD_LOGIC := '0';
+	SIGNAL SPI_Interface_Busy     : STD_LOGIC;
+	SIGNAL SPI_Interface_RX_Data  : STD_LOGIC_VECTOR (max_bits-1 downto 0);
+	
+	TYPE SPI_Data_Array IS ARRAY (max_bytes-1 downto 0) OF STD_LOGIC_VECTOR(max_bits-1 downto 0);
+	SIGNAL SPI_TX_Data : SPI_Data_Array := ( x"12", x"34", x"45", x"67", x"89", x"AB", x"CD", x"EF" );
+	SIGNAL SPI_RX_Data : SPI_Data_Array := (others => (others => '0'));
+	
+	NewComponent SPI_Master 
+	(
+		CLK_Frequency => 12000000,
+		SPI_CLK       => 1000000,
+		Bits          => max_bits,
+		CPol          => '1',
+		CPha          => '1',
+
+		Reset         => '0',
+		MISO          => MISO,
+		SCLK          => SCLK,
+		SS            => SS,
+		MOSI          => MOSI,
+		TX_Data       => SPI_Interface_TX_Data,
+		Enable        => SPI_Interface_Enable,
+		Cont          => '0',
+		Busy          => SPI_Interface_Busy,
+		RX_Data       => SPI_Interface_RX_Data,
+	);
+	
+	Process 
+	(
+		VARIABLE btn_prev : STD_LOGIC := '0';
+		VARIABLE byte	  : NATURAL range 0 to max_bits := 0;
+		VARIABLE start    : STD_LOGIC := '0';
+		VARIABLE new_byte : STD_LOGIC := '0';
+	)
+	{
+		led <= SPI_Interface_RX_Data;
+		
+		If(btn = '0' AND btn_prev = '1' AND start = '0')		--sets start to '1' if button pressed
+		{
+			start := '1';
+			byte  := 0;
+		}
+		btn_prev := btn;
+		
+		If(start = '1')			                --starts transmitting byte
+		{
+			If(SPI_Interface_Busy = '0')		--transmitting finished
+			{
+				If(byte < max_bytes)			--starts next transmission
+				{
+					SPI_Interface_TX_Data <= SPI_TX_Data(byte);
+					SPI_Interface_Enable  <= '1';
+				}
+				Else							--ends transmission if all bytes transmitted
+				{
+					start := '0';
+				}
+				
+				If(byte > 0)					--saves received data
+				{
+					SPI_RX_Data(byte-1) 	  <= SPI_Interface_RX_Data;
+				}
+				
+				new_byte := '1';
+			}
+			Elsif (new_byte = '1')				--sets enable to '0' when transmission started
+			{
+				SPI_Interface_Enable  <= '0';
+				byte 	 := byte + 1;
+				new_byte := '0';
+			}
+		}
+	}
+}

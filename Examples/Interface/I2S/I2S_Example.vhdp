@@ -1,0 +1,87 @@
+﻿/*
+    Name: I2S Example
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 22.08.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy of 
+	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+	HDL Code without restriction, including without limitation the rights to use, 
+	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+	subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+*/
+
+Main
+(
+	LRCLK_IN  : OUT STD_LOGIC;
+	BCLK_IN   : OUT STD_LOGIC;
+	Data_IN   : IN  STD_LOGIC;
+	
+	LRCLK_OUT : IN  STD_LOGIC;
+	BCLK_OUT  : IN  STD_LOGIC;
+	Data_OUT  : OUT  STD_LOGIC;
+	
+	LED       : OUT STD_LOGIC_VECTOR(7 downto 0);
+)
+{
+	SIGNAL I2S_Interface_OUT_Data_L      : STD_LOGIC_VECTOR (23 downto 0);
+	SIGNAL I2S_Interface_OUT_Data_R      : STD_LOGIC_VECTOR (23 downto 0);
+	SIGNAL I2S_Interface_OUT_Ready       : STD_LOGIC;
+	
+	SIGNAL I2S_Interface_IN_Data_L       : STD_LOGIC_VECTOR (17 downto 0);
+	SIGNAL I2S_Interface_IN_Data_R       : STD_LOGIC_VECTOR (17 downto 0);
+	SIGNAL I2S_Interface_IN_Ready        : STD_LOGIC;
+	
+	NewComponent I2S_Interface_IN 
+	(
+		CLK_Frequency      => 12000000,
+		Sampling_Frequency => 48000,
+		Data_Width         => 18,
+		Sample_Bits        => 32,
+		BCLK_Edge          => '1',
+
+		LRCLK              => LRCLK_IN,
+		BCLK               => BCLK_IN,
+		Data               => Data_IN,
+		Data_L             => I2S_Interface_IN_Data_L,
+		Data_R             => I2S_Interface_IN_Data_R,
+		Ready              => I2S_Interface_IN_Ready,
+	);
+	
+	NewComponent I2S_Interface_OUT 
+	(
+		Data_Width  => 24,
+		Sample_Bits => 32,
+		BCLK_Edge   => '0',
+
+		LRCLK       => LRCLK_OUT,
+		BCLK        => BCLK_OUT,
+		Data        => Data_OUT,
+		Data_L      => I2S_Interface_OUT_Data_L,
+		Data_R      => I2S_Interface_OUT_Data_R,
+		Ready       => I2S_Interface_OUT_Ready,
+	);
+	
+	Process ()
+	{
+		I2S_Interface_OUT_Data_L(23 downto 6) <= I2S_Interface_IN_Data_L;
+		I2S_Interface_OUT_Data_R(23 downto 6) <= I2S_Interface_IN_Data_R;
+		
+		If(I2S_Interface_IN_Ready = '1')
+		{
+			led <= I2S_Interface_IN_Data_L(17 downto 10);
+		}
+	}
+}
