@@ -1,0 +1,82 @@
+﻿/*
+    Name: Frequency Divider
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 06.06.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy of 
+	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+	HDL Code without restriction, including without limitation the rights to use, 
+	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+	subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+    Insertion: -Right click on Frequency_Divider.vhdp -> Add to project
+			   -Add NewComponent of Frequency_Divider in your code
+			   -Set Divide depending on the needed frequency
+			   -Remove Impuls so you can use CLK_Out like this: If(CLK_Out) { ... }
+			    or set Impuls to '0' for a normal square wave signal
+			   -Right click the name Frequency_Divider next to NewComponent and create the signal for CLK_Out
+	
+    Example:   Frequency_Divider_Example
+*/
+
+Component Frequency_Divider
+(
+	Generic
+	(
+		Divider		: NATURAL := 2;			--12MHz/2 = 6MHz
+		Impuls		: STD_LOGIC := '1';		--'1' = Only one 12MHz cycle '1', '0' = half '1' half '0'
+	);
+	CLK_Out		: OUT STD_LOGIC := '0';
+)
+{
+	Process 
+	(
+		VARIABLE div_count	: NATURAL range 0 to Divider-1 := 0;
+	)
+	{
+		If(div_count < Divider-1)
+		{
+			div_count := div_count + 1;
+		}
+		Else
+		{
+			div_count := 0;
+		}
+		
+		If(Impuls = '1')
+		{
+			If(div_count = 0)
+			{
+				CLK_Out <= '1';
+			}
+			Else
+			{
+				CLK_Out <= '0';
+			}
+		}
+		Else
+		{
+			If(div_count < Divider/2)
+			{
+				CLK_Out <= '1';
+			}
+			Else
+			{
+				CLK_Out <= '0';
+			}
+		}
+	}
+}

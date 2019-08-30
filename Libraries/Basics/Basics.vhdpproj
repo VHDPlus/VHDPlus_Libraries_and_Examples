@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Path />
+  <Items xsi:type="ProjectFolder">
+    <Path>Converter</Path>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>Converter\BinaryToBcd.vhdp</Path>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>Converter\BinaryToBcdDigit.vhdp</Path>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>Converter\IntToString.vhdp</Path>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Path>Memory</Path>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>Memory\Single-Port_RAM.vhdp</Path>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Path>ISSP</Path>
+    <Items xsi:type="ProjectFile">
+      <Path>ISSP\ISSP.qsys</Path>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>ISSP\ISSP.qsys.vhdp</Path>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Path>PLL</Path>
+    <Items xsi:type="ProjectFile">
+      <Path>PLL\PLL.qip</Path>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>PLL\PLL.qsys.vhdp</Path>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Path>PLL\PLL.vhd</Path>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Path>Frequency_Divider.vhdp</Path>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Path>Input_Debouncer.vhdp</Path>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Path>Input_Synchronizer.vhdp</Path>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Path>PWM.vhdp</Path>
+  </Items>
+</ProjectRoot>
