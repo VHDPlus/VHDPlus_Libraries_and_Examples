@@ -1,0 +1,42 @@
+/*
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of 
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+    HDL Code without restriction, including without limitation the rights to use, 
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important: -You need to add ISSP.qsys too
+               -To set the number of sources and probes, open ISSP.qsys in the Project Explorer and change the number in the editor
+               -If you changed the number of sources, change the 7 to the new number of sources - 1
+               -If you changed the number of probes, change the 31 to the new number of probes - 1
+    
+    Insertion: -Right click on ISSP.qsys.vhdp -> Add to project
+               -Right click on ISSP.qsys -> Add to project
+               -Add NewComponent of PLL in your code
+               -Right click the name PLL next to NewComponent and create the needed signal
+    
+    Function:  Allows to debug your code while running 
+               With probe you can check values of variables
+               With source you can set a signal to trigger a code part
+*/
+
+Component ISSP
+(
+    source : out std_logic_vector(7 downto 0);                      -- source
+    probe  : in  std_logic_vector(31 downto 0)  := (others => 'X'); -- probe
+)
+{
+}
