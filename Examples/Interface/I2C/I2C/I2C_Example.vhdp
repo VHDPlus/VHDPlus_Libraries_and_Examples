@@ -1,0 +1,113 @@
+﻿/*
+    Name: I2C Example
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 07.06.2019
+
+	This file is a derivation of the implementation found at: https://www.digikey.com/eewiki/pages/viewpage.action?pageId=10125324
+*/
+
+Main
+(
+	SDA       : INOUT  STD_LOGIC;                    --serial data output of i2c bus
+    SCL       : INOUT  STD_LOGIC;                    --serial clock output of i2c bus
+    
+    LED		  : OUT    STD_LOGIC_VECTOR (7 downto 0) := (others => '0');
+	BTN		  : IN	   STD_LOGIC;
+)
+{
+	AttributeDeclaration
+	{
+		SIGNAL i2c_ena       : STD_LOGIC;
+		SIGNAL i2c_addr      : STD_LOGIC_VECTOR (6 DOWNTO 0);
+		SIGNAL i2c_rw        : STD_LOGIC;
+		SIGNAL i2c_data_wr   : STD_LOGIC_VECTOR (7 DOWNTO 0);
+		SIGNAL i2c_busy      : STD_LOGIC;
+		SIGNAL i2c_data_rd   : STD_LOGIC_VECTOR (7 DOWNTO 0);
+		SIGNAL i2c_ack_error : STD_LOGIC;
+		
+		SIGNAL busy_cnt      : NATURAL range 0 to 4 := 0;
+		SIGNAL get_data      : STD_LOGIC := '0';
+		SIGNAL busy_prev	 : STD_LOGIC := '0';
+	}
+	
+	NewComponent I2C_Master_Interface 
+	(
+		CLK_Frequency => 12000000,
+		Bus_CLK       => 400000,
+
+		Reset         => '0',
+		Enable        => i2c_ena,
+		Address       => i2c_addr,
+		RW            => i2c_rw,
+		Data_WR       => i2c_data_wr,
+		Busy          => i2c_busy,
+		Data_RD       => i2c_data_rd,
+		Ack_Error     => i2c_ack_error,
+		SDA           => SDA,
+		SCL           => SCL
+	);
+	
+	Process 
+	(
+		VARIABLE btn_prev  : STD_LOGIC := '0';
+	)
+	{
+		If(btn_prev = '0' AND btn = '1')		--button pressed
+		{
+			get_data <= '1';
+		}
+		btn_prev := btn;
+		
+		If(get_data = '1')
+		{
+			busy_prev <= i2c_busy;
+			If(busy_prev = '0' AND i2c_busy = '1')   --busy rising edge
+			{
+				busy_cnt <= busy_cnt + 1;            --counts the times busy has gone from low to high during transaction
+			}
+			
+			Case(busy_cnt)
+			{
+				When(0)                              --no command latched in yet
+				{
+					i2c_ena <= '1';                  --initiate the transaction
+      				i2c_addr <= "1110111";           --set the address of the slave
+      				i2c_rw <= '0';                   --command 1 is a write
+      				i2c_data_wr <= "01000100";       --data to be written
+      				If(i2c_busy = '1')
+					{
+						busy_cnt <= 1;
+					}
+				}
+				When(1)                              --1st busy high: command 1 latched, okay to issue command 2
+				{
+					i2c_rw <= '1';                   --command 2 is a read (addr stays the same)
+				}
+				When(2)                              --2nd busy high: command 2 latched, okay to issue command 3
+				{
+					i2c_rw <= '0';                   --command 3 is a write
+      				i2c_data_wr <= "00100110";       --data to be written
+      				If(i2c_busy = '0')
+					{
+						led <= i2c_data_rd;          --retrieve data from command 2
+					}
+				}
+				When(3)                              --3rd busy high: command 3 latched, okay to issue command 4
+				{
+					i2c_rw <= '1';                   --command 4 is read (addr stays the same)
+				}
+				When(4)                              --4th busy high: command 4 latched, ready to stop
+				{
+					i2c_ena <= '0';                  --deassert enable to stop transaction after command 4
+					If(i2c_busy = '0')
+					{
+						led <= i2c_data_rd;          --retrieve data from command 4
+        				busy_cnt <= 0;               --reset busy_cnt for next transaction
+						get_data <= '0';
+					}
+				}
+			}
+		}
+	}
+}

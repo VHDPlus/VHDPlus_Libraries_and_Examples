@@ -1,0 +1,77 @@
+﻿/*
+    Name: I2C Array Example
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 05.08.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy of 
+	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+	HDL Code without restriction, including without limitation the rights to use, 
+	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+	subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+*/
+
+Main
+(
+	SDA       : INOUT  STD_LOGIC;                    --serial data output of i2c bus
+    SCL       : INOUT  STD_LOGIC;                    --serial clock output of i2c bus
+    
+    LED 	  : OUT    STD_LOGIC_VECTOR (7 downto 0) := (others => '0');
+	BTN		  : IN	   STD_LOGIC;
+)
+{
+	SIGNAL i2c_ena       : STD_LOGIC;
+	SIGNAL i2c_addr      : STD_LOGIC_VECTOR (6 DOWNTO 0);
+	SIGNAL i2c_rw        : STD_LOGIC;
+	SIGNAL i2c_wr_bytes  : NATURAL range 0 to 3;
+	SIGNAL i2c_data_wr   : I2C_Data_Array(2 downto 0);
+	SIGNAL i2c_busy      : STD_LOGIC;
+	SIGNAL i2c_rd_bytes  : NATURAL range 0 to 3;
+	SIGNAL i2c_data_rd   : I2C_Data_Array(2 downto 0);
+	SIGNAL i2c_ack_error : STD_LOGIC;
+	
+	SIGNAL busy_cnt      : NATURAL range 0 to 4 := 0;
+	SIGNAL get_data      : STD_LOGIC := '0';
+	SIGNAL busy_prev	 : STD_LOGIC := '0';
+	
+	NewComponent I2C_Array 
+	(
+		CLK_Frequency => 12000000,
+		Bus_CLK       => 400000,
+		Max_Bytes     => 3,
+
+		Reset         => '0',
+		Enable        => i2c_ena,
+		Address       => i2c_addr,
+		WR_Bytes      => i2c_wr_bytes,
+		Data_WR       => i2c_data_wr,
+		Busy          => i2c_busy,
+		RD_Bytes      => i2c_rd_bytes,
+		Data_RD       => i2c_data_rd,
+		Ack_Error     => i2c_ack_error,
+		SDA           => SDA,
+		SCL           => SCL,
+	);
+	
+	Process ()
+	{
+		i2c_ena         <= btn;
+		i2c_addr        <= "1110111";
+		i2c_data_wr(0)  <= "00100110";
+		i2c_data_wr(1)  <= "10001010";
+		i2c_wr_bytes    <= 2;
+		i2c_rd_bytes    <= 2;
+	}
+}
