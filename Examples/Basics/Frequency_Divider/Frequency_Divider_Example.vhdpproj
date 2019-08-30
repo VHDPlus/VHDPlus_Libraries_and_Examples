@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<ArrayOfProjectEntry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <ProjectEntry xsi:type="ProjectFile">
+    <Path>\Frequency_Divider.vhdp</Path>
+    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Basics\Frequency_Divider\Example</ProjectPath>
+    <IsExpanded>true</IsExpanded>
+  </ProjectEntry>
+  <ProjectEntry xsi:type="ProjectFile">
+    <Path>Frequency_Divider_Example.vhdp</Path>
+    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Basics\Frequency_Divider\Example</ProjectPath>
+    <IsExpanded>true</IsExpanded>
+  </ProjectEntry>
+</ArrayOfProjectEntry>

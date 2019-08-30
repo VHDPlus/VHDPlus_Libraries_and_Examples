@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<ArrayOfProjectEntry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <ProjectEntry xsi:type="ProjectFolder">
+    <Path>Generated</Path>
+    <IsExpanded>false</IsExpanded>
+    <Items xsi:type="ProjectFile">
+      <Path>Generated\BinaryToBcd.vhd</Path>
+      <IsExpanded>false</IsExpanded>
+      <Saved>true</Saved>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Path>Generated\BinaryToBcdDigit.vhd</Path>
+      <IsExpanded>false</IsExpanded>
+      <Saved>true</Saved>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Path>Generated\IntTostring.vhd</Path>
+      <IsExpanded>false</IsExpanded>
+      <Saved>true</Saved>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Path>Generated\IntToString_Example.vhd</Path>
+      <IsExpanded>false</IsExpanded>
+      <Saved>true</Saved>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Path>Generated\LCD_Controller.vhd</Path>
+      <IsExpanded>false</IsExpanded>
+      <Saved>true</Saved>
+    </Items>
+  </ProjectEntry>
+  <ProjectEntry xsi:type="ProjectFile">
+    <Path>BinaryToBcd.vhdp</Path>
+    <IsExpanded>false</IsExpanded>
+    <Saved>true</Saved>
+  </ProjectEntry>
+  <ProjectEntry xsi:type="ProjectFile">
+    <Path>BinaryToBcdDigit.vhdp</Path>
+    <IsExpanded>true</IsExpanded>
+    <Saved>true</Saved>
+  </ProjectEntry>
+  <ProjectEntry xsi:type="ProjectFile">
+    <Path>IntToString.vhdp</Path>
+    <IsExpanded>false</IsExpanded>
+    <Saved>true</Saved>
+  </ProjectEntry>
+  <ProjectEntry xsi:type="ProjectFile">
+    <Path>IntToString_Example.vhdp</Path>
+    <IsExpanded>true</IsExpanded>
+    <Saved>false</Saved>
+  </ProjectEntry>
+  <ProjectEntry xsi:type="ProjectFile">
+    <Path>LCD.vhdp</Path>
+    <IsExpanded>true</IsExpanded>
+    <Saved>true</Saved>
+  </ProjectEntry>
+</ArrayOfProjectEntry>

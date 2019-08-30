@@ -1,0 +1,67 @@
+﻿/*
+    Name: PWM Example
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 05.08.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy of 
+	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+	HDL Code without restriction, including without limitation the rights to use, 
+	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+	subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+*/
+
+Main
+(
+	LED : OUT STD_LOGIC := '0';
+)
+{
+	SIGNAL PWM_Generator_Duty            : STD_LOGIC_VECTOR (7 DOWNTO 0);
+	SIGNAL PWM_Generator_PWM_Out         : STD_LOGIC;
+	
+	NewComponent PWM_Generator 
+	(
+		CLK_Frequency   => 12000000,
+		PWM_Frequency   => 100000,
+		Bits_Resolution => 8,
+		Phases          => 1,
+
+		Reset           => '0',
+		Duty            => PWM_Generator_Duty,
+		PWM_Out(0)      => PWM_Generator_PWM_Out,
+	);
+	
+	LED <= PWM_Generator_PWM_Out;
+	
+	Process ()
+	{
+		Thread
+		{
+			VARIABLE count : NATURAL range 0 to 255 := 0;
+			While(count < 255)
+			{
+				count := count + 1;
+				PWM_Generator_Duty <= STD_LOGIC_VECTOR(TO_UNSIGNED(count, 8));
+				Wait(48000); --4ms
+			}
+			While(count > 0)
+			{
+				count := count - 1;
+				PWM_Generator_Duty <= STD_LOGIC_VECTOR(TO_UNSIGNED(count, 8));
+				Wait(48000); --4ms
+			}
+		}
+	}
+}

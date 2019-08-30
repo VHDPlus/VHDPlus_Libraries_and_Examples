@@ -1,0 +1,42 @@
+/*
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of 
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+    HDL Code without restriction, including without limitation the rights to use, 
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important: -You need to add PLL.qip and PLL.vhd too
+               -To set the output frequency, open PLL.qip in the Project Explorer and click next until you can set the frequency
+    
+    Insertion: -Right click on PLL.qsys.vhdp -> Add to project
+               -Right click on PLL.qip -> Add to project
+               -Right click on PLL.vhd -> Add to project
+               -Add NewComponent of PLL in your code
+               -Connect inclk0 with CLK (inclk0 => CLK,)
+               -Right click the name PLL next to NewComponent and create the needed signal
+    
+    Function:  Outputs a signal with a given frequency (can be higher than CLK)
+*/
+
+Component PLL
+(
+    
+    inclk0    : IN STD_LOGIC  := '0';
+    c0        : OUT STD_LOGIC 
+    
+)
+{
+}
