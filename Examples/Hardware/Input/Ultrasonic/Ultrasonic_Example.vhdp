@@ -1,0 +1,80 @@
+﻿/*
+    Name: Ultrasonic Example
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 06.06.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy of 
+	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+	HDL Code without restriction, including without limitation the rights to use, 
+	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+	subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+*/
+
+Main
+(
+	US_Trigger : OUT STD_LOGIC := '0';
+	US_Echo	   : IN  STD_LOGIC := '0';
+	
+	led		   : OUT STD_LOGIC_VECTOR (7 downto 0) := (others => '0');
+)
+{
+	SIGNAL Ultrasonic_Controller_Dist             : NATURAL   range 0 to 1000;
+	
+	NewComponent Ultrasonic_Controller 
+	(
+		Update_Frequency => 15,
+		Trigger          => US_Trigger,
+		Echo             => US_Echo,
+		Dist             => Ultrasonic_Controller_Dist,
+	);
+	
+	Process ()
+	{
+		led <= (others => '0'); 
+		If(Ultrasonic_Controller_Dist > 10)   --led 0 on if >10cm
+		{
+			led(0) <= '1';
+		}
+		If(Ultrasonic_Controller_Dist > 20)   --led 1 on if >20cm
+		{
+			led(1) <= '1';
+		}
+		If(Ultrasonic_Controller_Dist > 30)   --...
+		{
+			led(2) <= '1';
+		}
+		If(Ultrasonic_Controller_Dist > 40)
+		{
+			led(3) <= '1';
+		}
+		If(Ultrasonic_Controller_Dist > 50)
+		{
+			led(4) <= '1';
+		}
+		If(Ultrasonic_Controller_Dist > 60)
+		{
+			led(5) <= '1';
+		}
+		If(Ultrasonic_Controller_Dist > 70)
+		{
+			led(6) <= '1';
+		}
+		If(Ultrasonic_Controller_Dist > 80)
+		{
+			led(7) <= '1';
+		}
+	}
+}

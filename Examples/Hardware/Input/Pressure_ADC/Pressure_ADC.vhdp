@@ -1,0 +1,164 @@
+/*
+    Name: Pressure ADC
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 06.08.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of 
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+    HDL Code without restriction, including without limitation the rights to use, 
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important: -This component is made for the HX711 ADC
+               -Update_Frequency must not be larger than 10Hz (if pin 15 is low). We recommend a value of 5000 or smaler.
+    
+    Insertion: -Right click on Pressure_ADC.vhdp -> Add to project
+               -Add NewComponent of Pressure_ADC in your code
+               -Remove CLK_Frequency if you use a VHDP Core and no PLL
+               -Remove or set the parameters (information next to the declaration)
+               -Remove Reset or connect it to a signal or input
+               -Remove Enable to update the values automatically or connect it to a signal or input
+               -Add this to your Main IOs and connect them with the instance I/Os and the ADC I/Os (modify the names if already in use)
+                SCK   : OUT STD_LOGIC;
+                DOUT  : IN  STD_LOGIC;
+               -Right click the name Pressure_ADC next to NewComponent and create the needed signal
+    
+    Function:  Without Enable:
+                -Remove Enable or set it to '1'
+                -The Data output is updated with the given update frequency
+               With Enable:
+                -Set Enable to '1'
+                -Wait until Busy changes to '0'
+                -Read the Data value
+    
+    Example:   Pressure_ADC_Example
+*/
+
+Component Pressure_ADC
+(
+    Generic
+    (
+        CLK_Frequency    : NATURAL := 12000000;      --system clock
+        SCK_Frequency    : NATURAL := 500000;        --500khz = 1µs on 1µs off
+        Update_Frequency : NATURAL := 5000;          --Update Frequency/1000 -> 5000 = every 200ms -> or use enable
+        Resolution       : NATURAL := 24;            --ADC resolution
+    );
+    Reset     : IN  STD_LOGIC := '0';            --Active High Reset
+    
+    SCK       : OUT STD_LOGIC := '1';            --SCK Output for HX711 or similar ICs
+    DOUT      : IN  STD_LOGIC := '0';            --DOUT Input form HX711
+    
+    Enable    : IN  STD_LOGIC := '1';            --High to read Data -> every edge or with frequency if stays high
+    Busy      : OUT STD_LOGIC := '0';            --'1' if reading data
+    Data      : OUT STD_LOGIC_VECTOR (Resolution-1 downto 0) := (others => '0');    --Received Data
+)
+{
+    AttributeDeclaration
+    {
+        SIGNAL OUT_DATA        : STD_LOGIC_VECTOR  (Resolution-1 downto 0);
+        SIGNAL OUT_SCK         : STD_LOGIC := '0';
+        SIGNAL OUT_Busy        : STD_LOGIC := '0';
+        SIGNAL RD_Trig         : STD_LOGIC := '0';
+        SIGNAL Bit_Count       : NATURAL range 0 to Resolution := 0;
+    }
+
+    SCK   <= OUT_SCK;
+    Busy  <= OUT_Busy;
+    
+    Process Read_Process ()
+    {
+        If(Reset = '1')
+        {
+            OUT_Data <= (others => '0');
+            Data     <= (others => '0');
+        }
+        Else
+        {
+            If(RD_Trig = '1')                                    --Ready Data on falling edge
+            {
+                OUT_Data(Resolution-Bit_Count) <= DOUT;
+            }
+            
+            If(OUT_Busy = '0')                                   --Updates Output if all Bits are read in
+            {
+                Data <= OUT_Data;
+            }
+        }
+    }
+    
+    Process SCK_Generator 
+    (
+        VARIABLE update_cnt     : NATURAL range 0 to CLK_Frequency/Update_Frequency := 0;
+        VARIABLE div_cnt        : NATURAL range 0 to 1000 := 0;
+        VARIABLE cnt            : NATURAL range 0 to (CLK_Frequency/SCK_Frequency)/2 := 0;
+    )
+    {
+        If(Reset = '1' OR (Enable = '0' AND Bit_Count < Resolution))  --Resets all signals
+        {
+            update_cnt := 0;    
+            div_cnt    := 0;
+            cnt        := 0;
+            Bit_Count  <= 0;
+            OUT_SCK    <= '0';
+            OUT_Busy   <= '0';
+        }
+        Else
+        {
+            If(update_cnt = CLK_Frequency/Update_Frequency)           --Starts receiving after time to match Update_Frequency
+            {
+                update_cnt := 0;
+                div_cnt    := 0;
+                cnt        := 0;
+                Bit_Count  <= 0;
+            }
+            Elsif (div_cnt = 1000)
+            {
+                update_cnt := update_cnt + 1;
+                div_cnt    := 0;
+            }
+            Else
+            {
+                div_cnt    := div_cnt + 1;
+            }
+            
+            If(Bit_Count < Resolution)                           --creates clock for every bit
+            {
+                OUT_Busy <= '1';
+                If(cnt = (CLK_Frequency/SCK_Frequency)/2)        --Changes on double frequency
+                {
+                    cnt := 0;
+                    If(OUT_SCK = '1')                            --On falling edge
+                    {
+                        RD_Trig   <= '1';                        --Read Trigger for Read_Process
+                        Bit_Count <= Bit_Count + 1;              --Counts Bit_Count one up
+                    }
+                    OUT_SCK <= NOT OUT_SCK;                      --Changes SCK Output
+                }
+                Else
+                {
+                    RD_Trig <= '0';              --Resets Trigger to have only one cycle '1'
+                    cnt     := cnt + 1;
+                }
+            }
+            Else
+            {
+                OUT_Busy  <= '0';
+                RD_Trig   <= '0';                --Sets Outputs to default if ready with all bits
+                OUT_SCK   <= '0';
+            }
+        }
+    }
+}

@@ -1,0 +1,122 @@
+/*
+    Name: Encoder
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 07.06.2019
+
+    This file is a derivation of the implementation found at: https://www.digikey.com/eewiki/pages/viewpage.action?pageId=62259228
+    
+    Description: This component counts the steps that are turned back and forth with a quadrature encoder. 
+                 By pressing the encoder, the counter is resetted
+    
+    Insertion:   -Right click on Encoder.vhdp -> Add to project
+                 -Add NewComponent of Encoder in your code
+                 -Set the the counter maximum with Positions (16 = -16 to 15)
+                 -Remove or set the rest of the parameters (information next to the declaration)
+                 -Add this to your Main IOs and connect them to the Encoder and the instance (modify the names if already in use)
+                  A           : IN  STD_LOGIC; 
+                  B           : IN  STD_LOGIC;
+                  Set_Origin  : IN  STD_LOGIC;
+                 -Right click the name Encoder_Controller next to NewComponent and create the signals
+    
+    Function:    -Read the current position (counter value) and 
+                  use Direction to determine if the last time the counter counted up (1) or down (0)
+               
+    Example:     Encoder_Example
+*/
+
+Component Encoder_Controller
+(
+    Generic
+    (
+        Positions                       :   INTEGER := 16;      --size of the position counter (i.e. number of positions counted)
+        Debounce_Time                   :   INTEGER := 12000;   --number of clock cycles required to register a new position = debounce_time + 2
+        Set_Origin_Debounce_Time        :   INTEGER := 120000;  --number of clock cycles required to register a new Set_Origin value = set_origin_debounce_time + 2
+    );
+    A                   :   IN      STD_LOGIC := '0';                       --quadrature encoded signal a
+    B                   :   IN      STD_LOGIC := '0';                       --quadrature encoded signal b
+    Set_Origin          :   IN      STD_LOGIC := '0';                       --active-low synchronous clear of position counter
+    Direction           :   OUT     STD_LOGIC := '1';                       --direction of last change, 1 = positive, 0 = negative
+    Position            :   BUFFER  INTEGER RANGE Positions*(-1) TO Positions-1 := 0;   --current position relative to index or initial value
+)
+{
+    AttributeDeclaration
+    {
+        SIGNAL  a_new               :   STD_LOGIC_VECTOR(1 DOWNTO 0);                   --synchronizer/debounce registers for encoded signal a
+        SIGNAL  b_new               :   STD_LOGIC_VECTOR(1 DOWNTO 0);                   --synchronizer/debounce registers for encoded signal b
+        SIGNAL  a_prev              :   STD_LOGIC;                                      --last previous stable value of encoded signal a
+        SIGNAL  b_prev              :   STD_LOGIC;                                      --last previous stable value of encoded signal b
+        SIGNAL  debounce_cnt        :   INTEGER RANGE 0 TO Debounce_Time;               --timer to remove glitches and validate stable values of inputs
+        SIGNAL  set_origin_n_new    :   STD_LOGIC_VECTOR(1 DOWNTO 0);                   --synchronizer/debounce registers for the Set_Origin input
+        SIGNAL  set_origin_n_int    :   STD_LOGIC;                                      --last debounced value of Set_Origin signal
+        SIGNAL  set_origin_cnt      :   INTEGER RANGE 0 TO Set_Origin_Debounce_Time;    --debounce counter for Set_Origin signal
+    }
+    
+    Process ()
+    {
+        --synchronize and debounce a and b inputs
+        a_new <= a_new(0) & A;                                                          --shift in new values of 'a'    
+        b_new <= b_new(0) & B;                                                          --shift in new values of 'b'
+        If(((a_new(0) XOR a_new(1)) OR (b_new(0) XOR b_new(1))) = '1')                  --a input or b input is changing
+        {
+            debounce_cnt <= 0;                                                          --clear debounce counter
+        }
+        Elsif(debounce_cnt = Debounce_Time)                                             --debounce time is met
+        {
+            a_prev <= a_new(1);                                                         --update value of a_prev
+            b_prev <= b_new(1);                                                         --update value of b_prev
+        }
+        Else
+        {
+            debounce_cnt <= debounce_cnt + 1;                                           --increment debounce counter
+        }
+        
+        --synchronize and debounce Set_Origin input
+        set_origin_n_new <= set_origin_n_new(0) & (NOT Set_Origin);                     --shift in new values of Set_Origin   
+        If((set_origin_n_new(0) XOR set_origin_n_new(1)) = '1')                         --Set_Origin input is changing
+        {
+            set_origin_cnt <= 0;                                                        --clear debounce counter
+        }
+        Elsif(set_origin_cnt = Set_Origin_Debounce_Time)                                --debounce time is met
+        {
+            set_origin_n_int <= set_origin_n_new(1);                                    --update value of set_origin_n_int
+        }
+        Else
+        {
+            set_origin_cnt <= set_origin_cnt + 1;                                       --increment debounce counter
+        }
+        
+        --determine direction and position
+        If(set_origin_n_int = '0')                                                      --inital position is being set
+        {
+            Position <= 0;                                                              --clear position counter
+        }
+        Elsif(debounce_cnt = Debounce_Time                                              --debounce time for a and b is met
+                AND ((a_prev XOR a_new(1)) OR (b_prev XOR b_new(1))) = '1')             --AND the new value is different than the previous value
+        {
+            Direction <= b_prev XOR a_new(1);                                           --update the direction
+            If((b_prev XOR a_new(1)) = '1')                                             --clockwise direction
+            {
+                If(Position < Positions-1)                                              --not at position limit
+                {
+                    Position <= Position + 1;                                           --advance position counter
+                }
+                Else                                                                    --at position limit
+                {
+                    Position <= Positions*(-1);                                         --roll over position counter to zero
+                }
+            }
+            Else                                                                        --counter-clockwise direction
+            {
+                If(Position > Positions*(-1))                                           --not at position limit
+                {
+                    Position <= Position - 1;                                           --decrement position counter
+                }
+                Else                                                                    --at position limit
+                {
+                    Position <= Positions-1;                                            --roll over position counter maximum
+                }
+            }
+        }
+    }
+}

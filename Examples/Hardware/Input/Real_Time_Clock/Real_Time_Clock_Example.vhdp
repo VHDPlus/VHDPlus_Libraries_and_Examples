@@ -1,0 +1,166 @@
+/*
+    Name: Real Time Clock Example
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 17.08.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of 
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+    HDL Code without restriction, including without limitation the rights to use, 
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+*/
+
+Main
+(
+    Reset       : IN    STD_LOGIC;                      --active high reset
+
+    SDA         : INOUT STD_LOGIC;                      --serial data output of i2c bus
+    SCL         : INOUT STD_LOGIC;                      --serial clock output of i2c bus
+    
+    TX          : OUT   STD_LOGIC;
+    RX          : IN    STD_LOGIC;
+    
+    led         : OUT   STD_LOGIC_VECTOR(7 downto 0);
+)
+{
+    CONSTANT CLK_Frequency       : NATURAL := 12000000;
+    
+    --UART Signals
+    CONSTANT max_bytes           : NATURAL := 24;
+    SIGNAL UART_Array_TX_Enable  : STD_LOGIC;
+    SIGNAL UART_Array_TX_Bytes   : NATURAL         range 0 to max_bytes;
+    SIGNAL UART_Array_TX_Data    : UART_Data_Array (max_bytes-1 downto 0);
+    SIGNAL UART_Array_TX_Busy    : STD_LOGIC;
+    SIGNAL UART_Array_RX_Bytes   : NATURAL         range 0 to max_bytes;
+    SIGNAL UART_Array_RX_Data    : UART_Data_Array (max_bytes-1 downto 0);
+    SIGNAL UART_Array_RX_Busy    : STD_LOGIC;
+    SIGNAL UART_Array_RX_Error   : STD_LOGIC;
+    
+    --Clock Signals
+    SIGNAL Real_Time_Clock_Config      : STD_LOGIC := '0';
+    SIGNAL Real_Time_Clock_C_24h_12h   : STD_LOGIC := '0';
+    SIGNAL Real_Time_Clock_Time_Out    : Date_Time_Type;
+    SIGNAL Real_Time_Clock_Config_Time : Date_Time_Type;
+    SIGNAL Real_Time_Clock_Temp        : INTEGER   range -128 to 127;
+    SIGNAL Real_Time_Clock_Temp25      : NATURAL   range 0 to 3;  
+    
+    SIGNAL Reset_Reg    : STD_LOGIC := '0';
+    Reset_Reg <= NOT Reset;
+    
+    NewComponent Real_Time_Clock 
+    (
+        CLK_Frequency => CLK_Frequency,
+
+        Reset         => Reset_Reg,
+        SDA           => SDA,
+        SCL           => SCL,
+        Config        => Real_Time_Clock_Config,
+        C_24h_12h     => Real_Time_Clock_C_24h_12h,
+        Config_Time   => Real_Time_Clock_Config_Time,
+        
+        Time_Out      => Real_Time_Clock_Time_Out,
+        Temp          => Real_Time_Clock_Temp,
+        Temp25        => Real_Time_Clock_Temp25,
+    );
+    
+    NewComponent UART_Array 
+    (
+        CLK_Frequency => CLK_Frequency,
+        Baudrate      => 115200,
+        Max_Bytes     => max_bytes,
+
+        Reset         => Reset_Reg,
+        RX            => RX,
+        TX            => TX,
+        TX_Enable     => UART_Array_TX_Enable,
+        TX_Bytes      => UART_Array_TX_Bytes,
+        TX_Data       => UART_Array_TX_Data,
+        TX_Busy       => UART_Array_TX_Busy,
+        RX_Bytes      => UART_Array_RX_Bytes,
+        RX_Data       => UART_Array_RX_Data,
+        RX_Busy       => UART_Array_RX_Busy,
+        RX_Error      => UART_Array_RX_Error,
+    );
+    
+    Process  Clock_Output
+    (
+        VARIABLE count_1s   : NATURAL range 0 to CLK_Frequency := 0;
+    )
+    {
+        led <= STD_LOGIC_VECTOR(TO_UNSIGNED(Real_Time_Clock_Time_Out.Second, led'LENGTH));
+        
+        If(count_1s < CLK_Frequency) --sends data every second with UART interface
+        {
+            count_1s := count_1s + 1;
+            UART_Array_TX_Enable   <= '0';
+        }
+        Else
+        {
+            count_1s := 0;
+            
+            --Send Time and Date (Example 20:42:38 27.04.19 in Ascii (Digit + 48 = Ascii Digit))
+            UART_Array_TX_Data(0)  <= STD_LOGIC_VECTOR(TO_UNSIGNED(Real_Time_Clock_Time_Out.Hour10+48, 8));     --2
+            UART_Array_TX_Data(1)  <= STD_LOGIC_VECTOR(TO_UNSIGNED(Real_Time_Clock_Time_Out.Hour+48, 8));       --0
+            UART_Array_TX_Data(2)  <= x"3A";                                                                    --:
+            UART_Array_TX_Data(3)  <= STD_LOGIC_VECTOR(TO_UNSIGNED(Real_Time_Clock_Time_Out.Minute10+48, 8));   --4
+            UART_Array_TX_Data(4)  <= STD_LOGIC_VECTOR(TO_UNSIGNED(Real_Time_Clock_Time_Out.Minute+48, 8));     --2
+            UART_Array_TX_Data(5)  <= x"3A";                                                                    --:
+            UART_Array_TX_Data(6)  <= STD_LOGIC_VECTOR(TO_UNSIGNED(Real_Time_Clock_Time_Out.Second10+48, 8));   --3
+            UART_Array_TX_Data(7)  <= STD_LOGIC_VECTOR(TO_UNSIGNED(Real_Time_Clock_Time_Out.Second+48, 8));     --8
+            UART_Array_TX_Data(8)  <= x"20";                                                                    --[space]
+            UART_Array_TX_Data(9)  <= STD_LOGIC_VECTOR(TO_UNSIGNED(Real_Time_Clock_Time_Out.Date10+48, 8));     --2
+            UART_Array_TX_Data(10) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Real_Time_Clock_Time_Out.Date+48, 8));       --7
+            UART_Array_TX_Data(11) <= x"2E";                                                                    --.
+            UART_Array_TX_Data(12) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Real_Time_Clock_Time_Out.Month10+48, 8));    --0
+            UART_Array_TX_Data(13) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Real_Time_Clock_Time_Out.Month+48, 8));      --4
+            UART_Array_TX_Data(14) <= x"2E";                                                                    --.
+            UART_Array_TX_Data(15) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Real_Time_Clock_Time_Out.Year10+48, 8));     --1
+            UART_Array_TX_Data(16) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Real_Time_Clock_Time_Out.Year+48, 8));       --9
+            UART_Array_TX_Data(17) <= x"0D";
+            UART_Array_TX_Data(18) <= x"0A";
+            UART_Array_TX_Bytes    <= 19;
+            UART_Array_TX_Enable   <= '1';
+        }
+    }
+    
+    Process Clock_Set_Value 
+    (
+        VARIABLE rx_busy_prev   : STD_LOGIC := '0';
+    )
+    {
+        If(rx_busy_prev = '1' AND UART_Array_RX_Busy = '0') --received data with UART interface
+        {
+            Real_Time_Clock_Config_Time.Hour10   <= TO_INTEGER(UNSIGNED(UART_Array_RX_Data(0)))-48;
+            Real_Time_Clock_Config_Time.Hour     <= TO_INTEGER(UNSIGNED(UART_Array_RX_Data(1)))-48;
+            Real_Time_Clock_Config_Time.Minute10 <= TO_INTEGER(UNSIGNED(UART_Array_RX_Data(3)))-48;
+            Real_Time_Clock_Config_Time.Minute   <= TO_INTEGER(UNSIGNED(UART_Array_RX_Data(4)))-48;
+            Real_Time_Clock_Config_Time.Second10 <= TO_INTEGER(UNSIGNED(UART_Array_RX_Data(6)))-48;
+            Real_Time_Clock_Config_Time.Second   <= TO_INTEGER(UNSIGNED(UART_Array_RX_Data(7)))-48;
+            Real_Time_Clock_Config_Time.Date10   <= TO_INTEGER(UNSIGNED(UART_Array_RX_Data(9)))-48;
+            Real_Time_Clock_Config_Time.Date     <= TO_INTEGER(UNSIGNED(UART_Array_RX_Data(10)))-48;
+            Real_Time_Clock_Config_Time.Month10  <= TO_INTEGER(UNSIGNED(UART_Array_RX_Data(12)))-48;
+            Real_Time_Clock_Config_Time.Month    <= TO_INTEGER(UNSIGNED(UART_Array_RX_Data(13)))-48;
+            Real_Time_Clock_Config_Time.Year10   <= TO_INTEGER(UNSIGNED(UART_Array_RX_Data(15)))-48;
+            Real_Time_Clock_Config_Time.Year     <= TO_INTEGER(UNSIGNED(UART_Array_RX_Data(16)))-48;
+            Real_Time_Clock_Config               <= '1';
+        }
+        Else
+        {
+            Real_Time_Clock_Config <= '0';
+        }
+        rx_busy_prev := UART_Array_RX_Busy;
+    }
+}

@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<ArrayOfProjectEntry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <ProjectEntry xsi:type="ProjectFile">
+    <Path>I2C.vhdp</Path>
+    <IsExpanded>false</IsExpanded>
+    <Saved>true</Saved>
+  </ProjectEntry>
+  <ProjectEntry xsi:type="ProjectFile">
+    <Path>I2C_Array.vhdp</Path>
+    <IsExpanded>false</IsExpanded>
+    <Saved>true</Saved>
+  </ProjectEntry>
+  <ProjectEntry xsi:type="ProjectFile">
+    <Path>Real_Time_Clock.vhdp</Path>
+    <IsExpanded>false</IsExpanded>
+    <Saved>true</Saved>
+  </ProjectEntry>
+  <ProjectEntry xsi:type="ProjectFile">
+    <Path>Real_Time_Clock_Example.vhdp</Path>
+    <IsExpanded>false</IsExpanded>
+    <Saved>true</Saved>
+  </ProjectEntry>
+  <ProjectEntry xsi:type="ProjectFile">
+    <Path>UART.vhdp</Path>
+    <IsExpanded>false</IsExpanded>
+    <Saved>true</Saved>
+  </ProjectEntry>
+  <ProjectEntry xsi:type="ProjectFile">
+    <Path>UART_Array.vhdp</Path>
+    <IsExpanded>false</IsExpanded>
+    <Saved>true</Saved>
+  </ProjectEntry>
+</ArrayOfProjectEntry>

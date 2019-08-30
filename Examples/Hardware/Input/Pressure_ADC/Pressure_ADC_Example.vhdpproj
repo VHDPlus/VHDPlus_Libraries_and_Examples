@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<ArrayOfProjectEntry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <ProjectEntry xsi:type="ProjectFile">
+    <Path>Pressure_ADC.vhdp</Path>
+    <IsExpanded>false</IsExpanded>
+    <Saved>true</Saved>
+  </ProjectEntry>
+  <ProjectEntry xsi:type="ProjectFile">
+    <Path>Pressure_ADC_Example.vhdp</Path>
+    <IsExpanded>false</IsExpanded>
+    <Saved>true</Saved>
+  </ProjectEntry>
+</ArrayOfProjectEntry>

@@ -1,0 +1,390 @@
+/*
+    Name: Fingerprint
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 16.08.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy of 
+	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+	HDL Code without restriction, including without limitation the rights to use, 
+	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+	subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+	
+	Important:   -UART.vhdp has to be added to your project too
+	             -This component is made for the AS608 fingerprint reader
+	             -The fingerprints have to be already saved on the fingerprint reader (see https://github.com/adafruit/Adafruit-Fingerprint-Sensor-Library/blob/master/examples/enroll/enroll.ino)
+	
+	Description: First fingerprints are saved on the fingerprint scanner and with this component
+	             you can read the ID of the finger placed on the scanner and with which cofidence it is detected
+	
+    Insertion:   -Right click on Fingerprint.vhdp and UART.vhdp -> Add to project
+			     -Add NewComponent of Fingerprint in your code
+			     -Remove CLK_Frequency if you use a VHDP Core and no PLL
+			     -Remove or set Update_Time and Timeout
+			     -Remove Update_En, Get_ID and Busy if you want that the reader updates automaticaly
+			      or set Update_En to '0'
+			     -Add this to your Main IOs and connect them with the instance IOs and the fingerprint reader Pins (modify the names if already in use)
+			      RX    : IN  STD_LOGIC;
+				  TX    : OUT STD_LOGIC;
+			     -Right click the name Fingerprint_Controller next to NewComponent and create the needed signals 
+	
+    Function:    With Update_En = '1'
+                  -Wait until ID is bigger than 0 (finger recognized)
+                  -Read the ID and Confidence value
+                 With Update_En = '0'
+                  -Set Get_ID to '1'
+                  -Wait until Busy changes to '0'
+                  -Read the ID and Confidence value (0 = not recognized)
+                 (To get ID and Confidence as number write TO_INTEGER(UNSIGNED(Confidence)))
+	
+    Example:     Fingerprint_Example
+*/
+
+Component Fingerprint_Controller
+(
+	Generic
+	(
+		CLK_Frequency	: NATURAL		:= 12000000;	--frequency of system clock in Hertz
+		Update_Time		: NATURAL		:= 100;			--time after that the scanner is asked to recognize the scanner (in ms)
+		Update_En		: STD_LOGIC     := '1';			--'0' if the scanner should only be asked on Get_ID edge
+		Timeout			: NATURAL		:= 100;			--After this time in ms the rx process is resetted
+	);
+	
+	Reset	 	: IN	STD_LOGIC := '0';  --active high reset
+	
+	RX		 	: IN	STD_LOGIC := '1';  --receive pin
+	TX		 	: OUT	STD_LOGIC := '1';  --transmit pin
+	
+	Get_ID	 	: IN   STD_LOGIC := '0';   --Tries to verify finger on rising edge
+	ID		 	: OUT  STD_LOGIC_VECTOR (15 downto 0) := (others => '0'); --ID of recognized finger or 0 if finger not found or wrong finger on scanner
+	Confidence	: OUT  STD_LOGIC_VECTOR (15 downto 0) := (others => '0'); --Confidence the finger was recognized
+	Busy		: OUT  STD_LOGIC := '0';   --New Value if changes from '1' to '0'
+)
+{
+	AttributeDeclaration
+	{
+		SIGNAL UART_Interface_tx_ena    : STD_LOGIC := '0';
+		SIGNAL UART_Interface_tx_data   : STD_LOGIC_VECTOR (7 DOWNTO 0);
+		SIGNAL UART_Interface_rx_busy   : STD_LOGIC;
+		SIGNAL UART_Interface_rx_error  : STD_LOGIC;
+		SIGNAL UART_Interface_rx_data   : STD_LOGIC_VECTOR (7 DOWNTO 0);
+		SIGNAL UART_Interface_tx_busy   : STD_LOGIC;
+		
+		SIGNAL ID_Buf			: STD_LOGIC_VECTOR (15 downto 0);
+		SIGNAL Confidence_Buf	: STD_LOGIC_VECTOR (15 downto 0);
+		
+		TYPE Fingerprint_UART_Array_9 IS ARRAY (0 to 8) OF STD_LOGIC_VECTOR (7 DOWNTO 0);
+		TYPE Fingerprint_UART_Array_8 IS ARRAY (0 to 7) OF STD_LOGIC_VECTOR (7 DOWNTO 0);
+		TYPE Fingerprint_UART_Array_5 IS ARRAY (0 to 4) OF STD_LOGIC_VECTOR (7 DOWNTO 0);
+		TYPE Fingerprint_UART_Array_4 IS ARRAY (0 to 3) OF STD_LOGIC_VECTOR (7 DOWNTO 0);
+		CONSTANT RX_OK_Byte		: NATURAL := 10;	--the 10. byte has to be 0
+		CONSTANT RX_ID_Byte		: NATURAL := 11;	--the 11. and 12. byte is the id
+		CONSTANT RX_Conf_Byte	: NATURAL := 13;	--the 13. and 14. byte is the confidence
+		CONSTANT RX_Get_Len     : NATURAL := 12;
+		CONSTANT RX_Tz_Len      : NATURAL := 12;
+		CONSTANT RX_Search_Len  : NATURAL := 16;
+		CONSTANT TX_Start		: Fingerprint_UART_Array_8 := (x"EF", x"01", x"FF", x"FF", x"FF", x"FF", x"01", x"00");
+		CONSTANT TX_Get_Image	: Fingerprint_UART_Array_4 := (x"03", x"01", x"00", x"05");
+		CONSTANT TX_Image2Tz	: Fingerprint_UART_Array_5 := (x"04", x"02", x"01", x"00", x"08");
+		CONSTANT TX_Search		: Fingerprint_UART_Array_9 := (x"08", x"1B", x"01", x"00", x"00", x"00", x"A3", x"00", x"C8");
+	}
+	
+	NewComponent UART_Interface 
+	(
+		CLK_Frequency => CLK_Frequency,
+		Baud_Rate     => 57600,
+		OS_Rate       => 16,
+		D_Width       => 8,
+		Parity        => 0,
+
+		Reset         => Reset,
+		RX            => RX,
+		TX            => TX,
+		TX_Enable     => UART_Interface_tx_ena,
+		TX_Busy       => UART_Interface_tx_busy,
+		TX_Data       => UART_Interface_tx_data,
+		RX_Busy       => UART_Interface_rx_busy,
+		RX_Data       => UART_Interface_rx_data,
+		RX_Error      => UART_Interface_rx_error,
+	);
+	
+	Process 
+	(
+		VARIABLE start	  : STD_LOGIC := '0';
+		VARIABLE state	  : NATURAL range 0 to 2	:= 0;
+		VARIABLE byte	  : NATURAL range 0 to 16	:= 0;
+		VARIABLE send	  : STD_LOGIC := '1';
+		VARIABLE wait_b	  : STD_LOGIC := '0';
+		VARIABLE get_prev : STD_LOGIC := '0';
+		
+		VARIABLE timeout_cnt	: NATURAL range 0 to CLK_Frequency/1000 := 0;
+		VARIABLE timeout_ms_cnt : NATURAL range 0 to Timeout	   := 0;
+		
+		VARIABLE update_cnt		: NATURAL range 0 to CLK_Frequency/1000 := 0;
+		VARIABLE update_ms_cnt	: NATURAL range 0 to Update_Time := 0;
+	)
+	{
+		If(Reset = '1')
+		{
+			start  := '0';
+			state  := 0;
+			byte   := 0;
+			send   := '1';
+			wait_b := '0';
+		}
+		Else
+		{
+			If(Update_En = '1' AND start = '0')		--Counts until update time is over to check for finger
+			{
+				If(update_cnt < CLK_Frequency/1000)
+				{
+					update_cnt := update_cnt + 1;
+				}
+				Elsif(update_ms_cnt < Update_Time)
+				{
+					update_cnt := 0;
+					update_ms_cnt := update_ms_cnt + 1;
+				}
+			}
+			
+			If(((Get_ID = '1' AND get_prev = '0') OR update_ms_cnt = Update_Time) AND start = '0')	--Updates on Get_ID edge or after update time
+			{
+				start  := '1';
+				state  := 0;
+				byte   := 0;
+				send   := '1';
+				wait_b := '0';
+				Busy   <= '1';
+				update_cnt      := 0;
+				update_ms_cnt   := 0;
+				timeout_cnt 	:= 0;
+				timeout_ms_cnt 	:= 0;
+			}
+			get_prev := Get_ID;
+			
+			If(start = '1')		--Check finger starts
+			{
+				If(send = '1')	--Sends task
+				{
+					If(wait_b = '0')	--Sets data to send
+					{
+						Case(state)
+						{
+							When(0)		--Data to make Image of Finger
+							{
+								If(byte < TX_Start'Length)
+								{
+									UART_Interface_tx_data <= TX_Start(byte);
+									UART_Interface_tx_ena  <= '1';
+									wait_b				   := '1';
+								}
+								Else
+								{
+									UART_Interface_tx_data <= TX_Get_Image(byte-TX_Start'Length);
+									UART_Interface_tx_ena  <= '1';
+									wait_b				   := '1';
+								}
+							}
+							When(1)		--Data to Convert Image to Feature Template
+							{
+								If(byte < TX_Start'Length)
+								{
+									UART_Interface_tx_data <= TX_Start(byte);
+									UART_Interface_tx_ena  <= '1';
+									wait_b				   := '1';
+								}
+								Else
+								{
+									UART_Interface_tx_data <= TX_Image2Tz(byte-TX_Start'Length);
+									UART_Interface_tx_ena  <= '1';
+									wait_b				   := '1';
+								}
+							}
+							When(2)		--Data to Search for similar Finger in saved Fingers
+							{
+								If(byte < TX_Start'Length)
+								{
+									UART_Interface_tx_data <= TX_Start(byte);
+									UART_Interface_tx_ena  <= '1';
+									wait_b				   := '1';
+								}
+								Else
+								{
+									UART_Interface_tx_data <= TX_Search(byte-TX_Start'Length);
+									UART_Interface_tx_ena  <= '1';
+									wait_b				   := '1';
+								}
+							}
+						}
+					}
+					Else		--Waits for data sent
+					{
+						UART_Interface_tx_ena <= '0';
+						If(UART_Interface_tx_busy = '0' AND UART_Interface_tx_ena = '0')
+						{
+							wait_b := '0';
+							Case(state)		--Checks if all Bytes are sent and continues with receiving data
+							{
+								When(0)
+								{
+									If(byte < TX_Start'Length+TX_Get_Image'Length-1)
+									{
+										byte := byte + 1;
+									}
+									Else
+									{
+										byte := 0;
+										send := '0';
+									}
+								}
+								When(1)
+								{
+									If(byte < TX_Start'Length+TX_Image2Tz'Length-1)
+									{
+										byte := byte + 1;
+									}
+									Else
+									{
+										byte := 0;
+										send := '0';
+									}
+								}
+								When(2)
+								{
+									If(byte < TX_Start'Length+TX_Search'Length-1)
+									{
+										byte := byte + 1;
+									}
+									Else
+									{
+										byte := 0;
+										send := '0';
+									}
+								}
+							}
+						}
+					}
+				}
+				Else		--Receives data from Sensor
+				{
+					If(wait_b = '0')	--Waits for new transmission from sensor
+					{
+						If(UART_Interface_rx_busy = '1')
+						{
+							wait_b := '1';
+							timeout_cnt 	:= 0;
+							timeout_ms_cnt 	:= 0;
+						}
+						Else
+						{
+							If(timeout_cnt < CLK_Frequency/1000)				--Checks for timeout while waiting for data
+							{
+								timeout_cnt := timeout_cnt + 1;
+							}
+							Elsif(timeout_ms_cnt < Timeout)
+							{
+								timeout_cnt    := 0;
+								timeout_ms_cnt := timeout_ms_cnt + 1;
+							}
+							Else
+							{
+								start  := '0';
+								ID	   <= (others => '0');
+								Busy   <= '0';
+								timeout_cnt 	:= 0;
+								timeout_ms_cnt 	:= 0;
+							}
+						}
+					}
+					Else		--Waits for end of transmission
+					{
+						If(UART_Interface_rx_busy = '0')
+						{
+							wait_b := '0';
+							Case(state)
+							{
+								When(0)		--Checks if Image was made and Finger was found
+								{
+									byte := byte + 1;
+									If(byte = RX_OK_Byte AND UART_Interface_rx_data /= x"00")
+									{
+										start  := '0';
+										ID	   <= (others => '0');
+										Busy   <= '0';
+									}
+									If(byte = RX_Get_Len)
+									{
+										byte := 0;
+										state := state + 1;
+										send := '1';
+									}
+								}
+								When(1)		--Checks if Converting Image was successfull
+								{
+									byte := byte + 1;
+									If(byte = RX_OK_Byte AND UART_Interface_rx_data /= x"00")
+									{
+										start  := '0';
+										ID	   <= (others => '0');
+										Busy   <= '0';
+									}
+									If(byte = RX_Tz_Len)
+									{
+										byte  := 0;
+										state := state + 1;
+										send  := '1';
+									}
+								}
+								When(2)		--Checks if Finger is recognized and receives ID and Confidence of found finger 
+								{
+									byte := byte + 1;
+									If(byte = RX_OK_Byte AND UART_Interface_rx_data /= x"00")
+									{
+										start  := '0';
+										ID	   <= (others => '0');
+										Busy   <= '0';
+									}
+									If(byte = RX_ID_Byte)
+									{
+										ID_Buf(15 downto 8) <= UART_Interface_rx_data;
+									}
+									If(byte = RX_ID_Byte+1)
+									{
+										ID_Buf(7 downto 0)  <= UART_Interface_rx_data;
+									}
+									If(byte = RX_Conf_Byte)
+									{
+										Confidence_Buf(15 downto 8) <= UART_Interface_rx_data;
+									}
+									If(byte = RX_Conf_Byte+1)
+									{
+										Confidence_Buf(7 downto 0) <= UART_Interface_rx_data;
+									}
+									If(byte = RX_Search_Len)
+									{
+										start  := '0';
+										ID	       <= ID_Buf;
+										Confidence <= Confidence_Buf;
+										Busy   <= '0';
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
