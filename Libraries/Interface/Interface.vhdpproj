@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Path />
+  <Items xsi:type="ProjectFolder">
+    <Path>I2C</Path>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>I2C\I2C.vhdp</Path>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>I2C\I2C_Array.vhdp</Path>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Path>I2S</Path>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>I2S\I2S_IN.vhdp</Path>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>I2S\I2S_OUT.vhdp</Path>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Path>UART</Path>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>UART\UART.vhdp</Path>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>UART\UART_Array.vhdp</Path>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>UART\UART_String.vhdp</Path>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Path>SPI</Path>
+    <Items xsi:type="ProjectFileVHDP">
+      <Path>SPI\SPI_Master.vhdp</Path>
+    </Items>
+  </Items>
+</ProjectRoot>

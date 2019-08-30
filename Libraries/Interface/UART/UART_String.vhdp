@@ -1,0 +1,211 @@
+/*
+    Name: UART String
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 06.08.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of 
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+    HDL Code without restriction, including without limitation the rights to use, 
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important: -You need to add UART.vhdp too
+               -A String is a STD_LOGIC_VECTOR created with the string converter (12. from left)
+    
+    Insertion: -Right click on UART.vhdp -> Add to project
+               -Right click on UART_String.vhdp -> Add to project
+               -Add NewComponent of UART_String in your code
+               -Remove CLK_Frequency if you use a VHDP Core and no PLL
+               -Change Baudrate, Parity and Parity_EO depending on the device to connect
+               -Remove RX_Timeout or set your own value to wait for the next byte
+               -Set Max_Bytes to the maximum of bytes you want to transmit or receive
+               -Remove Reset or connect it to a signal or input
+               -Add this to your Main I/Os and connect RX to TX and TX to RX of the device to connect (modify the names if already in use)
+                RX  : IN    STD_LOGIC;
+                TX  : OUT   STD_LOGIC;
+               -Right click the name UART_String next to NewComponent and create the needed signals
+    
+    Function:  Transmitting:
+                -Set the string to transmitt with TX_Data (TX_Data(31 downto 0) <= x"74657374"), 
+                 the number of bytes to transmitt (4 chars -> TX_Bytes <= 4) and 
+                 TX_Enable from '0' to '1'
+                -Wait until TX_Busy changes from '1' to '0'
+               Receiving:
+                -Wait until RX_Busy changes from '1' to '0'
+                -Read the data in RX_Data (... <= RX_Data(RX_Bytes*8-1 downto 0)) (If RX_Error is '1', the parity bit was wrong and the uart setting are wrong or there was a problem while transmission)
+    
+    Example:   UART_String_Example
+*/
+
+Component UART_String
+(
+    Generic
+    (
+        CLK_Frequency   : INTEGER       := 12000000;            --frequency of system clock in Hertz
+        Baudrate        : NATURAL       := 9600;
+        Parity          : INTEGER       := 0;                   --0 for no parity, 1 for parity
+        Parity_EO       : STD_LOGIC     := '0';                 --'0' for even, '1' for odd parity
+        RX_Timeout      : NATURAL       := 100;                 --Stops waiting for new bytes after this time (in ms)
+        
+        Max_Bytes       : NATURAL       := 4;                   --Maximum of Bytes to Transmit/Receive
+    );
+    Reset   : IN        STD_LOGIC := '0';                  --active high reset
+    
+    RX        : IN      STD_LOGIC := '1';                  --receive pin
+    TX        : OUT     STD_LOGIC := '1';                  --transmit pin
+    
+    TX_Enable : IN      STD_LOGIC := '0';                  --rising edge starts transimission
+    TX_Bytes  : IN      NATURAL range 0 to max_bytes := 0; --bytes to write in this transmission
+    TX_Data   : IN      STD_LOGIC_VECTOR(max_bytes*8-1 downto 0) := (others => '0'); --data to send -> 0 is transmitted first
+    TX_Busy   : OUT     STD_LOGIC := '0';                  --indicates sending in progress
+    
+    RX_Bytes  : OUT     NATURAL range 0 to max_bytes := 0; --bytes read in last transmission
+    RX_Data   : OUT     STD_LOGIC_VECTOR(max_bytes*8-1 downto 0) := (others => '0'); --received data -> 0 was received first
+    RX_Busy   : OUT     STD_LOGIC := '0';                  --indicates reading in progress
+    RX_Error  : OUT     STD_LOGIC := '0';                  --1 if the received data wasn't valid
+)
+{
+    SIGNAL UART_Interface_tx_data   : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL UART_Interface_tx_ena    : STD_LOGIC := '0';
+    SIGNAL UART_Interface_tx_busy   : STD_LOGIC;
+    SIGNAL UART_Interface_rx_data   : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL UART_Interface_rx_busy   : STD_LOGIC;
+    SIGNAL UART_Interface_rx_error  : STD_LOGIC;
+    
+    NewComponent UART_Interface 
+    (
+        CLK_Frequency => CLK_Frequency,
+        Baud_Rate     => Baudrate,
+        OS_Rate       => 16,
+        D_Width       => 8,
+        Parity        => Parity,
+        Parity_EO     => Parity_EO,
+
+        Reset         => Reset,
+        RX            => RX,
+        TX            => TX,
+        TX_Enable     => UART_Interface_tx_ena,
+        TX_Busy       => UART_Interface_tx_busy,
+        TX_Data       => UART_Interface_tx_data,
+        RX_Busy       => UART_Interface_rx_busy,
+        RX_Data       => UART_Interface_rx_data,
+        RX_Error      => UART_Interface_rx_error,
+    );
+    
+    Process TX_Controller 
+    (
+        VARIABLE ena_prev       : STD_LOGIC := '0';
+        VARIABLE byte_cnt       : NATURAL range 0 to Max_Bytes := 0;
+        VARIABLE tx_bytes_buf   : NATURAL range 0 to Max_Bytes := 0;
+        VARIABLE tx_state       : NATURAL range 0 to 2 := 0;
+    )
+    {
+        If(Reset = '1')
+        {
+            tx_state                := 0;
+            TX_Busy                 <= '0';
+            UART_Interface_tx_ena   <= '0';
+            byte_cnt                := 0;
+            ena_prev                := '0';
+        }
+        Else
+        {
+            Case(tx_state)
+            {
+                When(0)
+                {
+                    If(ena_prev = '0' AND TX_Enable = '1' AND TX_Bytes > 0) --Waits for rising edge of TX_Enable
+                    {
+                        tx_state := 1;                              --Starts transmission
+                        TX_Busy  <= '1';
+                        byte_cnt := TX_Bytes-1;
+                    }
+                    ena_prev := TX_Enable;
+                }
+                When(1)
+                {
+                    If(UART_Interface_tx_busy = '0')                --Checks if data can be transmitted
+                    {
+                        UART_Interface_tx_data <= TX_Data((byte_cnt+1)*8-1 downto byte_cnt*8);
+                        UART_Interface_tx_ena  <= '1';              --starts transmission of one byte
+                        tx_state               := 2;
+                    }
+                }
+                When(2)
+                {
+                    If(UART_Interface_tx_busy = '1')                --Checks if data is transmittiong
+                    {
+                        UART_Interface_tx_ena  <= '0';
+                        
+                        If(byte_cnt = 0)                            --Checks if all bytes transmitted
+                        {
+                            tx_state := 0;
+                            TX_Busy  <= '0';
+                        }
+                        Else
+                        {
+                            tx_state := 1;
+                            byte_cnt := byte_cnt - 1;               --Updates byte to transmit
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    Process RX_Controller 
+    (
+        VARIABLE timeout_cnt    : NATURAL range 0 to (CLK_Frequency/1000)*RX_Timeout;
+        VARIABLE byte_cnt       : NATURAL range 0 to Max_Bytes := 0;
+        VARIABLE rx_buf         : STD_LOGIC_VECTOR(max_bytes*8-1 downto 0);
+        VARIABLE busy_prev      : STD_LOGIC := '0';
+    )
+    {
+        If(Reset = '1')
+        {
+            byte_cnt    := 0;
+            timeout_cnt := 0;
+            busy_prev   := '0';
+            RX_Busy     <= '0';
+        }
+        Else
+        {
+            If(busy_prev = '1' AND UART_Interface_rx_busy = '0')    --saves received byte in rx_data_buf
+            {
+                rx_buf          := rx_buf(rx_buf'LENGTH-9 downto 0) & UART_Interface_rx_data;
+                RX_Busy         <= '1';
+                byte_cnt        := byte_cnt + 1;
+                timeout_cnt     := 0;
+            }
+            busy_prev := UART_Interface_rx_busy;
+            
+            If(timeout_cnt = (CLK_Frequency/1000)*RX_Timeout OR byte_cnt = Max_Bytes)   --checks if transmission finished (timeout or reached max bytes)
+            {
+                If(byte_cnt > 0)
+                {
+                    RX_Busy     <= '0';
+                    RX_Data     <= rx_buf;
+                    RX_Bytes    <= byte_cnt;
+                    byte_cnt    := 0;
+                }
+            }
+            Else
+            {
+                timeout_cnt := timeout_cnt + 1;
+            }
+        }
+    }
+}
