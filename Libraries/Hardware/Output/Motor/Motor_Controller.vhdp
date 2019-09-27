@@ -37,14 +37,6 @@
 			     -Set Holes_In_Disk, Gear_Ratio and Wheel_Circumference to the values of your Motor to get the values in mm,
 			      otherwise Drive_L/R, Driven_L/R and Speed_L/R are in Encoder impules (per second), but you save Logic Elements.
 			      You can set the length to drive by writing Drive_L/R <= ([Length]*Wheel_Circumference)/(Holes_In_Disk*Gear_Ratio)
-			     -Add this to your Main IOs and connect them with the instance IOs and the Motor/Encoder Pins (modify the names if already in use)
-			      Encoder_L		: IN  STD_LOGIC;		--Encoder Input Left
-	              Encoder_R		: IN  STD_LOGIC;		--Encoder Input Right
-	
-	              Motor_LF		: OUT STD_LOGIC;		--Motor Left Forward   (1.1 if conntected with left motor)
-	              Motor_LB		: OUT STD_LOGIC;		--Motor Left Backward  (1.2)
-	              Motor_RF		: OUT STD_LOGIC;		--Motor Right Forward  (2.1)
-	              Motor_RB		: OUT STD_LOGIC;		--Motor Right Backward (2.2)
 			     -Right click the name Motor_Controller next to NewComponent and create the needed signals (Max_Length, Bits_Resolution and Length_Corr_Step in the declarations have to be replaced with the values you chose or you have to use a constant)
 	
     Function:    1. Set DriveL/R to the length you want to drive in mm or use ([Length]*Wheel_Circumference)/(Holes_In_Disk*Gear_Ratio)
@@ -86,7 +78,7 @@ Component Motor_Controller
 		Holes_In_Disk 		: NATURAL := 1; 		 --Changes from Low to High for one turn (Holes in Encoder Disk or Poles)
 		Gear_Ratio			: NATURAL := 1; 		 --20 = 1:20 Gear ratio
 		Wheel_Circumference	: NATURAL := 1; 		 --Diameter*π in mm or the unit you want to use for the outputs
-		Time_Invert_Divider : NATURAL := 50;		 --This value decides how precisely the Controller corrects the speed (more info in Motor_Encoder)
+		Time_Invert_Divider : NATURAL := 12;		 --This value decides how precisely the Controller corrects the speed (more info in Motor_Encoder)
 		Max_Time			: NATURAL := 1000000;	 --Max_Time/(Frequency/Time_Invert_Divider) max seconds between holes
 		Max_Length			: NATURAL := 10000;		 --10m if you use mm as unit
 		Error_Delay			: NATURAL := 500;		 --time Controller waits with outputting error and stopping motors at the beginning
@@ -153,6 +145,17 @@ Component Motor_Controller
 		SIGNAL Error_Out			: STD_LOGIC := '0';
 	}
 	
+	Connections
+	{
+	    Encoder_L,
+	    Encoder_R,
+	
+	    Motor_LF,
+	    Motor_LB,
+	    Motor_RF,
+	    Motor_RB,
+	}
+	
 	Correction <= Correction_Buf;
 	Driven_L   <= Length_Left;
 	Driven_R   <= Length_Right;
@@ -206,7 +209,7 @@ Component Motor_Controller
 		Reset           => Reset,
 		Enable          => '1',
 		Duty            => Motor_Left_Speed,
-		PWM_Out(0)      => Motor_Left_PWM
+		PWM_Out(0)      => Motor_Left_PWM,
 	);
 	
 	NewComponent PWM_Generator 
@@ -219,7 +222,7 @@ Component Motor_Controller
 		Reset           => Reset,
 		Enable          => '1',
 		Duty            => Motor_Right_Speed,
-		PWM_Out(0)      => Motor_Right_PWM
+		PWM_Out(0)      => Motor_Right_PWM,
 	);
 	
 	Process Speed_Controller ()

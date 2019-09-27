@@ -31,9 +31,6 @@
                -Remove or set the parameters (information next to the declaration)
                -Remove Reset or connect it to a signal or input
                -Remove Enable to update the values automatically or connect it to a signal or input
-               -Add this to your Main IOs and connect them with the instance I/Os and the ADC I/Os (modify the names if already in use)
-                SCK   : OUT STD_LOGIC;
-                DOUT  : IN  STD_LOGIC;
                -Right click the name Pressure_ADC next to NewComponent and create the needed signal
     
     Function:  Without Enable:
@@ -74,6 +71,12 @@ Component Pressure_ADC
         SIGNAL RD_Trig         : STD_LOGIC := '0';
         SIGNAL Bit_Count       : NATURAL range 0 to Resolution := 0;
     }
+	
+	Connections
+	{
+	    SCK,
+		DOUT,
+	}
 
     SCK   <= OUT_SCK;
     Busy  <= OUT_Busy;

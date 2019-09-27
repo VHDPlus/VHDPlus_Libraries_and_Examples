@@ -28,10 +28,6 @@
 			   -Change Sampling_Frequency, Data_Width, Sample_Bits and BCLK_Edge depending on the device to connect 
 			    (see the description next to the declarations and use the datasheet for your device)
 			   -Remove Reset or connect it to a signal or input
-			   -Add this to your Main I/Os and connect RX to TX and TX to RX of the device to connect (modify the names if already in use)
-			    LRCLK  : OUT STD_LOGIC;
-				BCLK   : OUT STD_LOGIC;
-				Data   : IN  STD_LOGIC;
 			   -Right click the name I2S_Interface_IN next to NewComponent and create the needed signals
 	
     Function:  -Wait until Ready changes it's value
@@ -73,6 +69,13 @@ Component I2S_Interface_IN
 	
 	LRCLK <= LRCLK_BUF;
 	BCLK  <= BCLK_BUF;
+	
+	Connections
+	{
+	    LRCLK,
+	    BCLK,
+	    Data,
+	}
 	
 	Process I2C_PROCESS ()
 	{

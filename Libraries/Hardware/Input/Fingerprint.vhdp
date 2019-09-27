@@ -35,9 +35,6 @@
 			     -Remove or set Update_Time and Timeout
 			     -Remove Update_En, Get_ID and Busy if you want that the reader updates automaticaly
 			      or set Update_En to '0'
-			     -Add this to your Main IOs and connect them with the instance IOs and the fingerprint reader Pins (modify the names if already in use)
-			      RX    : IN  STD_LOGIC;
-				  TX    : OUT STD_LOGIC;
 			     -Right click the name Fingerprint_Controller next to NewComponent and create the needed signals 
 	
     Function:    With Update_En = '1'
@@ -99,6 +96,12 @@ Component Fingerprint_Controller
 		CONSTANT TX_Get_Image	: Fingerprint_UART_Array_4 := (x"03", x"01", x"00", x"05");
 		CONSTANT TX_Image2Tz	: Fingerprint_UART_Array_5 := (x"04", x"02", x"01", x"00", x"08");
 		CONSTANT TX_Search		: Fingerprint_UART_Array_9 := (x"08", x"1B", x"01", x"00", x"00", x"00", x"A3", x"00", x"C8");
+	}
+	
+	Connections
+	{
+	    RX,
+		TX,
 	}
 	
 	NewComponent UART_Interface 
@@ -331,7 +334,7 @@ Component Fingerprint_Controller
 										send := '1';
 									}
 								}
-								When(1)		--Checks if Converting Image was successfull
+								When(1)		--Checks if Converting Image was successful
 								{
 									byte := byte + 1;
 									If(byte = RX_OK_Byte AND UART_Interface_rx_data /= x"00")

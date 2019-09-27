@@ -28,9 +28,6 @@
                -Right click on I2C_Array.vhdp -> Add to project
 			   -Add NewComponent of I2C_Array in your code
 			   -Remove CLK_Frequency if you use a VHDP Core and no PLL
-			   -Add this to your Main IOs and connect them to the I2C slave and the instance (modify the names if already in use)
-			    SDA       : INOUT  STD_LOGIC; 
-				SCL       : INOUT  STD_LOGIC;
 			   -Right click the name I2C_Array next to NewComponent and create the signals
 	
     Function:  -Set Address to the address of the I2C slave,
@@ -81,6 +78,12 @@ Component I2C_Array
 		SIGNAL busy_cnt      : NATURAL range 0 to Max_Bytes*2 := 0;
 		SIGNAL get_data      : STD_LOGIC := '0';
 		SIGNAL busy_prev	 : STD_LOGIC := '0';
+	}
+	
+	Connections
+	{
+	    SDA,
+		SCL,
 	}
 	
 	NewComponent I2C_Master_Interface 

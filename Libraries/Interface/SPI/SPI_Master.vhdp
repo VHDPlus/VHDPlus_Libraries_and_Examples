@@ -32,11 +32,6 @@
 			   -Set Bits to the bits in one transmission (e.g. D15 to D0 => Bits = 16)
 			   -Set CPol to '1' if CLK is usualy '1' (e.g. in Figure 1 CLK starts with '0' => CPol = '0')
 			   -Set CPha to '0' if the first byte is written on the SS edge or '1' on the SCLK edge (e.g. D15 is already set on the first CLK edge => CPha = '0')
-			   -Add this to your Main IOs and connect them with your SPI Slave and the NewComponent IOs (modify the names if already in use)
-			    SPI_MISO		: IN STD_LOGIC;
-				SPI_SCLK		: OUT STD_LOGIC;
-				SPI_SS			: OUT STD_LOGIC;
-				SPI_MOSI		: OUT STD_LOGIC;
 			   -Right click the name SPI_Master next to NewComponent and create the needed signals
 	
     Function:  1. Set TX_Data to the data to send (Number of bits defined with Bits)
@@ -84,6 +79,14 @@ Component SPI_Master
 	    SIGNAL rx_buffer   : STD_LOGIC_VECTOR(Bits-1 DOWNTO 0);    --receive data buffer
 	    SIGNAL tx_buffer   : STD_LOGIC_VECTOR(Bits-1 DOWNTO 0);    --transmit data buffer
 	    SIGNAL last_bit_rx : INTEGER RANGE 0 TO Bits*2;            --last rx data bit location
+	}
+	
+	Connections
+	{
+	    MISO,
+	    SCLK,
+	    SS,
+	    MOSI,
 	}
 	
 	Process SPI_Master_Process ()

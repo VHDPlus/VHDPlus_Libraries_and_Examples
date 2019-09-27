@@ -14,9 +14,6 @@
 			   -Set Baud_Rate to the baud rate of the device to connect
 			   -OS_Rate, D_Width, Parity and Parity_EO can be removed or assigned own values to match the setting of the device to connect
 			   -Remove Reset or connect it to a signal or input
-			   -Add this to your Main I/Os and connect RX to TX and TX to RX of the device to connect (modify the names if already in use)
-			    RX	: IN	STD_LOGIC;
-				TX  : OUT	STD_LOGIC;
 			   -Right click the name UART_Interface next to NewComponent and create the needed signals
 	
     Function:  Transmitting:
@@ -66,6 +63,12 @@ Component UART_Interface
 		SIGNAL	tx_parity		:	STD_LOGIC_VECTOR(D_Width DOWNTO 0);  	--calculation of transmit parity
 		SIGNAL	rx_buffer		:	STD_LOGIC_VECTOR(Parity+D_Width DOWNTO 0) := (OTHERS => '0');  	--values received
 		SIGNAL	tx_buffer		:	STD_LOGIC_VECTOR(Parity+D_Width+1 DOWNTO 0) := (OTHERS => '1');	--values to be transmitted
+	}
+	
+	Connections
+	{
+	    RX,
+		TX,
 	}
 	
 	--generate clock enable pulses at the baud rate and the oversampling rate

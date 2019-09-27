@@ -96,7 +96,7 @@ Component IntTostring
 		BCD    => bcd,
 	);
 	
-	Thread
+	Process
 	(
 		VARIABLE ena_prev  : STD_LOGIC := '0';
 		VARIABLE usedBuf   : NATURAL := 0;

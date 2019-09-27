@@ -1,0 +1,242 @@
+/*
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of 
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+    HDL Code without restriction, including without limitation the rights to use, 
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important: -You need to add NIOSDuino_Core.qip, avalon_pwm.v and avalon_pwm_hw.tcl too
+
+    Insertion: -Right click on NIOSDuino_Core.qsys.vhdp -> Add to project
+               -Right click on NIOSDuino_Core.qsys -> Add to project
+               -Right click on avalon_pwm.v -> Add to project
+               -Right click on avalon_pwm_hw.tcl -> Add to project
+               -Add NewComponent of NIOSDuino_Core in your code
+               -Add this to your main I/Os:
+                --NIOSDuino Onboard
+
+                Reset                      : IN    STD_LOGIC := 'X';             
+              
+                sdram_addr                 : OUT   STD_LOGIC_VECTOR(11 downto 0);                    
+                sdram_ba                   : OUT   STD_LOGIC_VECTOR(1 downto 0);                     
+                sdram_cas_n                : OUT   STD_LOGIC;                                        
+                sdram_cke                  : OUT   STD_LOGIC;                                        
+                sdram_cs_n                 : OUT   STD_LOGIC;                                        
+                sdram_dq                   : INOUT STD_LOGIC_VECTOR(15 downto 0) := (others => 'X'); 
+                sdram_dqm                  : OUT   STD_LOGIC_VECTOR(1 downto 0);                     
+                sdram_ras_n                : OUT   STD_LOGIC;                                        
+                sdram_we_n                 : OUT   STD_LOGIC;     
+                sdram_clk_clk              : OUT   STD_LOGIC;                                       
+              
+                spi_flash_MISO             : IN    STD_LOGIC := '0';     
+                spi_flash_MOSI             : OUT   STD_LOGIC;                                
+                spi_flash_SCLK             : OUT   STD_LOGIC;                                
+                spi_flash_SS_n             : OUT   STD_LOGIC;        
+              
+                --NIOSDuino External
+              
+                pio_export                 : INOUT STD_LOGIC_VECTOR(15 downto 0) := (others => 'X');
+              
+                pwm_out                    : OUT   STD_LOGIC_VECTOR(3 downto 0);  
+              
+                uart_rxd                   : IN    STD_LOGIC := 'X';             
+                uart_txd                   : OUT   STD_LOGIC;      
+              
+                i2c_sda_in                 : IN    STD_LOGIC := 'X';             
+                i2c_scl_in                 : IN    STD_LOGIC := 'X';             
+                i2c_sda_oe                 : OUT   STD_LOGIC;                                        
+                i2c_scl_oe                 : OUT   STD_LOGIC;  
+
+                spi_MISO                   : IN    STD_LOGIC := 'X';             
+                spi_MOSI                   : OUT   STD_LOGIC;                                        
+                spi_SCLK                   : OUT   STD_LOGIC;                                        
+                spi_SS_n                   : OUT   STD_LOGIC;
+                
+               -Connect the I/Os like that:
+                clk_in_clk              => CLK,
+                reset_reset_n           => Reset,
+                i2c_sda_in              => i2c_sda_in,
+                i2c_scl_in              => i2c_scl_in,
+                i2c_sda_oe              => i2c_sda_oe,
+                i2c_scl_oe              => i2c_scl_oe,
+                pio_export              => pio_export,
+                sdram_addr              => sdram_addr,
+                sdram_ba                => sdram_ba,
+                sdram_cas_n             => sdram_cas_n,
+                sdram_cke               => sdram_cke,
+                sdram_cs_n              => sdram_cs_n,
+                sdram_dq                => sdram_dq,
+                sdram_dqm               => sdram_dqm,
+                sdram_ras_n             => sdram_ras_n,
+                sdram_we_n              => sdram_we_n,
+                sdram_clk_clk           => sdram_clk_clk,
+                spi_MISO                => spi_MISO,
+                spi_MOSI                => spi_MOSI,
+                spi_SCLK                => spi_SCLK,
+                spi_SS_n                => spi_SS_n,
+                spi_flash_MISO          => spi_flash_MISO,
+                spi_flash_MOSI          => spi_flash_MOSI,
+                spi_flash_SCLK          => spi_flash_SCLK,
+                spi_flash_SS_n          => spi_flash_SS_n,
+                uart_rxd                => uart_rxd,
+                uart_txd                => uart_txd,      
+                pwm_out                 => pwm_out,
+    
+    Prep:      -Compile the project (and connect the signals with the FPGA I/Os)
+               -Open the tool to program the NIOS II processor
+               -Click on Browse... to select the folder for your NIOSDuino project
+               -Click on File/New/Nios II Application and BSP from Template
+               -Select the .sopcinfo in the VHDP project (make sure it is the right project)
+               -Give the NIOSDuino project a name
+               -Click on Finish
+               
+               -Right click [project name]_bsp and click on Nios II/BSP Editor
+               -Select none for stderr, click on generate and exit
+               -Download this project: https://github.com/dimag0g/nios_duino
+               -Replace [project name]/hello_world.c with the content of software/nios_duino (with drag&drop)
+               -Copy Libraries/NIOSDuino/inc/avalon_pwm_regs.h into the arduino folder
+               -Open [project name]/Makefile and edit the following lines:
+                ALT_INCLUDE_DIRS := arduino arduino/Wire/src arduino/SPI/src
+                ALT_CXXFLAGS := -std=gnu++11
+                ALT_CPPFLAGS := -D__AVR__ -DARDUINO=185 -ffunction-sections
+                ALT_LDFLAGS := -Wl,--gc-sections
+               -Save the Makefile
+               
+               -If delay doesn't wait long enough: Open Arduino.h and edit lines 156 and 157
+                I used: 
+                #define delay(t) usleep((t)*289.6)
+                #define delayMicroseconds(t) usleep((t)*0.2896)
+               
+    Program:   If you compiled your VHDP Project again:
+                -Right click [project name]_bsp and click on Nios II/Generate BSP
+               For testing:
+                -Edit Test.cpp and write your arduino code
+                -Click on run (green play button) and select run as NIOS II Hardware
+                -Alternatively (for the first time):
+                 -Right click [project name] and click on Build Project
+                 -Click on Run/Run Configurations
+                 -Select from Target Connection the correct programmer and click on Run
+                -Click on the read Stop button on the top right of the Nios II Console 
+                 before uploading a different VHDP project (or closing your Laptop)
+               Non-Volatile programming:
+                -Test your code
+                -If you don't use Serial.print after uploading -> write // in front of the lines
+                -Right click [project name] and click on Make Targets/Build
+                -Click on mem_init_generate and on Build
+                -Go to the VHDPlus IDE and double click NIOSDuino_Core.qsys
+                -Double click onchip_flash_0, select Enable non-default initialization file
+                 and select for the hex file software/[project name]/mem_init/NIOSDuino_Core_onchip_flash_0.hex
+                -Click on finish, close the window and compile the VHDP project again
+                -If you upload the .pof file, the software and hardware is saved on the FPGA
+                
+               If you get errors when trying to program, try reinstalling the Arrow-USB-Blaster Driver
+                
+               
+*/
+
+Component NIOSDuino_Core
+(
+    clk_in_clk            : in    std_logic                     := '0';             --         clk_in.clk
+    i2c_sda_in            : in    std_logic                     := '0';             --      i2c_0_ext.sda_in
+    i2c_scl_in            : in    std_logic                     := '0';             --               .scl_in
+    i2c_sda_oe            : out   std_logic;                                        --               .sda_oe
+    i2c_scl_oe            : out   std_logic;                                        --               .scl_oe
+    pio_export            : inout std_logic_vector(15 downto 0) := (others => '0'); --        pio_led.export
+    reset_reset_n         : IN    std_logic                     := '0';             --          reset.reset_n
+    sdram_addr            : out   std_logic_vector(11 downto 0);                    --          sdram.addr
+    sdram_ba              : out   std_logic_vector(1 downto 0);                     --               .ba
+    sdram_cas_n           : out   std_logic;                                        --               .cas_n
+    sdram_cke             : out   std_logic;                                        --               .cke
+    sdram_cs_n            : out   std_logic;                                        --               .cs_n
+    sdram_dq              : inout std_logic_vector(15 downto 0) := (others => '0'); --               .dq
+    sdram_dqm             : out   std_logic_vector(1 downto 0);                     --               .dqm
+    sdram_ras_n           : out   std_logic;                                        --               .ras_n
+    sdram_we_n            : out   std_logic;                                        --               .we_n
+    sdram_clk_clk         : out   std_logic;                                        --      sdram_clk.clk
+    spi_MISO              : IN    std_logic                     := '0';             --      spi_0_ext.MISO
+    spi_MOSI              : out   std_logic;                                        --               .MOSI
+    spi_SCLK              : out   std_logic;                                        --               .SCLK
+    spi_SS_n              : out   std_logic;                                        --               .SS_n
+    spi_flash_MISO        : IN    std_logic                     := '0';             --      spi_flash.MISO
+    spi_flash_MOSI        : out   std_logic;                                        --               .MOSI
+    spi_flash_SCLK        : out   std_logic;                                        --               .SCLK
+    spi_flash_SS_n        : out   std_logic;                                        --               .SS_n
+    uart_rxd              : IN    std_logic                     := '0';             --           uart.rxd
+    uart_txd              : out   std_logic;                                        -- txd
+    pwm_out               : out   std_logic_vector(3 downto 0)                      -- out           
+)
+{
+    Connections
+    {
+        sdram_addr[0]  => K6,
+        sdram_addr[1]  => M5,
+        sdram_addr[2]  => N5,
+        sdram_addr[3]  => J8,
+        sdram_addr[4]  => N10,
+        sdram_addr[5]  => M11,
+        sdram_addr[6]  => N9,
+        sdram_addr[7]  => L10,
+        sdram_addr[8]  => M13,
+        sdram_addr[9]  => N8,
+        sdram_addr[10] => N4,
+        sdram_addr[11] => M10,
+        sdram_addr[12] => L11,
+        sdram_ba[0]    => N6,
+        sdram_ba[1]    => K8,
+        sdram_cas_n    => N7,
+        sdram_cke      => M8,
+        sdram_clk_clk  => M9,
+        sdram_cs_n     => M4,
+        sdram_ras_n    => M7,
+        sdram_we_n     => K7,
+        sdram_dqm[0]   => E9,
+        sdram_dqm[1]   => F12,
+        sdram_dq[0]    => D11,
+        sdram_dq[1]    => G10,
+        sdram_dq[2]    => F10,
+        sdram_dq[3]    => F9,
+        sdram_dq[4]    => E10,
+        sdram_dq[5]    => D9,
+        sdram_dq[6]    => G9,
+        sdram_dq[7]    => F8,
+        sdram_dq[8]    => F13,
+        sdram_dq[9]    => E12,
+        sdram_dq[10]   => E13,
+        sdram_dq[11]   => D12,
+        sdram_dq[12]   => C12,
+        sdram_dq[13]   => B12,
+        sdram_dq[14]   => B13,
+        sdram_dq[15]   => A12,
+        spi_flash_MISO => B2,
+        spi_flash_SS_n => B3,
+        spi_flash_SCLK => A3,
+        spi_flash_MOSI => A2,
+
+        reset_reset_n,
+        i2c_sda_in,
+        i2c_scl_in,
+        i2c_sda_oe,
+        i2c_scl_oe,
+        pio_export,
+        spi_MISO,
+        spi_MOSI,
+        spi_SCLK,
+        spi_SS_n,
+        uart_rxd,
+        uart_txd,
+        pwm_out,
+    }
+}

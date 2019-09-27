@@ -29,9 +29,6 @@
 			   -Remove CLK_Frequency if you use a VHDP Core and no PLL
 			   -Remove Update_Frequency or set your own refresh rate (we suggest a value between 1 and 20)
 			   -Remove Reset or connect it to a signal or input
-			   -Add this to your Main IOs and connect US_Trigger and US_Echo with Trigger and Echo (modify the names if already in use)
-			    US_Trigger : OUT STD_LOGIC := '0';
-	            US_Echo	   : IN  STD_LOGIC := '0';
 			   -Right click the name Ultrasonic_Controller next to NewComponent and create the signal for Dist
 	
     Function:  -The Values of Dist are the distance in front of the Ultrasonic Sensor in cm
@@ -60,6 +57,12 @@ Component Ultrasonic_Controller
 	    SIGNAL START	   : STD_LOGIC := '0';		--one cycle '1' to start Trigger
 		SIGNAL CM_CLK	   : STD_LOGIC := '0';		--one cycle '1' if time for one cm is over
 		SIGNAL TRIGGER_BUF : STD_LOGIC := '0';
+	}
+	
+	Connections
+	{
+	    Trigger,
+		Echo,
 	}
 	
 	Trigger <= TRIGGER_BUF;

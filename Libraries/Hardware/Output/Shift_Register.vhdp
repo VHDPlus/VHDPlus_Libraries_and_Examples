@@ -30,10 +30,6 @@
 			     -Set Register_CLK_Frequency and look in the datasheet of your shift register to make shure it isn't to high
 			     -Set Bits to the total of outputs of your shift registers 
 			      (to connect multiple registers together, connect CLK and SET to every register and connect Q7' with the next Data input)
-			     -Add this to your Main IOs and connect them with the instance IOs and the shift register pins (modify the names if already in use)
-			      DI_O	: OUT STD_LOGIC;
-				  CLK_O	: OUT STD_LOGIC;
-				  SET_O	: OUT STD_LOGIC;
 			     -Right click the name Shift_Register next to NewComponent and create the needed signals 
 	
     Function:    The register ouptuts are updated depending on the Register_CLK_Frequency
@@ -69,6 +65,13 @@ Component Shift_Register
 		SIGNAL L_DATA	: STD_LOGIC_VECTOR(Bits-1 downto 0) := (others => '0');
 		SIGNAL WR_TRIG  : STD_LOGIC := '0';
 		SIGNAL BIT_CLK	: NATURAL range 0 to Bits := 0;
+	}
+	
+	Connections
+	{
+	    DI_O,
+	    CLK_O,
+	    SET_O,
 	}
 
 	DI_O <= OUT_DI;

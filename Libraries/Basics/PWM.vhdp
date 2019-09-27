@@ -24,8 +24,6 @@
 			     -Add NewComponent of PWM_Generator in your code
 			     -Remove CLK_Frequency if you use a VHDP Core and no PLL
 			     -Remove or set the parameters (information next to the declaration)
-			     -Add this to your Main IOs and connect it with the instance output and the device input (modify the names if already in use)
-			      PWM_Out		: OUT STD_LOGIC;
 			     -Right click the name PWM_Generator next to NewComponent and create the needed signals (Bits_Resolution and Phases in the declarations have to be replaced with the values you chose or you have to use a constant)
 	
     Function:    1. Set Duty (for Bits_Resolution = 8 e.g. Duty <= STD_LOGIC_VECTOR(TO_UNSIGNED(255, 8));
@@ -59,6 +57,11 @@ Component PWM_Generator
 	    SIGNAL    half_duty_new :  INTEGER RANGE 0 TO period/2 := 0;              --number of clocks in 1/2 duty cycle
 	    TYPE half_duties IS ARRAY (0 TO Phases-1) OF INTEGER RANGE 0 TO period/2; --data type for array of half duty values
 	    SIGNAL    half_duty     :  half_duties := (OTHERS => 0);                  --array of half duty values (for each phase)
+	}
+	
+	Connections
+	{
+	    PWM_Out,
 	}
 	
 	Process PWM_Generator_Process ()

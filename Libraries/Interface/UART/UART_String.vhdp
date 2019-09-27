@@ -33,9 +33,6 @@
                -Remove RX_Timeout or set your own value to wait for the next byte
                -Set Max_Bytes to the maximum of bytes you want to transmit or receive
                -Remove Reset or connect it to a signal or input
-               -Add this to your Main I/Os and connect RX to TX and TX to RX of the device to connect (modify the names if already in use)
-                RX  : IN    STD_LOGIC;
-                TX  : OUT   STD_LOGIC;
                -Right click the name UART_String next to NewComponent and create the needed signals
     
     Function:  Transmitting:
@@ -84,6 +81,12 @@ Component UART_String
     SIGNAL UART_Interface_rx_data   : STD_LOGIC_VECTOR (7 DOWNTO 0);
     SIGNAL UART_Interface_rx_busy   : STD_LOGIC;
     SIGNAL UART_Interface_rx_error  : STD_LOGIC;
+	
+	Connections
+	{
+	    RX,
+		TX,
+	}
     
     NewComponent UART_Interface 
     (

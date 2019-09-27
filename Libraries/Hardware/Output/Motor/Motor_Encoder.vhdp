@@ -37,8 +37,6 @@
 			     -Set Holes_In_Disk, Gear_Ratio and Wheel_Circumference to the values of your Motor to get the values in mm,
 			      otherwise Drive_L/R, Driven_L/R and Speed_L/R are in Encoder impules (per second), but you save Logic Elements.
 			      You can set the length to drive by writing Drive_L/R <= ([Length]*Wheel_Circumference)/(Holes_In_Disk*Gear_Ratio)
-			     -Add this to your Main IOs and connect them with the instance IOs and the Encoder Pins (modify the names if already in use)
-			      Encoder_In		: IN  STD_LOGIC;
 			     -Right click the name Motor_Encoder next to NewComponent and create the needed signals (Max_Length and Max_Time in the declarations have to be replaced with the values you chose or you have to use a constant)
 	
     Function:    1. Read Length, Time and Speed if you need it or wait with If(New_Length = '1') { ... } outside of a Thread on new data
@@ -51,12 +49,12 @@ Component Motor_Encoder
 (
 	Generic
 	(
-		CLK_Frequency		: NATURAL := 50000000;
+		CLK_Frequency		: NATURAL := 12000000;
 		Holes_In_Disk 		: NATURAL := 1;			--Changes from Low to High for one turn (Holes in Encoder Disk or Poles)
 		Gear_Ratio			: NATURAL := 1;			--34 = 1:34 Gear ratio
 		Wheel_Circumference	: NATURAL := 1;			--Diameter*π in mm or the unit u want to use for the outputs
 		Max_Length			: NATURAL := 10000;		--10m if you use mm as unit
-		Time_Invert_Divider : NATURAL := 50;		--Cycles to count one up til next hole (50 + 50MHz = Time in µs)
+		Time_Invert_Divider : NATURAL := 12;		--Cycles to count one up til next hole (50 + 50MHz = Time in µs)
 		Max_Time			: NATURAL := 1000000	--Max_Time/(CLK_Frequency/Time_Invert_Divider) max seconds between holes
 	);
 	Encoder_In		: IN  STD_LOGIC := '0'; 		--Encoder Input
@@ -79,6 +77,11 @@ Component Motor_Encoder
 		SIGNAL OUT_Time                 : NATURAL  range 0 to Max_Time  := 0;
 		
 		SIGNAL Encoder_Trig				: STD_LOGIC := '0';
+	}
+	
+	Connections
+	{
+	    Encoder_In,
 	}
 
 	Length <= OUT_Length;

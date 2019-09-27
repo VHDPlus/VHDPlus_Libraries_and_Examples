@@ -31,10 +31,6 @@
 			   -Remove CLK_Frequency if you use a VHDP Core and no PLL
 			   -Set your number of panels
 			   -Remove Rotate_seg and Mirror or change the values if the image isn't displayed correctly
-			   -Add this to your Main IOs and connect them with CS, CLK and DIN of the LED Matrix and the NewComponent IOs (modify the names if already in use)
-			    Matrix_CS			: OUT STD_LOGIC := '1';
-	            Matrix_CLK			: OUT STD_LOGIC := '0';
-	            Matrix_DIN			: OUT STD_LOGIC := '0';
 			   -Right click the name LED_Matrix next to NewComponent and create the needed signals (Panels in the Panel_Bitmap declaration has to be replaced with the panel count or you have to use a constant)
 	
     Function:  -Configuration:
@@ -84,6 +80,13 @@ Component LED_Matrix
 	
 	SIGNAL Panel_Counter : NATURAL range 0 to Panels := 0;
 	SIGNAL Row_Counter   : NATURAL range 0 to 8	 	 := 0;
+	
+	Connections
+	{
+	    CS_O,
+	    CLK_O,
+	    DIN_O,
+	}
 
 	Function reverse_any_vector (return std_logic_vector; a: in std_logic_vector)
 	{
