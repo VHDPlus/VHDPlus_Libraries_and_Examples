@@ -107,6 +107,24 @@ Component UART_String
         RX_Data       => UART_Interface_rx_data,
         RX_Error      => UART_Interface_rx_error,
     );
+	
+	StepFunction printString
+    (
+        str   : STD_LOGIC_VECTOR;
+        len   : NATURAL;
+        data  : STD_LOGIC_VECTOR;
+        bytes : NATURAL;
+        ena   : STD_LOGIC;
+        busy  : STD_LOGIC;
+    )
+    {
+        data(len*8-1 downto 0) <= str;
+        bytes <= len;
+        ena   <= '1';
+        While(busy = '0') { }
+        ena   <= '0';
+        While(busy = '1') { }
+    }
     
     Process TX_Controller 
     (
