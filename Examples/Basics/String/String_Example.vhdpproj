@@ -2,25 +2,13 @@
 <ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Header>String_Example</Header>
   <Items xsi:type="ProjectFolder">
-    <Header>Generated</Header>
-    <Items xsi:type="ProjectFile">
-      <Header>Single_Port_RAM.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>Single_Port_ROM.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>String_Example.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>String_Type_Package.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>UART_Interface.vhd</Header>
-    </Items>
-  </Items>
-  <Items xsi:type="ProjectFolder">
     <Header>Libraries</Header>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>BinaryToBcd.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>BinaryToBcdDigit.vhdp</Header>
+    </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>Single-Port_RAM.vhdp</Header>
     </Items>

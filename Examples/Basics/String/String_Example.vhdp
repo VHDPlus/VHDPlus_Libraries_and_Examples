@@ -38,6 +38,18 @@ Main
         Data_OUT => receive_string.Data_OUT,
     );
     
+    SIGNAL number_string : String_Type;
+    
+    NewComponent Single_Port_RAM
+    (
+        Width    => 256,
+        
+        Write    => number_string.Write,
+        Address  => number_string.Address,
+        Data_IN  => number_string.Data_IN,
+        Data_OUT => number_string.Data_OUT,
+    );
+    
     SIGNAL transmit_string : String_Type;
     
     NewComponent Single_Port_RAM
@@ -54,13 +66,29 @@ Main
     
     NewComponent Single_Port_ROM
     (
-        Data     => x"52656365697665643a20",
+        Data     => x"2e2052656365697665643a20",
         
         Length   => string_received.Length,
         Address  => string_received.Address,
         Data_OUT => string_received.Data_OUT,
     );
-
+    
+    SIGNAL BinaryToBcd_Enable : STD_LOGIC;
+    SIGNAL BinaryToBcd_Binary : STD_LOGIC_VECTOR (8-1 DOWNTO 0);
+    SIGNAL BinaryToBcd_Busy   : STD_LOGIC;
+    SIGNAL BinaryToBcd_BCD    : STD_LOGIC_VECTOR (3*4-1 DOWNTO 0);
+    
+    NewComponent BinaryToBcd
+    (
+        Bits   => 8, --receiveCount is 0 to 255
+        Digits => 3, --8bit = 1 to 3 digits
+        
+        Enable => BinaryToBcd_Enable,
+        Binary => BinaryToBcd_Binary,
+        Busy   => BinaryToBcd_Busy,
+        BCD    => BinaryToBcd_BCD,
+    );
+    
     Process ()
     {
         Thread
@@ -73,14 +101,23 @@ Main
 
         Thread
         {
+            SIGNAL receiveCount : NATURAL range 0 to 255 := 0;
+            
             --Receive UART Data
             NewFunction readString (receive_string, UART_Interface_RX_Data, UART_Interface_RX_Busy);
 
-            --                          "Received: " + Received string = transmit string
-            NewFunction stringConcat (string_received, receive_string, transmit_string);
+            --Convert receiveCount to String
+            NewFunction naturalToString (receiveCount, number_string, BinaryToBcd_Enable, BinaryToBcd_Busy, BinaryToBcd_Binary, BinaryToBcd_BCD);
+            
+            --                          receiveCount + ". Received: " = transmit string
+            NewFunction stringConcat (number_string, string_received, transmit_string);
+            --     transmit string + Received string = transmit string
+            NewFunction stringAppend (receive_string, transmit_string);
 
             --Send combined string
             NewFunction printString (transmit_string, UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+            
+            receiveCount <= receiveCount + 1;
         }
     }
 }

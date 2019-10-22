@@ -32,4 +32,58 @@ Class
         }
         oString.Write <= '0';
     }
+    
+    --oString + iString = oString
+    StepFunction stringAppend
+    (
+        iString  : String_Type;
+        
+        oString  : String_Type;
+    )
+    {
+        oString.Write <= '1';
+        StepFor(VARIABLE appendCount : NATURAL := 0; appendCount < iString.Length; appendCount := appendCount + 1)
+        {
+            iString.Address <= appendCount;
+            Step
+            {
+                oString.Address <= oString.Length;
+                oString.Data_IN <= iString.Data_OUT;
+                oString.Length  <= oString.Length + 1;
+            }
+        }
+        oString.Write <= '0';
+    }
+    
+    --Converts natural to string
+    --Important: Needs BinaryToBcd and BinaryToBsdDigit
+    StepFunction naturalToString
+    (
+        iNatural : NATURAL;
+        oString  : String_Type;
+        
+        bcdEna   : STD_LOGIC;
+        bcdBus   : STD_LOGIC;
+        bcdBin   : STD_LOGIC_VECTOR;
+        bcdDec   : STD_LOGIC_VECTOR;
+    )
+    {
+        bcdBin <= STD_LOGIC_VECTOR(TO_UNSIGNED(iNatural, bcdBin'LENGTH));
+        bcdEna <= '1';
+        While(bcdBus = '0'){}
+        bcdEna <= '0';
+        While(bcdBus = '1'){}
+        oString.Length <= 0;
+        StepFor(VARIABLE charConvCounter : NATURAL range 0 to bcdDec'LENGTH/4 := bcdDec'LENGTH/4-1; charConvCounter > 0; charConvCounter := charConvCounter - 1)
+        {
+            If(oString.Length > 0 OR charConvCounter = 1 OR bcdDec((charConvCounter*4 - 1) downto (charConvCounter*4 - 4)) /= "0000")
+            {
+                oString.Write   <= '1';
+                oString.Address <= oString.Length;
+                oString.Data_IN <= "0011" & bcdDec((charConvCounter*4 - 1) downto (charConvCounter*4 - 4));
+                oString.Length  <= oString.Length + 1;
+            }
+        }
+        oString.Write  <= '0';
+    }
 }

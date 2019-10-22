@@ -1,0 +1,58 @@
+/*
+    Name: Binary to BCD digit
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 20.08.2019
+
+	This file is a derivation of the implementation found at: https://www.digikey.com/eewiki/pages/viewpage.action?pageId=60030986
+	
+	Important: -This component is meant to be used together with BinaryToBcd.vhdp
+
+    Example:   BinaryToBcd
+*/
+
+Component BinaryToBcdDigit
+(
+	Reset	: IN	 STD_LOGIC := '0';	--active high reset
+	Enable	: IN	 STD_LOGIC := '0';	--activate operation
+	Binary	: IN	 STD_LOGIC := '0';	--bit shifted into digit
+	C_Out	: BUFFER STD_LOGIC := '0';	--carry out shifted to next larger digit
+	BCD		: BUFFER STD_LOGIC_VECTOR(3 DOWNTO 0) := (others => '0');	--resulting BCD output
+)
+{
+
+	SIGNAL	prev_ena : STD_LOGIC;		--keeps track of the previous enable to identify when enable is first asserted
+	
+	C_Out <= BCD(3) OR (BCD(2) AND BCD(1)) OR (BCD(2) AND BCD(0));  --assert carry out when register value exceeds 4
+	
+	Process ()
+	{
+		if(Reset = '1')
+		{
+			prev_ena <= '0';									--clear ena history
+			BCD <= "0000";										--clear output
+		}
+		else
+		{
+			prev_ena <= Enable;									--keep track of last enable
+			if(Enable = '1')
+			{
+				if(prev_ena = '0')
+				{
+					BCD <= "0000";								--initialize the register
+				}
+				elsif(C_Out = '1')
+				{
+					BCD(0) <= Binary;							--shift new bit into first register
+					BCD(1) <= NOT BCD(0);						--set second register to adjusted value
+					BCD(2) <= NOT (BCD(1) XOR BCD(0));			--set third register to adjusted value
+					BCD(3) <= BCD(3) AND BCD(0);				--set fourth register to adjusted value
+				}
+				else
+				{
+					BCD <= BCD(2 DOWNTO 0) & Binary;			--shift register values up and shift in new bit
+				}
+			}
+		}
+	}
+}
