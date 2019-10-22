@@ -1,0 +1,86 @@
+Main
+(
+    led : OUT STD_LOGIC := '0';
+    RX            : IN STD_LOGIC;
+    TX            : OUT STD_LOGIC;
+)
+{
+    SIGNAL UART_Interface_TX_Enable     : STD_LOGIC;
+    SIGNAL UART_Interface_TX_Busy       : STD_LOGIC;
+    SIGNAL UART_Interface_TX_Data       : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL UART_Interface_RX_Busy       : STD_LOGIC;
+    SIGNAL UART_Interface_RX_Data       : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL UART_Interface_RX_Error      : STD_LOGIC;
+    
+    NewComponent UART_Interface
+    (
+        Baud_Rate     => 9600,
+        
+        RX            => RX,
+        TX            => TX,
+        TX_Enable     => UART_Interface_TX_Enable,
+        TX_Busy       => UART_Interface_TX_Busy,
+        TX_Data       => UART_Interface_TX_Data,
+        RX_Busy       => UART_Interface_RX_Busy,
+        RX_Data       => UART_Interface_RX_Data,
+        RX_Error      => UART_Interface_RX_Error,
+    );
+    
+    SIGNAL receive_string : String_Type;
+    
+    NewComponent Single_Port_RAM
+    (
+        Width    => 256,
+        
+        Write    => receive_string.Write,
+        Address  => receive_string.Address,
+        Data_IN  => receive_string.Data_IN,
+        Data_OUT => receive_string.Data_OUT,
+    );
+    
+    SIGNAL transmit_string : String_Type;
+    
+    NewComponent Single_Port_RAM
+    (
+        Width    => 256,
+        
+        Write    => transmit_string.Write,
+        Address  => transmit_string.Address,
+        Data_IN  => transmit_string.Data_IN,
+        Data_OUT => transmit_string.Data_OUT,
+    );
+    
+    SIGNAL string_received : String_Type;
+    
+    NewComponent Single_Port_ROM
+    (
+        Data     => x"52656365697665643a20",
+        
+        Length   => string_received.Length,
+        Address  => string_received.Address,
+        Data_OUT => string_received.Data_OUT,
+    );
+
+    Process ()
+    {
+        Thread
+        {
+            led <= '1';
+            Wait(1200000);
+            led <= '0';
+            Wait(1200000);
+        }
+
+        Thread
+        {
+            --Receive UART Data
+            NewFunction readString (receive_string, UART_Interface_RX_Data, UART_Interface_RX_Busy);
+
+            --                          "Received: " + Received string = transmit string
+            NewFunction stringConcat (string_received, receive_string, transmit_string);
+
+            --Send combined string
+            NewFunction printString (transmit_string, UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+        }
+    }
+}

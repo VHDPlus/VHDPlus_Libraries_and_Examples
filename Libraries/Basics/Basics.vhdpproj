@@ -18,6 +18,9 @@
     <Items xsi:type="ProjectFileVHDP">
       <Path>Memory\Single-Port_RAM.vhdp</Path>
     </Items>
+	<Items xsi:type="ProjectFileVHDP">
+      <Path>Memory\Single-Port_ROM.vhdp</Path>
+    </Items>
   </Items>
   <Items xsi:type="ProjectFolder">
     <Path>ISSP</Path>
@@ -75,5 +78,11 @@
   </Items>
   <Items xsi:type="ProjectFileVHDP">
     <Path>PWM.vhdp</Path>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Path>String_Functions.vhdp</Path>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Path>String_Type.vhdp</Path>
   </Items>
 </ProjectRoot>

@@ -1,0 +1,35 @@
+Class
+{
+    --iString1 + iString2 = oString
+    --String = RAM interface + string length
+    StepFunction stringConcat
+    (
+        iString1 : String_Type;
+        
+        iString2 : String_Type;
+        
+        oString  : String_Type;
+    )
+    {
+        oString.Write <= '1';
+        StepFor(oString.Length <= 0; oString.Length < iString1.Length; oString.Length <= oString.Length + 1)
+        {
+            iString1.Address <= oString.Length;
+            Step
+            {
+                oString.Address <= oString.Length;
+                oString.Data_IN <= iString1.Data_OUT;
+            }
+        }
+        StepFor(; oString.Length < iString1.Length + iString2.Length; oString.Length <= oString.Length + 1)
+        {
+            iString2.Address <= oString.Length - iString1.Length;
+            Step
+            {
+                oString.Address <= oString.Length;
+                oString.Data_IN <= iString2.Data_OUT;
+            }
+        }
+        oString.Write <= '0';
+    }
+}
