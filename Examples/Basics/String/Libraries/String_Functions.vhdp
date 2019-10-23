@@ -1,5 +1,49 @@
 Class
 {
+    --Creates the RAM instance for the string
+    StepFunction newString
+    (
+        oString : String_Type;
+    )
+    {
+        NewComponent Single_Port_RAM
+        (
+            Width    => 256,
+            
+            Write    => oString.Write,
+            Address  => oString.Address,
+            Data_IN  => oString.Data_IN,
+            Data_OUT => oString.Data_OUT,
+        );
+        
+        FunctionContent
+        {
+            oString.Length <= 0;
+        }
+    }
+    
+    --Creates a ROM instance with the string value (e.g. "example")
+    StepFunction assignString
+    (
+        strValue : STD_LOGIC_VECTOR;
+        oString  : String_Type;
+    )
+    {
+        NewComponent Single_Port_ROM
+        (
+            Data     => strValue,
+            
+            Length   => oString.Length,
+            Address  => oString.Address,
+            Data_OUT => oString.Data_OUT,
+        );
+        
+        FunctionContent
+        {
+            
+        }
+    }
+    
     --iString1 + iString2 = oString
     --String = RAM interface + string length
     StepFunction stringConcat

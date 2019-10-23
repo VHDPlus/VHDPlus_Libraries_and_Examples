@@ -26,53 +26,6 @@ Main
         RX_Error      => UART_Interface_RX_Error,
     );
     
-    SIGNAL receive_string : String_Type;
-    
-    NewComponent Single_Port_RAM
-    (
-        Width    => 256,
-        
-        Write    => receive_string.Write,
-        Address  => receive_string.Address,
-        Data_IN  => receive_string.Data_IN,
-        Data_OUT => receive_string.Data_OUT,
-    );
-    
-    SIGNAL number_string : String_Type;
-    
-    NewComponent Single_Port_RAM
-    (
-        Width    => 256,
-        
-        Write    => number_string.Write,
-        Address  => number_string.Address,
-        Data_IN  => number_string.Data_IN,
-        Data_OUT => number_string.Data_OUT,
-    );
-    
-    SIGNAL transmit_string : String_Type;
-    
-    NewComponent Single_Port_RAM
-    (
-        Width    => 256,
-        
-        Write    => transmit_string.Write,
-        Address  => transmit_string.Address,
-        Data_IN  => transmit_string.Data_IN,
-        Data_OUT => transmit_string.Data_OUT,
-    );
-    
-    SIGNAL string_received : String_Type;
-    
-    NewComponent Single_Port_ROM
-    (
-        Data     => x"2e2052656365697665643a20",
-        
-        Length   => string_received.Length,
-        Address  => string_received.Address,
-        Data_OUT => string_received.Data_OUT,
-    );
-    
     SIGNAL BinaryToBcd_Enable : STD_LOGIC;
     SIGNAL BinaryToBcd_Binary : STD_LOGIC_VECTOR (8-1 DOWNTO 0);
     SIGNAL BinaryToBcd_Busy   : STD_LOGIC;
@@ -88,7 +41,7 @@ Main
         Busy   => BinaryToBcd_Busy,
         BCD    => BinaryToBcd_BCD,
     );
-    
+
     Process ()
     {
         Thread
@@ -101,18 +54,35 @@ Main
 
         Thread
         {
-            SIGNAL receiveCount : NATURAL range 0 to 255 := 0;
-            
-            --Receive UART Data
-            NewFunction readString (receive_string, UART_Interface_RX_Data, UART_Interface_RX_Busy);
+            SIGNAL receiveCount : NATURAL range 0 to 255 := 1;
 
-            --Convert receiveCount to String
-            NewFunction naturalToString (receiveCount, number_string, BinaryToBcd_Enable, BinaryToBcd_Busy, BinaryToBcd_Binary, BinaryToBcd_BCD);
+            --Create string for received data
+            SIGNAL receive_string : String_Type;
+            NewFunction newString (receive_string);
             
-            --                          receiveCount + ". Received: " = transmit string
+            --Receive UART Data--
+            NewFunction readString (receive_string, UART_Interface_RX_Data, UART_Interface_RX_Busy);
+            ---------------------
+            
+            --Create string for number of received messages
+            SIGNAL number_string : String_Type;
+            NewFunction newString (number_string);
+            
+            --Convert receiveCount to String--
+            NewFunction naturalToString (receiveCount, number_string, BinaryToBcd_Enable, BinaryToBcd_Busy, BinaryToBcd_Binary, BinaryToBcd_BCD);
+            ----------------------------------
+            
+            --Combine strings
+            SIGNAL transmit_string : String_Type;
+            NewFunction newString (transmit_string);
+            SIGNAL string_received : String_Type;
+            NewFunction assignString (x"2e2052656365697665643a20", string_received); --". Received: "
+            
+            --receiveCount + ". Received: " = transmit string--
             NewFunction stringConcat (number_string, string_received, transmit_string);
-            --     transmit string + Received string = transmit string
+            --transmit string + Received string = transmit string
             NewFunction stringAppend (receive_string, transmit_string);
+            ---------------------------------------------------
 
             --Send combined string
             NewFunction printString (transmit_string, UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
