@@ -76,7 +76,7 @@ Main
             SIGNAL transmit_string : String_Type;
             NewFunction newString (transmit_string);
             SIGNAL string_received : String_Type;
-            NewFunction assignString (x"2e2052656365697665643a20", string_received); --". Received: "
+            NewFunction assignString (s". Received: ", string_received);
             
             --receiveCount + ". Received: " = transmit string--
             NewFunction stringConcat (number_string, string_received, transmit_string);
