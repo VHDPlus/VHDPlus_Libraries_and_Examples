@@ -1,7 +1,7 @@
 Main
 (
-    led : OUT STD_LOGIC := '0';
-    RX            : IN STD_LOGIC;
+    led           : OUT STD_LOGIC := '0';
+    RX            : IN  STD_LOGIC;
     TX            : OUT STD_LOGIC;
 )
 {
@@ -27,14 +27,14 @@ Main
     );
     
     SIGNAL BinaryToBcd_Enable : STD_LOGIC;
-    SIGNAL BinaryToBcd_Binary : STD_LOGIC_VECTOR (8-1 DOWNTO 0);
+    SIGNAL BinaryToBcd_Binary : STD_LOGIC_VECTOR (16-1 DOWNTO 0);
     SIGNAL BinaryToBcd_Busy   : STD_LOGIC;
-    SIGNAL BinaryToBcd_BCD    : STD_LOGIC_VECTOR (3*4-1 DOWNTO 0);
+    SIGNAL BinaryToBcd_BCD    : STD_LOGIC_VECTOR (5*4-1 DOWNTO 0);
     
     NewComponent BinaryToBcd
     (
-        Bits   => 8, --receiveCount is 0 to 255
-        Digits => 3, --8bit = 1 to 3 digits
+        Bits   => 16, --receiveCount is 0 to 65535
+        Digits => 5,  --8bit = 1 to 5 digits
         
         Enable => BinaryToBcd_Enable,
         Binary => BinaryToBcd_Binary,
@@ -42,52 +42,54 @@ Main
         BCD    => BinaryToBcd_BCD,
     );
 
+    SIGNAL blink_speed : NATURAL := 100;
+    
     Process ()
     {
         Thread
         {
             led <= '1';
-            Wait(1200000);
+            Wait(blink_speed*12000);
             led <= '0';
-            Wait(1200000);
+            Wait(blink_speed*12000);
         }
 
         Thread
         {
-            SIGNAL receiveCount : NATURAL range 0 to 255 := 1;
-
             --Create string for received data
-            SIGNAL receive_string : String_Type;
-            NewFunction newString (receive_string);
-            
-            --Receive UART Data--
-            NewFunction readString (receive_string, UART_Interface_RX_Data, UART_Interface_RX_Busy);
-            ---------------------
-            
-            --Create string for number of received messages
-            SIGNAL number_string : String_Type;
-            NewFunction newString (number_string);
-            
-            --Convert receiveCount to String--
-            NewFunction naturalToString (receiveCount, number_string, BinaryToBcd_Enable, BinaryToBcd_Busy, BinaryToBcd_Binary, BinaryToBcd_BCD);
-            ----------------------------------
-            
-            --Combine strings
+            SIGNAL receive_string : String_Type;    --Create string interface
+            NewFunction newString (receive_string); --Create RAM for string
+            --Create string for final response
             SIGNAL transmit_string : String_Type;
             NewFunction newString (transmit_string);
-            SIGNAL string_received : String_Type;
-            NewFunction assignString (x"2e2052656365697665643a20", string_received); --". Received: "
-            
-            --receiveCount + ". Received: " = transmit string--
-            NewFunction stringConcat (number_string, string_received, transmit_string);
-            --transmit string + Received string = transmit string
-            NewFunction stringAppend (receive_string, transmit_string);
-            ---------------------------------------------------
 
+            --Ask for blink speed---------------------------------------------------------------
+            
+            SIGNAL askForSpeed : String_Type;                                --Create string interface
+            NewFunction assignString (s"\nBlink speed in ms:\n", askForSpeed); --Create ROM with string
+            
+            --Send "Blink speed in ms:\n" string
+            NewFunction printString (askForSpeed, UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+
+            --Receive response from user
+            NewFunction readString (receive_string, UART_Interface_RX_Data, UART_Interface_RX_Busy);
+            
+            --Save speed and send response-------------------------------------------------------
+            
+            --Convert response from user to natural
+            NewFunction stringToNatural (receive_string, blink_speed);
+            
+            --Convert speed back to string (to show that convertion was successfull)
+            NewFunction naturalToString (blink_speed, receive_string, BinaryToBcd_Enable, BinaryToBcd_Busy, BinaryToBcd_Binary, BinaryToBcd_BCD);
+
+            SIGNAL sendChanged : String_Type;
+            NewFunction assignString (s"Speed changed to: ", sendChanged);
+            
+            --transmit_string = "Speed changed to: " + blink_speed
+            NewFunction stringConcat (sendChanged, receive_string, transmit_string);
+            
             --Send combined string
             NewFunction printString (transmit_string, UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
-            
-            receiveCount <= receiveCount + 1;
         }
     }
 }

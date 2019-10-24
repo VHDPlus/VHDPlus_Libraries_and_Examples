@@ -1,5 +1,29 @@
 Class
 {
+    StepFunction stringToNatural
+    (
+        iString  : String_Type;
+        oNatural : NATURAL;
+    )
+    {
+        oNatural <= 0;
+        StepFor(VARIABLE convertCharCount : NATURAL := 0; convertCharCount < iString.Length; convertCharCount := convertCharCount + 1)
+        {
+            iString.Address <= convertCharCount;
+            Step
+            {
+                If(iString.Data_OUT > x"2F" AND iString.Data_OUT < x"3A")
+                {
+                    oNatural <= oNatural*10 + TO_INTEGER(UNSIGNED(iString.Data_OUT)) - 48;
+                }
+                else
+                {
+                    convertCharCount := iString.Length;
+                }
+            }
+        }
+    }
+    
     --Creates the RAM instance for the string
     StepFunction newString
     (
@@ -18,7 +42,7 @@ Class
         
         FunctionContent
         {
-            oString.Length <= 0;
+            
         }
     }
     
