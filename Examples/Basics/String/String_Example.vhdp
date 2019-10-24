@@ -76,6 +76,7 @@ Main
             
             --Save speed and send response-------------------------------------------------------
             
+<<<<<<< HEAD
             --Convert response from user to natural
             NewFunction stringToNatural (receive_string, blink_speed);
             
