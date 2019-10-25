@@ -1,29 +1,5 @@
 Class
 {
-    StepFunction stringToNatural
-    (
-        iString  : String_Type;
-        oNatural : NATURAL;
-    )
-    {
-        oNatural <= 0;
-        StepFor(VARIABLE convertCharCount : NATURAL := 0; convertCharCount < iString.Length; convertCharCount := convertCharCount + 1)
-        {
-            iString.Address <= convertCharCount;
-            Step
-            {
-                If(iString.Data_OUT > x"2F" AND iString.Data_OUT < x"3A")
-                {
-                    oNatural <= oNatural*10 + TO_INTEGER(UNSIGNED(iString.Data_OUT)) - 48;
-                }
-                else
-                {
-                    convertCharCount := iString.Length;
-                }
-            }
-        }
-    }
-    
     --Creates the RAM instance for the string
     StepFunction newString
     (
@@ -39,6 +15,8 @@ Class
             Data_IN  => oString.Data_IN,
             Data_OUT => oString.Data_OUT,
         );
+        
+        SIGNAL oString : String_Type;
         
         FunctionContent
         {
@@ -61,6 +39,8 @@ Class
             Address  => oString.Address,
             Data_OUT => oString.Data_OUT,
         );
+        
+        SIGNAL oString : String_Type;
         
         FunctionContent
         {
@@ -123,6 +103,24 @@ Class
         oString.Write <= '0';
     }
     
+    --oString + iChar = oString (e.g. iChar = s"\n")
+    StepFunction charAppend
+    (
+        iChar   : STD_LOGIC_VECTOR(7 downto 0);
+        
+        oString : String_Type;
+    )
+    {
+        oString.Write   <= '1';
+        oString.Address <= oString.Length;
+        oString.Data_IN <= iChar;
+        oString.Length  <= oString.Length + 1;
+        Step
+        {
+            oString.Write <= '0';
+        }
+    }
+    
     --Converts natural to string
     --Important: Needs BinaryToBcd and BinaryToBsdDigit
     StepFunction naturalToString
@@ -149,6 +147,107 @@ Class
                 oString.Write   <= '1';
                 oString.Address <= oString.Length;
                 oString.Data_IN <= "0011" & bcdDec((charConvCounter*4 - 1) downto (charConvCounter*4 - 4));
+                oString.Length  <= oString.Length + 1;
+            }
+        }
+        oString.Write  <= '0';
+    }
+    
+    --Converts natural to string
+    --Important: Creates BinaryToBcd with Signals -> bcdEna, ... are only for naming the signals
+    StepFunction naturalToStringInst
+    (
+        iNatural : NATURAL;
+        oString  : String_Type;
+        
+        bcdEna   : STD_LOGIC;
+        bcdBus   : STD_LOGIC;
+        bcdBin   : STD_LOGIC_VECTOR;
+        bcdDec   : STD_LOGIC_VECTOR;
+    )
+    {
+        SIGNAL bcdEna : STD_LOGIC;
+        SIGNAL bcdBin : STD_LOGIC_VECTOR (32-1 DOWNTO 0);
+        SIGNAL bcdBus : STD_LOGIC;
+        SIGNAL bcdDec : STD_LOGIC_VECTOR (10*4-1 DOWNTO 0);
+        
+        NewComponent BinaryToBcd
+        (
+            Bits   => 32,
+            Digits => 10,
+            
+            Enable => bcdEna,
+            Binary => bcdBin,
+            Busy   => bcdBus,
+            BCD    => bcdDec,
+        );
+        
+        FunctionContent
+        {
+            bcdBin <= STD_LOGIC_VECTOR(TO_UNSIGNED(iNatural, bcdBin'LENGTH));
+            bcdEna <= '1';
+            While(bcdBus = '0'){}
+            bcdEna <= '0';
+            While(bcdBus = '1'){}
+            oString.Length <= 0;
+            StepFor(VARIABLE charConvCounter : NATURAL range 0 to bcdDec'LENGTH/4 := bcdDec'LENGTH/4-1; charConvCounter > 0; charConvCounter := charConvCounter - 1)
+            {
+                If(oString.Length > 0 OR charConvCounter = 1 OR bcdDec((charConvCounter*4 - 1) downto (charConvCounter*4 - 4)) /= "0000")
+                {
+                    oString.Write   <= '1';
+                    oString.Address <= oString.Length;
+                    oString.Data_IN <= "0011" & bcdDec((charConvCounter*4 - 1) downto (charConvCounter*4 - 4));
+                    oString.Length  <= oString.Length + 1;
+                }
+            }
+            oString.Write  <= '0';
+        }
+    }
+    
+    --Converts string to natural ("12345\r\n" is converted to 12345 but "\n123" to 0)
+    StepFunction stringToNatural
+    (
+        iString  : String_Type;
+        oNatural : NATURAL;
+    )
+    {
+        oNatural <= 0;
+        StepFor(VARIABLE convertCharCount : NATURAL := 0; convertCharCount < iString.Length; convertCharCount := convertCharCount + 1)
+        {
+            iString.Address <= convertCharCount;
+            Step
+            {
+                If(iString.Data_OUT > x"2F" AND iString.Data_OUT < x"3A")
+                {
+                    oNatural <= oNatural*10 + TO_INTEGER(UNSIGNED(iString.Data_OUT)) - 48;
+                }
+                else
+                {
+                    convertCharCount := iString.Length;
+                }
+            }
+        }
+    }
+    
+    --Writes a part of a string in a different string
+    --"123456789" startindex = 3 length = 3 => "456"
+    StepFunction substring
+    (
+        iString    : String_Type;
+        startindex : NATURAL;
+        length     : NATURAL;
+        oString    : String_Type;
+    )
+    {
+        oString.Length <= 0;
+        StepFor(VARIABLE substringCount : NATURAL := startindex; substringCount < length+startindex; substringCount := substringCount + 1)
+        {
+            iString.Address <= substringCount;
+            Step
+            {
+                oString.Write   <= '1';
+                oString.Address <= oString.Length;
+                oString.Data_IN <= iString.Data_OUT;
                 oString.Length  <= oString.Length + 1;
             }
         }

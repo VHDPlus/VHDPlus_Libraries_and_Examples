@@ -26,22 +26,6 @@ Main
         RX_Error      => UART_Interface_RX_Error,
     );
     
-    SIGNAL BinaryToBcd_Enable : STD_LOGIC;
-    SIGNAL BinaryToBcd_Binary : STD_LOGIC_VECTOR (16-1 DOWNTO 0);
-    SIGNAL BinaryToBcd_Busy   : STD_LOGIC;
-    SIGNAL BinaryToBcd_BCD    : STD_LOGIC_VECTOR (5*4-1 DOWNTO 0);
-    
-    NewComponent BinaryToBcd
-    (
-        Bits   => 16, --receiveCount is 0 to 65535
-        Digits => 5,  --8bit = 1 to 5 digits
-        
-        Enable => BinaryToBcd_Enable,
-        Binary => BinaryToBcd_Binary,
-        Busy   => BinaryToBcd_Busy,
-        BCD    => BinaryToBcd_BCD,
-    );
-
     SIGNAL blink_speed : NATURAL := 100;
     
     Process ()
@@ -57,16 +41,13 @@ Main
         Thread
         {
             --Create string for received data
-            SIGNAL receive_string : String_Type;    --Create string interface
             NewFunction newString (receive_string); --Create RAM for string
             --Create string for final response
-            SIGNAL transmit_string : String_Type;
             NewFunction newString (transmit_string);
 
             --Ask for blink speed---------------------------------------------------------------
             
-            SIGNAL askForSpeed : String_Type;                                --Create string interface
-            NewFunction assignString (s"\nBlink speed in ms:\n", askForSpeed); --Create ROM with string
+            NewFunction assignString (s"Blink speed in ms:", askForSpeed); --Create ROM with string
             
             --Send "Blink speed in ms:\n" string
             NewFunction printString (askForSpeed, UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
@@ -76,18 +57,17 @@ Main
             
             --Save speed and send response-------------------------------------------------------
             
-<<<<<<< HEAD
             --Convert response from user to natural
             NewFunction stringToNatural (receive_string, blink_speed);
             
             --Convert speed back to string (to show that convertion was successfull)
-            NewFunction naturalToString (blink_speed, receive_string, BinaryToBcd_Enable, BinaryToBcd_Busy, BinaryToBcd_Binary, BinaryToBcd_BCD);
+            NewFunction naturalToStringInst (blink_speed, receive_string, BCD_Enable, BCD_Busy, BCD_Binary, BCD_Decimal);
 
-            SIGNAL sendChanged : String_Type;
             NewFunction assignString (s"Speed changed to: ", sendChanged);
             
-            --transmit_string = "Speed changed to: " + blink_speed
+            --transmit_string = "Speed changed to: " + blink_speed + "\n"
             NewFunction stringConcat (sendChanged, receive_string, transmit_string);
+            NewFunction charAppend (s"\n", transmit_string);
             
             --Send combined string
             NewFunction printString (transmit_string, UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
