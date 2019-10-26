@@ -56,7 +56,7 @@ Main
             NewFunction readString (receive_string, UART_Interface_RX_Data, UART_Interface_RX_Busy);
             
             --Save speed and send response-------------------------------------------------------
-            
+
             --Convert response from user to natural
             NewFunction stringToNatural (receive_string, blink_speed);
             
