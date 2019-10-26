@@ -253,4 +253,36 @@ Class
         }
         oString.Write  <= '0';
     }
+    
+    --Finds the first appearance of the character/string after the startindex
+    --"123456789" value = s"23" valueLen = 2 startIndex = 0 -> index = 1
+    StepFunction indexOf
+    (
+        iString    : String_Type;
+        value      : STD_LOGIC_VECTOR;
+        valueLen   : NATURAL;
+        startIndex : NATURAL;
+        index      : INTEGER;
+    )
+    {
+        CONSTANT valueVar : STD_LOGIC_VECTOR(valueLen*8-1 downto 0) := value;
+        index <= -1;
+        StepFor(VARIABLE indexCount : NATURAL := startIndex; indexCount < iString.Length; indexCount := indexCount + 1)
+        {
+            iString.Address <= indexCount;
+            Step
+            {
+                StepFor(VARIABLE stringCheck : NATURAL range 1 to valueLen := 1; stringCheck < valueLen AND iString.Data_OUT = valueVar((valueLen-stringCheck)*8+7 downto (valueLen-stringCheck)*8); stringCheck := stringCheck + 1)
+                {
+                    iString.Address <= indexCount+stringCheck;
+                }
+
+                If(iString.Data_OUT = valueVar((valueLen-stringCheck)*8+7 downto (valueLen-stringCheck)*8))
+                {
+                    index      <= indexCount;
+                    indexCount := iString.Length;
+                }
+            }
+        }
+    }
 }
