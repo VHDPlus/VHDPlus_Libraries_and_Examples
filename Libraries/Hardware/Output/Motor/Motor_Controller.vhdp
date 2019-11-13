@@ -22,29 +22,33 @@
 	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
 	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
 	
-	Important:   -Motor_Encoder.vhdp and PWM.vhdp has to be added to your project too
-	             -Two dc motors with encoder are needed for this component
+	Important:   -Motor_Encoder.vhdp and PWM.vhdp have to be added to your project
+	             -Two dc motors with encoders are necessary for this component
 	
-	Description: -This Component is build for two motors with encoder to drive an exact route
-	             -The motors correct the speed to drive streight
-				 -You can set the length to drive for each motor and the speed
-				 -While driving you get information about the driven length and the current speed
+	Description: -This component is build to drive an exact route with two motors with encoders
+	             -The motors correct their speed in order to drive straight
+				 -You can set the distance of drive for each motor and their speed
+				 -While the motors are driving you get information about the driven distance and the current speed
 	
-    Insertion:   -Right click on Motor_Controller.vhdp, Motor_Encoder.vhdp and PWM.vhdp -> Add to project
-			     -Add NewComponent of Motor_Controller in your code
-			     -Remove CLK_Frequency if you use a VHDP Core and no PLL
-			     -Remove or set the parameters (information next to the declaration)
-			     -Set Holes_In_Disk, Gear_Ratio and Wheel_Circumference to the values of your Motor to get the values in mm,
-			      otherwise Drive_L/R, Driven_L/R and Speed_L/R are in Encoder impules (per second), but you save Logic Elements.
-			      You can set the length to drive by writing Drive_L/R <= ([Length]*Wheel_Circumference)/(Holes_In_Disk*Gear_Ratio)
-			     -Right click the name Motor_Controller next to NewComponent and create the needed signals (Max_Length, Bits_Resolution and Length_Corr_Step in the declarations have to be replaced with the values you chose or you have to use a constant)
+    Insertion:   -Right click on Motor_Controller.vhdp, Motor_Encoder.vhdp and PWM.vhdp -> Add to avtive project 
+			     -Add NewComponent of Motor_Controller into your code
+			     -Remove CLK_Frequency if you use a VHDP Core and no phase-locked loop (PLL) or set a frequency according to your clock frequency
+			     -Remove or set the additional parameters (more information about their function next to the declaration or hover with your cursor over the parameters in your code)
+			     -Set Holes_In_Disk, Gear_Ratio and Wheel_Circumference to the values of your motor to get values in mm,
+			      otherwise Drive_L/R, Driven_L/R and Speed_L/R are given in encoder impules (per second), but in exchange you save logic elements.
+			      You can set the required distance by writing Drive_L/R <= ([Length]*Wheel_Circumference)/(Holes_In_Disk*Gear_Ratio)
+			     -Right click Motor_Controller next to NewComponent and create the required signals (Max_Length, Bits_Resolution and Length_Corr_Step in the declaration have to be replaced with values of you choice or you have to use constants)
 	
-    Function:    1. Set DriveL/R to the length you want to drive in mm or use ([Length]*Wheel_Circumference)/(Holes_In_Disk*Gear_Ratio)
-	             2. Set the Speed with that you want to drive. For a Bits_Resolution of 8, you can set the speed to 0-255. The speed can be changed while driving.
-				 3. Enable has to be '1'
-				 4. Set RST_Drive to '1'. This resets the driven length.
-				 5. Set RST_Drive to '0' in the next cycle. Because the driven length is 0, the motor starts driving.
-				    Here an exampe on how to start the motor:
+    Function:    1. Set DriveL/R to the distance the motor has to drive in mm or use the formula([Length]*Wheel_Circumference)/(Holes_In_Disk*Gear_Ratio)
+	             2. Set the desired motor Speed. For Bits_Resolution set to 8, you can divide the speed into 255 steps. You are able to change the speed while the motor is driving.
+				 3. Enable has to be set to '1'
+				 4. Set RST_Drive to '1'. This parameter resets the driven distance.
+				 5. Set RST_Drive to '0' in the next cycle. After that the driven distance is 0 so the motor starts driving in order to reach the set destination.
+				 
+				 
+				 
+				 
+				    Example:
 					
 				    Drive_L   <= 1000; --1m
 				    Drive_R   <= 1000; --1m
@@ -52,7 +56,7 @@
 				    RST_Drive <= '1';
 				    Step{ RST_Drive <= '0'; }
 					
-				 6. Wait until Finished is '1' and note that Error becomes '1' if a motor hasn't moved for the time defined by Max_Time
+				 6. The program has to wait until Finished switches to '1'. If Error switches to '1' the motor has not moved for the time defined by Max_Time.
 				    Example:
 					
 					While (Finished = '0')
