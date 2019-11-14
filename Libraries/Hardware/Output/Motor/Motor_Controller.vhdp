@@ -44,10 +44,7 @@
 				 3. Enable has to be set to '1'
 				 4. Set RST_Drive to '1'. This parameter resets the driven distance.
 				 5. Set RST_Drive to '0' in the next cycle. After that the driven distance is 0 so the motor starts driving in order to reach the set destination.
-				 
-				 
-				 
-				 
+
 				    Example:
 					
 				    Drive_L   <= 1000; --1m
