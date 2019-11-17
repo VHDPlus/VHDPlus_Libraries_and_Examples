@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Header>Camera_Example</Header>
+  <Items xsi:type="ProjectFolder">
+    <Header>Generated</Header>
+    <Items xsi:type="ProjectFile">
+      <Header>Camera_Capture.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>Camera_Controller.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>Camera_Example.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>I2C_Master_Interface.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>PWM_Generator.vhd</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Header>Libraries</Header>
+    <Items xsi:type="ProjectFolder">
+      <Header>Camera</Header>
+      <Items xsi:type="ProjectFileVHDP">
+        <Header>Camera.vhdp</Header>
+      </Items>
+      <Items xsi:type="ProjectFileVHDP">
+        <Header>Camera_Capure.vhdp</Header>
+      </Items>
+    </Items>
+    <Items xsi:type="ProjectFolder">
+      <Header>ISSP</Header>
+      <Items xsi:type="ProjectFile">
+        <Header>ISSP.qsys</Header>
+      </Items>
+      <Items xsi:type="ProjectFileVHDP">
+        <Header>ISSP.qsys.vhdp</Header>
+      </Items>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>I2C.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>PWM.vhdp</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>Camera_Example.vhdp</Header>
+  </Items>
+</ProjectRoot>

@@ -1,0 +1,193 @@
+/*
+    Name: Camera Example
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 06.06.2019
+    Copyright (c) 2019 fade Components. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+ */
+
+/*
+WARNING!
+This Example is not finished! 
+Feel free to test and improve it
+*/
+
+Main
+(
+    SIOC        : OUT    STD_LOGIC;
+    SIOD        : INOUT  STD_LOGIC;
+    HREF        : IN     STD_LOGIC;
+    VSYNC       : IN     STD_LOGIC;
+    PCLK        : IN     STD_LOGIC;
+    XCLK        : OUT    STD_LOGIC;
+    Data        : IN     STD_LOGIC_VECTOR (7 downto 0);
+    
+    VGA_R       : OUT    STD_LOGIC_VECTOR (3 downto 0);
+    VGA_G       : OUT    STD_LOGIC_VECTOR (3 downto 0);
+    VGA_B       : OUT    STD_LOGIC_VECTOR (3 downto 0);
+    VGA_HS      : OUT    STD_LOGIC;
+    VGA_VS      : OUT    STD_LOGIC;
+    
+    LED         : OUT    STD_LOGIC_VECTOR (7 downto 0);
+    
+    BTN         : IN     STD_LOGIC;
+)
+{
+    ------------Convert the VGA input data into pixel value and position data------------
+    SIGNAL Camera_Controller_New_Image     : STD_LOGIC;
+    SIGNAL Camera_Controller_New_Pixel     : STD_LOGIC;
+    SIGNAL Camera_Controller_Column        : NATURAL          range 0 to 784;
+    SIGNAL Camera_Controller_Row           : NATURAL          range 0 to 479;
+    SIGNAL Camera_Controller_Pixel_R       : STD_LOGIC_VECTOR (4 downto 0);
+    SIGNAL Camera_Controller_Pixel_G       : STD_LOGIC_VECTOR (5 downto 0);
+    SIGNAL Camera_Controller_Pixel_B       : STD_LOGIC_VECTOR (4 downto 0);
+    
+    SIGNAL I2C_CLK : STD_LOGIC := '0';
+    
+    SIOC <= '0' WHEN I2C_CLK = '0' ELSE '1';
+    
+    NewComponent Camera_Controller
+    (
+        CLK_Frequency => 50000000,
+        
+        Reset         => '0',
+        SIOC          => I2C_CLK,
+        SIOD          => SIOD,
+        HREF          => HREF,
+        VSYNC         => VSYNC,
+        PCLK          => PCLK,
+        XCLK          => XCLK,
+        Data          => Data,
+        
+        New_Image     => Camera_Controller_New_Image,
+        New_Pixel     => Camera_Controller_New_Pixel,
+        Column        => Camera_Controller_Column,
+        Row           => Camera_Controller_Row,
+        Pixel_R       => Camera_Controller_Pixel_R,
+        Pixel_G       => Camera_Controller_Pixel_G,
+        Pixel_B       => Camera_Controller_Pixel_B,
+    );
+    
+    ------------Combine pixels and save a 99x60 pixel image with the onboard RAM------------
+    SIGNAL Camera_Capture_Take_Image  : STD_LOGIC := '0';
+    SIGNAL Camera_Capture_Busy        : STD_LOGIC;
+    SIGNAL Camera_Capture_Read_Column : NATURAL          range 0 to 98 := 0;
+    SIGNAL Camera_Capture_Read_Row    : NATURAL          range 0 to 59 := 0;
+    SIGNAL Camera_Capture_Read_Data   : STD_LOGIC_VECTOR (14 downto 0);
+    
+    NewComponent Camera_Capture
+    (
+        New_Pixel   => Camera_Controller_New_Pixel,
+        Column      => Camera_Controller_Column,
+        Row         => Camera_Controller_Row,
+        Pixel_R     => Camera_Controller_Pixel_R,
+        Pixel_G     => Camera_Controller_Pixel_G,
+        Pixel_B     => Camera_Controller_Pixel_B,
+        
+        Take_Image  => Camera_Capture_Take_Image,
+        Busy        => Camera_Capture_Busy,
+        Read_Column => Camera_Capture_Read_Column,
+        Read_Row    => Camera_Capture_Read_Row,
+        Read_Data   => Camera_Capture_Read_Data,
+    );
+    
+    ------------Create an VGA interface for the VGA PMod and output the capured image------------
+    
+    VGA_HS <= OWN_HSYNC;
+    VGA_VS <= OWN_VSYNC;
+
+    SIGNAL OWN_VSYNC : STD_LOGIC := '1';
+    SIGNAL HSYNC_ENA : STD_LOGIC := '0';
+    
+    Process ()
+    {
+        Thread
+        {
+            Wait(3200);
+            OWN_VSYNC <= '1';
+            Wait(46400);
+            HSYNC_ENA <= '1';
+            Wait(768000);
+            HSYNC_ENA <= '0';
+            Wait(16000);
+            OWN_VSYNC <= '0';
+            
+        }
+    }
+    
+    SIGNAL OWN_HSYNC : STD_LOGIC := '1';
+    SIGNAL PIXEL_ENA : STD_LOGIC := '0';
+    
+    Process ()
+    {
+        Thread
+        {
+            If(HSYNC_ENA = '1')
+            {
+                Wait(192);
+                OWN_HSYNC <= '1';
+                Wait(96);
+                PIXEL_ENA <= '1';
+                Wait(1280);
+                PIXEL_ENA <= '0';
+                Wait(32);
+                OWN_HSYNC <= '0';
+            }
+            Else
+            {
+                OWN_HSYNC <= '0';
+            }
+        }
+    }
+    
+    Process ()
+    {
+        VARIABLE outputImage : STD_LOGIC := '0';
+        Thread
+        {
+            While (HSYNC_ENA = '1'){}
+            While (HSYNC_ENA = '0'){}
+            outputImage := '1';
+            StepFor(VARIABLE row : INTEGER range 0 to 480 := 0; row < 480; row := row + 1)
+            {
+                While (PIXEL_ENA = '0'){}
+                StepFor(VARIABLE col : INTEGER range 0 to 1280 := 0; col < 1280; col := col + 1){} --2x640 to have 2 cycles for one pixel
+                While (PIXEL_ENA = '1'){}
+            }
+            outputImage := '0';
+            
+            Camera_Capture_Take_Image <= '1';
+            While(Camera_Capture_Busy = '0'){}
+            While(Camera_Capture_Busy = '1')
+            {
+                Camera_Capture_Take_Image <= '0';
+            }
+        }
+        
+        If(outputImage = '1')
+        {
+            Camera_Capture_Read_Row    <= row/8;
+            Camera_Capture_Read_Column <= col/13;
+            VGA_R <= Camera_Capture_Read_Data(14 downto 11);
+            VGA_G <= Camera_Capture_Read_Data(9 downto 6);
+            VGA_B <= Camera_Capture_Read_Data(4 downto 1);
+        }
+    }
+}

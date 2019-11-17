@@ -1,0 +1,247 @@
+/*
+    Name: Camera Capture
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 06.06.2019
+    Copyright (c) 2019 fade Components. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of 
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+    HDL Code without restriction, including without limitation the rights to use, 
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important: -This component caputres an 80x60 image with 555 RGB for object detection
+    
+    Insertion: -Right click on Camera.vhdp -> Add to project
+               -Add NewComponent of Camera_Controller in your code
+               -Set CLK_Frequency to the clock frequency of the signal connected with CLK
+               -Add this to your Main IOs and connect them with the instance IOs and the Camera Pins (modify the names if already in use)
+                SIOC        : OUT    STD_LOGIC;
+                SIOD        : INOUT  STD_LOGIC;
+                HREF        : IN     STD_LOGIC;
+                VSYNC       : IN     STD_LOGIC;
+                PCLK        : IN     STD_LOGIC;
+                XCLK        : OUT    STD_LOGIC;
+                Data        : IN     STD_LOGIC_VECTOR (7 downto 0); 
+               -Right click the name Camera_Controller next to NewComponent and create the needed signals
+    
+    Function:  -In your process you have to add If(New_Pixel = '1'){ ... } (While(New_Pixel = '0'){} would work too)
+               -Inside you can read the current row and column of the pixel and with Pixel_R/G/B the value
+               -With If(New_Image = '1') you can wait for the first pixel in column and row 0
+    
+    Example:   Camera_Example
+*/
+
+Component Camera_Capture
+(
+    New_Pixel   : IN     STD_LOGIC := '0';  --change state -> new pixel
+    Column      : IN     NATURAL range 0 to 784 := 0;
+    Row         : IN     NATURAL range 0 to 479 := 0;
+    Pixel_R     : IN     STD_LOGIC_VECTOR(4 downto 0) := (others => '0');
+    Pixel_G     : IN     STD_LOGIC_VECTOR(5 downto 0) := (others => '0');
+    Pixel_B     : IN     STD_LOGIC_VECTOR(4 downto 0) := (others => '0');
+    
+    Take_Image  : IN     STD_LOGIC := '0';
+    Busy        : OUT    STD_LOGIC := '0';
+    
+    Read_Column : IN     NATURAL range 0 to 98 := 0;
+    Read_Row    : IN     NATURAL range 0 to 59 := 0;
+    Read_Data   : OUT    STD_LOGIC_VECTOR(14 downto 0) := (others => '0');
+)
+{
+    TYPE row_type IS ARRAY (98 downto 0) OF STD_LOGIC_VECTOR(14 downto 0);
+    TYPE frame_type IS ARRAY (59 downto 0) OF row_type;
+    SIGNAL image : frame_type;
+    
+    SIGNAL RAM_Write    : STD_LOGIC := '0';
+    SIGNAL RAM_Addr_Col : NATURAL range 0 to 98 := 0;
+    SIGNAL RAM_Addr_Row : NATURAL range 0 to 59 := 0;
+    SIGNAL RAM_Data_Out : STD_LOGIC_VECTOR(14 downto 0) := (others => '0');
+    SIGNAL RAM_Data_In  : STD_LOGIC_VECTOR(14 downto 0) := (others => '0');
+    
+    Process RAM_Controller ()
+    {
+        if(RAM_Write = '1')
+        {
+            image(RAM_Addr_Row)(RAM_Addr_Col) <= RAM_Data_In;
+        }
+        
+        RAM_Data_Out <= image(RAM_Addr_Row)(RAM_Addr_Col);
+    }
+    
+    SIGNAL Last_Col       : NATURAL range 0 to 98 := 0;
+    SIGNAL Last_Row       : NATURAL range 0 to 59 := 0;
+    SIGNAL Combined_Pxl   : STD_LOGIC_VECTOR(14 downto 0) := (others => '0');
+    SIGNAL New_Combined   : STD_LOGIC := '0';
+    
+    /*
+    SIGNAL ISSP_probe : std_logic_vector (15 downto 0);
+    SIGNAL ISSP_source : std_logic_vector (2 downto 0);
+    
+    NewComponent ISSP 
+    (
+        probe  => ISSP_probe,
+        source => ISSP_source,
+    );
+    */
+    
+    
+    --ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(RAM_Addr_Col, ISSP_probe'LENGTH));
+    
+    --Combines 8 pixles in one row together and creates average
+    Process Pixle_Combiner
+    (
+        VARIABLE combined  : NATURAL range 0 to 8 := 0;
+        VARIABLE pxl_buf_r : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+        VARIABLE pxl_buf_g : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+        VARIABLE pxl_buf_b : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+        VARIABLE New_Pixel_Reg : STD_LOGIC := '0';
+    )
+    {
+        If(New_Combined = '1')
+        {
+            New_Combined <= '0';
+        }
+        
+        If(New_Pixel /= New_Pixel_Reg)
+        {
+            --Add 8 pixles in one row together
+            pxl_buf_r := STD_LOGIC_VECTOR(UNSIGNED(pxl_buf_r) + UNSIGNED(Pixel_R));
+            pxl_buf_g := STD_LOGIC_VECTOR(UNSIGNED(pxl_buf_g) + UNSIGNED(Pixel_G(5 downto 1)));
+            pxl_buf_b := STD_LOGIC_VECTOR(UNSIGNED(pxl_buf_b) + UNSIGNED(Pixel_B));
+            combined  := combined + 1;
+            
+            If(combined = 8)
+            {
+                --Return combined pixle
+                Last_Col     <= Column/8;
+                Last_Row     <= Row/8;
+                Combined_Pxl <= pxl_buf_r(7 downto 3) & pxl_buf_g(7 downto 3) & pxl_buf_b(7 downto 3);
+                New_Combined <= '1';
+                
+                pxl_buf_r    := (others => '0');
+                pxl_buf_g    := (others => '0');
+                pxl_buf_b    := (others => '0');
+                combined     := 0;
+            }
+        }
+        New_Pixel_Reg := New_Pixel;
+    }
+    
+    --ISSP_probe <= Combined_Pxl(14 downto 7);
+    
+    TYPE combine_row_type IS ARRAY (98 downto 0) OF STD_LOGIC_VECTOR(7 downto 0);
+    SIGNAL combine_row_r : combine_row_type;
+    SIGNAL combine_row_g : combine_row_type;
+    SIGNAL combine_row_b : combine_row_type;
+
+    Process Row_Combiner 
+    (
+        VARIABLE capture   : STD_LOGIC := '0';
+        VARIABLE take_reg  : STD_LOGIC := '0';
+        
+        VARIABLE combined  : NATURAL range 0 to 7 := 0;
+        VARIABLE row_reg   : NATURAL range 0 to 480 := 0;
+        VARIABLE l_row_reg : NATURAL range 0 to 59 := 0;
+        
+        VARIABLE pxl_buf_r : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+        VARIABLE pxl_buf_g : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+        VARIABLE pxl_buf_b : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    )
+    {
+        If(RAM_Write = '0')
+        {
+            Busy <= capture;
+            
+            --ISSP_probe(0) <= capture;
+            
+            --If this row is smaller than the last row -> image finished
+            If(Last_Row < l_row_reg)
+            {
+                capture  := '0';
+                combined := 0;
+            }
+            l_row_reg := Last_Row;
+            
+            --ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Last_Row, ISSP_probe'LENGTH));
+            
+            If(Take_Image = '1' AND take_reg = '0')
+            {
+                capture := '1';
+            }
+            take_reg := Take_Image;
+            
+            If(capture = '1')
+            {
+                --read last combined data in column
+                If(New_Combined = '1')
+                {   
+                    pxl_buf_r := STD_LOGIC_VECTOR(UNSIGNED(combine_row_r(Last_Col)) + UNSIGNED(Combined_Pxl(14 downto 10)));
+                    pxl_buf_g := STD_LOGIC_VECTOR(UNSIGNED(combine_row_g(Last_Col)) + UNSIGNED(Combined_Pxl(9 downto 5)));
+                    pxl_buf_b := STD_LOGIC_VECTOR(UNSIGNED(combine_row_b(Last_Col)) + UNSIGNED(Combined_Pxl(4 downto 0)));
+                    
+                    If(combined < 7)
+                    {
+                        combine_row_r(Last_Col) <= pxl_buf_r;
+                        combine_row_g(Last_Col) <= pxl_buf_g;
+                        combine_row_b(Last_Col) <= pxl_buf_b;
+                    }
+                    Else --after 8 rows, the pixle is saved in the ram
+                    {
+                        RAM_Data_In  <= pxl_buf_r(7 downto 3) & pxl_buf_g(7 downto 3) & pxl_buf_b(7 downto 3);
+                        RAM_Addr_Col <= Last_Col;
+                        RAM_Addr_Row <= Last_Row;
+                        RAM_Write    <= '1';
+
+                        combine_row_r(Last_Col) <= (others => '0');
+                        combine_row_g(Last_Col) <= (others => '0');
+                        combine_row_b(Last_Col) <= (others => '0');
+                    }
+                    
+                    --If row (0-480) changed -> new row to combine
+                    If(Row /= row_reg)
+                    {
+                        If(combined < 7)
+                        {
+                            combined := combined + 1;
+                        }
+                        Else
+                        {
+                            combined := 0;
+                        }
+                    }
+                    row_reg   := Row;
+                }
+            }
+            Else
+            {
+                Read_Data    <= RAM_Data_Out;
+                RAM_Addr_Col <= Read_Column;
+                RAM_Addr_Row <= Read_Row;
+                
+                /*
+                If(Read_Column = 40 AND Read_Row = 40)
+                {
+                    ISSP_probe(4 downto 0) <= RAM_Data_Out(14 downto 10);
+                }
+                */
+            }
+        }
+        Else
+        {
+            RAM_Write <= '0';
+        }
+    }
+}

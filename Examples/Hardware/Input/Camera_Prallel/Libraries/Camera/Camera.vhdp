@@ -1,0 +1,494 @@
+/*
+    Name: Camera
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 06.06.2019
+    Copyright (c) 2019 fade Components. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important: -This component is made for the OV7670 camera
+               -We recommend a CLK Frequency of 10MHz and faster (Adding CLK => ... to NewComponent allows a different clock speed)
+    
+    Insertion: -Right click on Camera.vhdp -> Add to project
+               -Add NewComponent of Camera_Controller in your code
+               -Set CLK_Frequency to the clock frequency of the signal connected with CLK
+               -Add this to your Main IOs and connect them with the instance IOs and the Camera Pins (modify the names if already in use)
+                SIOC        : OUT    STD_LOGIC;
+                SIOD        : INOUT  STD_LOGIC;
+                HREF        : IN     STD_LOGIC;
+                VSYNC       : IN     STD_LOGIC;
+                PCLK        : IN     STD_LOGIC;
+                XCLK        : OUT    STD_LOGIC;
+                Data        : IN     STD_LOGIC_VECTOR (7 downto 0);
+               -Right click the name Camera_Controller next to NewComponent and create the needed signals
+    
+    Function:  -In your process you have to add If(New_Pixel = '1'){ ... } (While(New_Pixel = '0'){} would work too)
+               -Inside you can read the current row and column of the pixel and with Pixel_R/G/B the value
+               -With If(New_Image = '1') you can wait for the first pixel in column and row 0
+    
+    Example:   Camera_Example
+ */
+
+Component Camera_Controller
+(
+    
+    Generic
+    (
+        CLK_Frequency : NATURAL := 50000000;
+    );
+    
+    --Camera Interface
+    
+    Reset       : IN     STD_LOGIC := '0';
+    
+    SIOC        : INOUT  STD_LOGIC := '0';
+    SIOD        : INOUT  STD_LOGIC := 'Z';
+    
+    HREF        : IN     STD_LOGIC := '0';  --Rising edge -> New row (stays high while receiving data for row)
+    VSYNC       : IN     STD_LOGIC := '0';  --After falling edge -> New image
+    
+    PCLK        : IN     STD_LOGIC := '0';  --Rising edge -> New byte (two bytes = one pixel) 1.7-1.3 = R, 1.2-2.5 = G, 2.4-2.0 = B
+    XCLK        : OUT    STD_LOGIC := '0';  --CLK output
+    
+    Data        : IN     STD_LOGIC_VECTOR (7 downto 0) := (others => '0');
+    
+    --Data Interface
+    
+    New_Image   : BUFFER STD_LOGIC := '0';  --change state -> first pixel loaded
+    New_Pixel   : BUFFER STD_LOGIC := '0';  --change state -> new pixel
+    Column      : OUT    NATURAL range 0 to 784 := 0;
+    Row         : OUT    NATURAL range 0 to 479 := 0;
+    Pixel_R     : OUT    STD_LOGIC_VECTOR(4 downto 0) := (others => '0');
+    Pixel_G     : OUT    STD_LOGIC_VECTOR(5 downto 0) := (others => '0');
+    Pixel_B     : OUT    STD_LOGIC_VECTOR(4 downto 0) := (others => '0');
+)
+{
+    --ISSP_probe <= address;
+    
+    CONSTANT XCLK_Frequency : NATURAL := 25000000;
+    SIGNAL NoXCLKDivider    : STD_LOGIC := '0';
+    SIGNAL XCLK_reg         : STD_LOGIC := '0';
+    
+    VHDL
+    {
+        NoXCLKDivider <= '1' WHEN CLK_Frequency/XCLK_Frequency < 2 ELSE '0';
+        XCLK <= CLK WHEN NoXCLKDivider = '1' ELSE XCLK_reg;
+    }
+    
+    Process XCLK_Generator
+    (
+        VARIABLE divider : NATURAL range 0 to CLK_Frequency/XCLK_Frequency := 0;
+    )
+    {
+        If(CLK_Frequency/XCLK_Frequency > 2)
+        {
+            If(divider < CLK_Frequency/XCLK_Frequency-1)
+            {
+                divider := divider + 1;
+            }
+            Else
+            {
+                divider := 0;
+            }
+            
+            If(divider < CLK_Frequency/(XCLK_Frequency*2))
+            {
+                XCLK_reg  <= '0';
+            }
+            Else
+            {
+                XCLK_reg  <= '1';
+            }
+        }
+        Elsif(CLK_Frequency/XCLK_Frequency = 2)
+        {
+            XCLK_reg <= NOT XCLK_reg; --half frequency
+        }
+    }
+    
+    SIGNAL ISSP_probe : std_logic_vector (15 downto 0);
+    SIGNAL ISSP_source : std_logic_vector (2 downto 0);
+    
+    NewComponent ISSP
+    (
+        probe  => ISSP_probe,
+        source => ISSP_source,
+    );
+    
+    SIGNAL Frame_Reset : STD_LOGIC := '0';
+    
+    Process Frame_Watcher ()
+    {
+        If(falling_edge(VSYNC))
+        {
+            Frame_Reset <= NOT Frame_Reset;
+        }
+    }
+    
+    SIGNAL Row_Number   : NATURAL range 0 to 479 := 0;
+    SIGNAL Row_Reset    : STD_LOGIC := '0';
+    
+    Process Row_Watcher
+    (
+        VARIABLE Frame_Reset_Reg : STD_LOGIC := '0';
+    )
+    {
+        If(Reset = '1')
+        {
+            Row_Number <= 0;
+            Row_Reset  <= '0';
+        }
+        Elsif(rising_edge(HREF))
+        {
+            If(Frame_Reset /= Frame_Reset_Reg)
+            {
+                --ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Row_Number, ISSP_probe'LENGTH));
+                Row_Number <= 0;
+            }
+            Elsif(Row_Number < 479)
+            {
+                Row_Number   <= Row_Number + 1;
+            }
+            Frame_Reset_Reg := Frame_Reset;
+            
+            Row_Reset <= NOT Row_Reset;
+        }
+    }
+    
+    SIGNAL Pixel_Number : NATURAL range 0 to 784 := 0;
+    SIGNAL Pixel_Data   : STD_LOGIC_VECTOR (7 downto 0) := (others => '0');
+    
+    Process Pixel_Receive
+    (
+        VARIABLE First_Pixel   : STD_LOGIC := '1';
+        VARIABLE Row_Reset_Reg : STD_LOGIC := '0';
+    )
+    {
+        If(Reset = '1')
+        {
+            Pixel_Number <= 0;
+            Pixel_Data   <= (others => '0');
+            First_Pixel  := '1';
+        }
+        Elsif (rising_edge(PCLK))
+        {
+            If (Row_Reset /= Row_Reset_Reg)
+            {
+                --ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Pixel_Number, ISSP_probe'LENGTH));
+                Pixel_Number <= 0;
+                First_Pixel  := '1';
+            }
+            Row_Reset_Reg := Row_Reset;
+            
+            If(First_Pixel = '1')
+            {
+                Pixel_Data     <= Data;
+                First_Pixel    := '0';
+            }
+            Else
+            {
+                Pixel_R        <= Pixel_Data(7 downto 3);
+                Pixel_G        <= Pixel_Data(2 downto 0) & Data(7 downto 5);
+                Pixel_B        <= Data(4 downto 0);
+                
+                
+                If(Pixel_Number = 200 AND Row_Number = 200)
+                {
+                    ISSP_probe(4 downto 0) <= Pixel_Data(7 downto 3);
+                }
+                
+                
+                Column         <= Pixel_Number;
+                Row            <= Row_Number;
+                New_Pixel      <= NOT New_Pixel;
+                
+                If (Pixel_Number = 0 AND Row_Number = 0)
+                {
+                    New_Image  <= NOT New_Image;
+                }
+                
+                First_Pixel    := '1';
+                If(Pixel_Number < 784)
+                {
+                    Pixel_Number   <= Pixel_Number + 1;
+                }
+            }
+        }
+    }
+    
+    Process Cam_Init
+    (
+        VARIABLE state : NATURAL range 0 to 5 := 5;
+        VARIABLE count : NATURAL range 0 to CLK_Frequency/5 := 0;
+    )
+    {
+        If(Reset = '1')
+        {
+            address <= "00000000";
+            state   := 0;
+        }
+        Else
+        {
+            If(state = 0)
+            {
+                I2C_Master_Interface_Address <= "1000010";
+                I2C_Master_Interface_RW      <= '0';
+                I2C_Master_Interface_Data_Wr <= sreg(15 downto 8);
+                I2C_Master_Interface_Enable  <= '1';
+                state := 1;
+            }
+            Elsif(state = 1)
+            {
+                If(I2C_Master_Interface_Busy = '1')
+                {
+                    I2C_Master_Interface_Data_Wr <= sreg(7 downto 0);
+                    state := 2;
+                }
+            }
+            Elsif(state = 2)
+            {
+                If(I2C_Master_Interface_Busy = '0')
+                {
+                    I2C_Master_Interface_Enable  <= '0';
+                    state := 3;
+                }
+            }
+            Elsif(state = 3)
+            {
+                If(I2C_Master_Interface_Busy = '1')
+                {
+                    state := 4;
+                }
+            }
+            Elsif(state = 4)
+            {
+                If(I2C_Master_Interface_Busy = '0')
+                {
+                    If(address /= x"3C")
+                    {
+                        address <= STD_LOGIC_VECTOR(UNSIGNED(address)+1);
+                        state   := 4;
+                    }
+                }
+            }
+            Else
+            {
+                If(count < CLK_Frequency/5)
+                {
+                    count := count + 1;
+                }
+                Else
+                {
+                    count := 0;
+                    state := 0;
+                }
+            }
+        }
+    }
+    
+    SIGNAL address : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    SIGNAL sreg    : STD_LOGIC_VECTOR(15 downto 0) := x"1280";
+    
+    Process Cam_Init_Register ()
+    {
+        Case(address)
+        {
+            /*
+            When(x"00"){ sreg <=  x"1280"; } -- COM7   Reset
+            When(x"01"){ sreg <=  x"1280"; } -- COM7   Reset
+            When(x"02"){ sreg <=  x"1204"; } -- COM7   Size & RGB output
+            When(x"03"){ sreg <=  x"1100"; } -- CLKRC  Prescaler - Fin/(1+1)
+            When(x"04"){ sreg <=  x"0C00"; } -- COM3   Lots of stuff, enable scaling, all others offs off
+            When(x"05"){ sreg <=  x"3E00"; } -- COM14  PCLK scaling off
+            When(x"06"){ sreg <=  x"8C00"; } -- RGB444 Set RGB format
+            When(x"07"){ sreg <=  x"0400"; } -- COM1   no CCIR601
+            When(x"08"){ sreg <=  x"4010"; } -- COM15  Full 0-255 output, RGB 565
+            When(x"09"){ sreg <=  x"3A04"; } -- TSLB   Set UV ordering,  do not auto-reset window
+            When(x"0A"){ sreg <=  x"1438"; } -- COM9  - AGC Celling
+            When(x"0B"){ sreg <=  x"4FB3"; } -- MTX1  - colour conversion matrix
+            When(x"0C"){ sreg <=  x"50B3"; } -- MTX2  - colour conversion matrix
+            When(x"0D"){ sreg <=  x"5100"; } -- MTX3  - colour conversion matrix
+            When(x"0E"){ sreg <=  x"523D"; } -- MTX4  - colour conversion matrix
+            When(x"0F"){ sreg <=  x"53A7"; } -- MTX5  - colour conversion matrix
+            When(x"10"){ sreg <=  x"54E4"; } -- MTX6  - colour conversion matrix
+            When(x"11"){ sreg <=  x"589E"; } -- MTXS  - Matrix sign and auto contrast
+            When(x"12"){ sreg <=  x"3DC0"; } -- COM13 - Turn on GAMMA and UV Auto adjust
+            When(x"13"){ sreg <=  x"1100"; } -- CLKRC  Prescaler - Fin/(1+1)
+            When(x"14"){ sreg <=  x"1711"; } -- HSTART HREF start (high 8 bits)
+            When(x"15"){ sreg <=  x"1861"; } -- HSTOP  HREF stop (high 8 bits)
+            When(x"16"){ sreg <=  x"32A4"; } -- HREF   Edge offset and low 3 bits of HSTART and HSTOP
+            When(x"17"){ sreg <=  x"1903"; } -- VSTART VSYNC start (high 8 bits)
+            When(x"18"){ sreg <=  x"1A7B"; } -- VSTOP  VSYNC stop (high 8 bits)
+            When(x"19"){ sreg <=  x"030A"; } -- VREF   VSYNC low two bits
+            When(x"1A"){ sreg <=  x"0E61"; } -- COM5(0x0E) 0x61
+            When(x"1B"){ sreg <=  x"0F4B"; } -- COM6(0x0F) 0x4B
+            When(x"1C"){ sreg <=  x"1602"; }
+            When(x"1D"){ sreg <=  x"1E37"; } -- MVFP (0x1E) 0x07  -- FLIP AND MIRROR IMAGE 0x3x
+            When(x"1E"){ sreg <=  x"2102"; }
+            When(x"1F"){ sreg <=  x"2291"; }
+            When(x"20"){ sreg <=  x"2907"; }
+            When(x"21"){ sreg <=  x"330B"; }
+            When(x"22"){ sreg <=  x"350B"; }
+            When(x"23"){ sreg <=  x"371D"; }
+            When(x"24"){ sreg <=  x"3871"; }
+            When(x"25"){ sreg <=  x"392A"; }
+            When(x"26"){ sreg <=  x"3C78"; } -- COM12 (0x3C) 0x78
+            When(x"27"){ sreg <=  x"4D40"; }
+            When(x"28"){ sreg <=  x"4E20"; }
+            When(x"29"){ sreg <=  x"6900"; } -- GFIX (0x69) 0x00
+            When(x"2A"){ sreg <=  x"6B4A"; }
+            When(x"2B"){ sreg <=  x"7410"; }
+            When(x"2C"){ sreg <=  x"8D4F"; }
+            When(x"2D"){ sreg <=  x"8E00"; }
+            When(x"2E"){ sreg <=  x"8F00"; }
+            When(x"2F"){ sreg <=  x"9000"; }
+            When(x"30"){ sreg <=  x"9100"; }
+            When(x"31"){ sreg <=  x"9600"; }
+            When(x"32"){ sreg <=  x"9A00"; }
+            When(x"33"){ sreg <=  x"B084"; }
+            When(x"34"){ sreg <=  x"B10C"; }
+            When(x"35"){ sreg <=  x"B20E"; }
+            When(x"36"){ sreg <=  x"B382"; }
+            When(x"37"){ sreg <=  x"B80A"; }
+            When(others){sreg <=  x"FFFF"; }
+             */
+            /*
+            When(x"00"){ sreg <=  x"1280"; } -- COM7   Reset
+            When(x"01"){ sreg <=  x"1280"; } -- COM7   Reset
+            When(x"02"){ sreg <=  x"1101"; } -- CLKRC  input clock / 2
+            When(x"03"){ sreg <=  x"1204"; } -- COM7   VGA + RGB output
+            When(x"04"){ sreg <=  x"0C04"; } -- COM3   Lots of stuff, enable scaling, all others off
+            When(x"05"){ sreg <=  x"3E19"; } -- COM14  PCLK scaling = 0
+            When(x"06"){ sreg <=  x"4010"; } -- COM15  Full 0-255 output, RGB 565
+            When(x"07"){ sreg <=  x"3A04"; } -- TSLB   Set UV ordering,  do not auto-reset window
+            When(x"08"){ sreg <=  x"8C02"; } -- RGB444 Set RGB format
+            When(x"09"){ sreg <=  x"1714"; } -- HSTART HREF start (high 8 bits)
+            When(x"0A"){ sreg <=  x"1802"; } -- HSTOP  HREF stop (high 8 bits)
+            When(x"0B"){ sreg <=  x"32A4"; } -- HREF   Edge offset and low 3 bits of HSTART and HSTOP
+            When(x"0C"){ sreg <=  x"1903"; } -- VSTART VSYNC start (high 8 bits)
+            When(x"0D"){ sreg <=  x"1A7B"; } -- VSTOP  VSYNC stop (high 8 bits)
+            When(x"0E"){ sreg <=  x"038A"; } -- VREF   VSYNC low two bits
+            When(x"0F"){ sreg <=  x"703A"; } -- SCALING_XSC
+            When(x"10"){ sreg <=  x"7135"; } -- SCALING_YSC
+            When(x"11"){ sreg <=  x"7211"; } -- SCALING_DCWCTR
+            When(x"12"){ sreg <=  x"7301"; } -- SCALING_PCLK_DIV
+            When(x"13"){ sreg <=  x"A200"; } -- SCALING_PCLK_DELAY PCLK scaling = 4, must match COM14
+            When(x"14"){ sreg <=  x"1438"; } -- COM9  - AGC Celling
+            When(x"15"){ sreg <=  x"4FB3"; } -- MTX1  - colour conversion matrix
+            When(x"16"){ sreg <=  x"50B3"; } -- MTX2  - colour conversion matrix
+            When(x"17"){ sreg <=  x"5100"; } -- MTX3  - colour conversion matrix
+            When(x"18"){ sreg <=  x"523D"; } -- MTX4  - colour conversion matrix
+            When(x"19"){ sreg <=  x"53A7"; } -- MTX5  - colour conversion matrix
+            When(x"1A"){ sreg <=  x"54E4"; } -- MTX6  - colour conversion matrix
+            When(x"1B"){ sreg <=  x"589E"; } -- MTXS  - Matrix sign and auto contrast
+            When(x"1C"){ sreg <=  x"6B4A"; } -- DBLV   input clock x 4
+            When(x"1D"){ sreg <=  x"3DC0"; } -- COM13 - Turn on GAMMA and UV Auto adjust
+            When(others){sreg <=  x"FFFF"; }
+             */
+            
+            When(x"00"){ sreg <=  x"1280"; } -- COM7     RESET
+            When(x"01"){ sreg <=  x"1280"; } -- COM7     RESET
+            When(x"02"){ sreg <=  x"1200"; } -- COM7     Size & YUV output
+            When(x"03"){ sreg <=  x"1100"; } -- CLKRC    Use internal clock
+            When(x"04"){ sreg <=  x"0C00"; } -- COM3     Default
+            When(x"05"){ sreg <=  x"3E00"; } -- COM14    SDCW and scaling PCLK, manual scaling enable, PCLK divider
+            When(x"06"){ sreg <=  x"8C00"; } -- RGB444   Disable RGB 444 format
+            When(x"07"){ sreg <=  x"0400"; } -- COM1     Disable CCIR 656
+            When(x"08"){ sreg <=  x"4000"; } -- COM15    Disable RGB 565 (effective only after disable RGB 444 format)
+            When(x"09"){ sreg <=  x"3A04"; } -- TSLB     Disable auto-reset window
+            When(x"0A"){ sreg <=  x"146A"; } -- COM9     Set auto gain ceiling to x16
+            When(x"0B"){ sreg <=  x"4F40"; } -- MTX1     matrix coefficient 1(default)
+            When(x"0C"){ sreg <=  x"5034"; } -- MTX2     matrix coefficient 2(default)
+            When(x"0D"){ sreg <=  x"510C"; } -- MTX3     matrix coefficient 3(default)
+            When(x"0E"){ sreg <=  x"5217"; } -- MTX4     matrix coefficient 4(default)
+            When(x"0F"){ sreg <=  x"5329"; } -- MTX5     matrix coefficient 5(default)
+            When(x"10"){ sreg <=  x"5440"; } -- MTX6     matrix coefficient 6(default)
+            When(x"11"){ sreg <=  x"581E"; } -- MTXS     default
+            When(x"12"){ sreg <=  x"3DC0"; } -- COM13    Turn on GAMMA and auto UV adjust
+            When(x"13"){ sreg <=  x"1100"; } -- CLKRC    Use internal clock
+            When(x"14"){ sreg <=  x"1716"; } -- HSTART   Horizontal Frame start (high 8 bits)
+            When(x"15"){ sreg <=  x"1804"; } -- HSTOP    Horizontal Frame stop (high 8 bits)
+            When(x"16"){ sreg <=  x"32A4"; } -- HREF     set Horizontal Frame control
+            When(x"17"){ sreg <=  x"1902"; } -- VSTART   Vertical Frame start (high 8 bits)
+            When(x"18"){ sreg <=  x"1A7A"; } -- VSTOP    Vertical Frame stop (high 8 bits)
+            When(x"19"){ sreg <=  x"030A"; } -- VREF     set Vertical Frame control
+            When(x"1A"){ sreg <=  x"0E61"; } -- COM5     reserve
+            When(x"1B"){ sreg <=  x"0F4B"; } -- COM6     Enable HREF at optical black
+            When(x"1C"){ sreg <=  x"1602"; } -- RSVD     reserve
+            When(x"1D"){ sreg <=  x"1E17"; } -- MVFP     detect mirror image and enable flip image
+            When(x"1E"){ sreg <=  x"2102"; } -- ADCCTR1  reserve
+            When(x"1F"){ sreg <=  x"2291"; } -- ADCCTR2  reserve
+            When(x"20"){ sreg <=  x"2907"; } -- RSVD     reserve
+            When(x"21"){ sreg <=  x"330B"; } -- CHLF     reserve
+            When(x"22"){ sreg <=  x"350B"; } -- RSVD     reserve
+            When(x"23"){ sreg <=  x"371D"; } -- ADC      reserve
+            When(x"24"){ sreg <=  x"3871"; } -- ACOM     reserve
+            When(x"25"){ sreg <=  x"392A"; } -- OFON     reserve
+            When(x"26"){ sreg <=  x"3C78"; } -- COM12    Set to no HREF when VSYNC is low
+            When(x"27"){ sreg <=  x"4D40"; } -- RSVD     reserve
+            When(x"28"){ sreg <=  x"4E20"; } -- RSVD     reserve
+            When(x"29"){ sreg <=  x"6900"; } -- GFIX     Fix gain control (default)
+            When(x"2A"){ sreg <=  x"6B4A"; } -- DBLV     set PLL control to 4x and bypass internal regulator
+            When(x"2B"){ sreg <=  x"703A"; } -- SCALING_XSC
+            When(x"2C"){ sreg <=  x"7135"; } -- SCALING_YSC
+            When(x"2D"){ sreg <=  x"7211"; } -- SCALING_DCWCTR
+            When(x"2E"){ sreg <=  x"73F0"; } -- SCALING_PCLK_DIV
+            When(x"2F"){ sreg <=  x"7410"; } -- REG74    default
+            When(x"30"){ sreg <=  x"8D4F"; } -- RSVD     reserve
+            When(x"31"){ sreg <=  x"8E00"; } -- RSVD     reserve
+            When(x"32"){ sreg <=  x"8F00"; } -- RSVD     reserve
+            When(x"33"){ sreg <=  x"9000"; } -- RSVD     reserve
+            When(x"34"){ sreg <=  x"9100"; } -- RSVD     reserve
+            When(x"35"){ sreg <=  x"9600"; } -- RSVD     reserve
+            When(x"36"){ sreg <=  x"9A00"; } -- RSVD     reserve
+            When(x"37"){ sreg <=  x"A202"; } -- SCALING_PCLK_DELAY
+            When(x"38"){ sreg <=  x"B084"; } -- RSVD     reserve
+            When(x"39"){ sreg <=  x"B10C"; } -- ABLC1    disable ABLC function
+            When(x"3A"){ sreg <=  x"B20E"; } -- RSVD     reserve
+            When(x"3B"){ sreg <=  x"B382"; } -- RSVD     reserve
+            When(x"3C"){ sreg <=  x"B80A"; } -- RSVD     reserve
+            When(others){sreg <=  x"FFFF"; }
+        }
+    }
+    
+    SIGNAL I2C_Master_Interface_Enable        : STD_LOGIC := '0';
+    SIGNAL I2C_Master_Interface_Address       : STD_LOGIC_VECTOR (6 DOWNTO 0) := (others => '0');
+    SIGNAL I2C_Master_Interface_RW            : STD_LOGIC := '0';
+    SIGNAL I2C_Master_Interface_Data_Wr       : STD_LOGIC_VECTOR (7 DOWNTO 0) := (others => '0');
+    SIGNAL I2C_Master_Interface_Busy          : STD_LOGIC;
+    SIGNAL I2C_Master_Interface_Data_RD       : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL I2C_Master_Interface_Ack_Error     : STD_LOGIC;
+    
+    NewComponent I2C_Master_Interface
+    (
+        CLK_Frequency => CLK_Frequency,
+        Bus_CLK       => 100000,
+        
+        Reset         => Reset,
+        Enable        => I2C_Master_Interface_Enable,
+        Address       => I2C_Master_Interface_Address,  --42 write 43 read
+        RW            => I2C_Master_Interface_RW,
+        Data_Wr       => I2C_Master_Interface_Data_Wr,
+        Busy          => I2C_Master_Interface_Busy,
+        Data_RD       => I2C_Master_Interface_Data_RD,
+        Ack_Error     => I2C_Master_Interface_Ack_Error,
+        SDA           => SIOD,
+        SCL           => SIOC,
+    );
+}
