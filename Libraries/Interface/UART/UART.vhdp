@@ -116,10 +116,10 @@ Component UART_Interface
             oString.Length <= oString.Length + 1;
             While(rx_busy = '0' AND timeout < 1200000)
             {
+                oString.Write   <= '0';
                 timeout := timeout + 1;
             }
         }
-        oString.Write   <= '0';
     }
     
     --generate clock enable pulses at the baud rate and the oversampling rate

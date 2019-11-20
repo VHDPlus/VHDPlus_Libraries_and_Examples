@@ -1,88 +1,88 @@
 <?xml version="1.0"?>
 <ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <Path />
+  <Header>Basics</Header>
   <Items xsi:type="ProjectFolder">
-    <Path>Converter</Path>
+    <Header>Converter</Header>
     <Items xsi:type="ProjectFileVHDP">
-      <Path>Converter\BinaryToBcd.vhdp</Path>
+      <Header>BinaryToBcd.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Path>Converter\BinaryToBcdDigit.vhdp</Path>
+      <Header>BinaryToBcdDigit.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Path>Converter\IntToString.vhdp</Path>
+      <Header>IntToString.vhdp</Header>
     </Items>
   </Items>
   <Items xsi:type="ProjectFolder">
-    <Path>Memory</Path>
-    <Items xsi:type="ProjectFileVHDP">
-      <Path>Memory\Single-Port_RAM.vhdp</Path>
-    </Items>
-	<Items xsi:type="ProjectFileVHDP">
-      <Path>Memory\Single-Port_ROM.vhdp</Path>
-    </Items>
-  </Items>
-  <Items xsi:type="ProjectFolder">
-    <Path>ISSP</Path>
+    <Header>ISSP</Header>
     <Items xsi:type="ProjectFile">
-      <Path>ISSP\ISSP.qsys</Path>
+      <Header>ISSP.qsys</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Path>ISSP\ISSP.qsys.vhdp</Path>
+      <Header>ISSP.qsys.vhdp</Header>
     </Items>
   </Items>
   <Items xsi:type="ProjectFolder">
-    <Path>NIOSDuino</Path>
+    <Header>Memory</Header>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Single-Port_RAM.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Single-Port_ROM.vhdp</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Header>NIOSDuino</Header>
     <Items xsi:type="ProjectFolder">
-      <Path>inc</Path>
+      <Header>inc</Header>
       <Items xsi:type="ProjectFile">
-        <Path>NIOSDuino\inc\avalon_pwm_regs.h</Path>
+        <Header>avalon_pwm_regs.h</Header>
       </Items>
     </Items>
     <Items xsi:type="ProjectFile">
-      <Path>NIOSDuino\avalon_pwm.v</Path>
+      <Header>avalon_pwm.v</Header>
     </Items>
     <Items xsi:type="ProjectFile">
-      <Path>NIOSDuino\avalon_pwm_hw.tcl</Path>
+      <Header>avalon_pwm_hw.tcl</Header>
     </Items>
     <Items xsi:type="ProjectFile">
-      <Path>NIOSDuino\avalon_pwm_sw.tcl</Path>
+      <Header>avalon_pwm_sw.tcl</Header>
     </Items>
     <Items xsi:type="ProjectFile">
-      <Path>NIOSDuino\NIOSDuino_Core.qsys</Path>
+      <Header>NIOSDuino_Core.qsys</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Path>NIOSDuino\NIOSDuino_Core.qsys.vhdp</Path>
+      <Header>NIOSDuino_Core.qsys.vhdp</Header>
     </Items>
   </Items>
   <Items xsi:type="ProjectFolder">
-    <Path>PLL</Path>
+    <Header>PLL</Header>
     <Items xsi:type="ProjectFile">
-      <Path>PLL\PLL.qip</Path>
+      <Header>PLL.qip</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Path>PLL\PLL.qsys.vhdp</Path>
+      <Header>PLL.qsys.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFile">
-      <Path>PLL\PLL.vhd</Path>
+      <Header>PLL.vhd</Header>
     </Items>
   </Items>
   <Items xsi:type="ProjectFileVHDP">
-    <Path>Frequency_Divider.vhdp</Path>
+    <Header>Frequency_Divider.vhdp</Header>
   </Items>
   <Items xsi:type="ProjectFileVHDP">
-    <Path>Input_Debouncer.vhdp</Path>
+    <Header>Input_Debouncer.vhdp</Header>
   </Items>
   <Items xsi:type="ProjectFileVHDP">
-    <Path>Input_Synchronizer.vhdp</Path>
+    <Header>Input_Synchronizer.vhdp</Header>
   </Items>
   <Items xsi:type="ProjectFileVHDP">
-    <Path>PWM.vhdp</Path>
+    <Header>PWM.vhdp</Header>
   </Items>
   <Items xsi:type="ProjectFileVHDP">
-    <Path>String_Functions.vhdp</Path>
+    <Header>String_Functions.vhdp</Header>
   </Items>
   <Items xsi:type="ProjectFileVHDP">
-    <Path>String_Type.vhdp</Path>
+    <Header>String_Type.vhdp</Header>
   </Items>
 </ProjectRoot>

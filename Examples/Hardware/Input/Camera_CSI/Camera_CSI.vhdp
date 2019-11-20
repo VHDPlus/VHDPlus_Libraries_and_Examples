@@ -1,0 +1,139 @@
+Component Camera_CSI_Interface
+(
+    c_lane  : IN STD_LOGIC_VECTOR(1 downto 0);
+    d_lane1 : IN STD_LOGIC_VECTOR(1 downto 0);
+    d_lane2 : IN STD_LOGIC_VECTOR(1 downto 0);
+    
+    pixelData : OUT STD_LOGIC_VECTOR (23 downto 0);
+    newPixel  : OUT STD_LOGIC := '0';
+    newLine   : OUT STD_LOGIC := '0';
+)
+{
+    Connections
+    {
+        c_lane,
+        d_lane1,
+        d_lane2,
+    }
+    
+    SIGNAL bitCLK : STD_LOGIC;
+    bitCLK <= c_lane(1);
+    
+    SIGNAL data_o1  : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL new_b1   : STD_LOGIC;
+    SIGNAL state1   : INTEGER          range 0 to 15;
+    NewComponent CSI_Data_Deserializer
+    (
+        d_lane  => d_lane1,
+        bit_clk => bitCLK,
+        data_o  => data_o1,
+        new_b   => new_b1,
+        state   => state1,
+    );
+    
+    SIGNAL data_o2  : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL new_b2   : STD_LOGIC;
+    SIGNAL state2   : INTEGER          range 0 to 15;
+    NewComponent CSI_Data_Deserializer
+    (
+        d_lane  => d_lane2,
+        bit_clk => bitCLK,
+        data_o  => data_o2,
+        new_b   => new_b2,
+        state   => state2,
+    );
+    
+    SIGNAL dataID    : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL wordCount : STD_LOGIC_VECTOR (15 downto 0);
+    SIGNAL ErrCorr   : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL checksum  : STD_LOGIC_VECTOR (15 downto 0);
+    
+    Process ()
+    {
+        If(rising_edge(bitCLK))
+        {
+            VARIABLE b_reg1 : STD_LOGIC;
+            VARIABLE b_reg2 : STD_LOGIC;
+            
+            VARIABLE byteCount : INTEGER := 0;
+            VARIABLE bitCount  : INTEGER range 0 to 2 := 0;
+            
+            If(byteCount mod 2 = 0)
+            {
+                If(b_reg1 /= new_b1)
+                {
+                    If(byteCount = 0)
+                    {
+                        dataID <= data_o1;
+                        newLine <= '1';
+                    }
+                    Elsif(byteCount = 2)
+                    {
+                        wordCount(15 downto 8) <= data_o1;
+                    }
+                    Elsif(byteCount < TO_INTEGER(SIGNED(wordCount))+3)
+                    {
+                        pixelData((bitCount+1)*8-1 downto bitCount*8) <= data_o1;
+                        If(bitCount < 2)
+                        {
+                            bitCount := bitCount + 1;
+                            newPixel <= '0';
+                        }
+                        Else
+                        {
+                            bitCount := 0;
+                            newPixel <= '1';
+                        }
+                    }
+                    Else
+                    {
+                        checksum(7 downto 0) <= data_o1;
+                    }
+                    byteCount := byteCount + 1;
+                }
+                b_reg1 := new_b1;
+            }
+            Else
+            {
+                If(b_reg2 /= new_b2)
+                {
+                    If(byteCount = 1)
+                    {
+                        wordCount(7 downto 0) <= data_o2;
+                        newLine <= '0';
+                    }
+                    Elsif(byteCount = 3)
+                    {
+                        ErrCorr <= data_o2;
+                    }
+                    Elsif(byteCount < TO_INTEGER(SIGNED(wordCount))+3)
+                    {
+                        pixelData((bitCount+1)*8-1 downto bitCount*8) <= data_o2;
+                        If(bitCount < 2)
+                        {
+                            bitCount := bitCount + 1;
+                            newPixel <= '0';
+                        }
+                        Else
+                        {
+                            bitCount := 0;
+                            newPixel <= '1';
+                        }
+                    }
+                    Else
+                    {
+                        checksum(15 downto 8) <= data_o2;
+                    }
+                    byteCount := byteCount + 1;
+                }
+                b_reg2 := new_b2;
+            }
+            
+            If(state1 = 0 AND state2 = 0)
+            {
+                byteCount := 0;
+                bitCount := 0;
+            }
+        }
+    }
+}

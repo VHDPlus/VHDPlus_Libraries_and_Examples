@@ -1,0 +1,22 @@
+Main
+(
+    c_lane    : IN STD_LOGIC_VECTOR (1 downto 0);
+    d_lane1   : IN STD_LOGIC_VECTOR (1 downto 0);
+    d_lane2   : IN STD_LOGIC_VECTOR (1 downto 0);
+    
+)
+{
+    SIGNAL Camera_CSI_Interface_pixelData : STD_LOGIC_VECTOR (23 downto 0);
+    SIGNAL Camera_CSI_Interface_newPixel  : STD_LOGIC;
+    SIGNAL Camera_CSI_Interface_newLine   : STD_LOGIC;
+    
+    NewComponent Camera_CSI_Interface 
+    (
+        c_lane    => c_lane,
+        d_lane1   => d_lane1,
+        d_lane2   => d_lane2,
+        pixelData => Camera_CSI_Interface_pixelData,
+        newPixel  => Camera_CSI_Interface_newPixel,
+        newLine   => Camera_CSI_Interface_newLine,
+    );
+}

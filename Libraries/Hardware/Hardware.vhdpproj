@@ -1,64 +1,64 @@
 <?xml version="1.0"?>
 <ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <Path />
+  <Header>Hardware</Header>
   <Items xsi:type="ProjectFolder">
-    <Path>Input</Path>
+    <Header>Input</Header>
     <Items xsi:type="ProjectFolder">
-      <Path>Input\MAX10_ADC</Path>
+      <Header>MAX10_ADC</Header>
       <Items xsi:type="ProjectFileVHDP">
-        <Path>Input\MAX10_ADC\ADC_MAX10.vhdp</Path>
+        <Header>ADC_MAX10.vhdp</Header>
       </Items>
       <Items xsi:type="ProjectFile">
-        <Path>Input\MAX10_ADC\ADC_QSYS.qsys</Path>
+        <Header>ADC_QSYS.qsys</Header>
       </Items>
       <Items xsi:type="ProjectFileVHDP">
-        <Path>Input\MAX10_ADC\ADC_QSYS.qsys.vhdp</Path>
+        <Header>ADC_QSYS.qsys.vhdp</Header>
       </Items>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Path>Input\Encoder.vhdp</Path>
+      <Header>Encoder.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Path>Input\Fingerprint.vhdp</Path>
+      <Header>Fingerprint.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Path>Input\Pressure_ADC.vhdp</Path>
+      <Header>Pressure_ADC.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Path>Input\Real_Time_Clock.vhdp</Path>
+      <Header>Real_Time_Clock.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Path>Input\Ultrasonic.vhdp</Path>
+      <Header>Ultrasonic.vhdp</Header>
     </Items>
   </Items>
   <Items xsi:type="ProjectFolder">
-    <Path>Output</Path>
+    <Header>Output</Header>
     <Items xsi:type="ProjectFolder">
-      <Path>Output\LED_Matrix</Path>
+      <Header>LED_Matrix</Header>
       <Items xsi:type="ProjectFileVHDP">
-        <Path>Output\LED_Matrix\LED_Matrix.vhdp</Path>
+        <Header>LED_Matrix.vhdp</Header>
       </Items>
       <Items xsi:type="ProjectFileVHDP">
-        <Path>Output\LED_Matrix\LED_Matrix_Text.vhdp</Path>
+        <Header>LED_Matrix_Text.vhdp</Header>
       </Items>
     </Items>
     <Items xsi:type="ProjectFolder">
-      <Path>Output\Motor</Path>
+      <Header>Motor</Header>
       <Items xsi:type="ProjectFileVHDP">
-        <Path>Output\Motor\Motor_Controller.vhdp</Path>
+        <Header>Motor_Controller.vhdp</Header>
       </Items>
       <Items xsi:type="ProjectFileVHDP">
-        <Path>Output\Motor\Motor_Encoder.vhdp</Path>
+        <Header>Motor_Encoder.vhdp</Header>
       </Items>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Path>Output\LCD.vhdp</Path>
+      <Header>LCD.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Path>Output\Servo.vhdp</Path>
+      <Header>Servo.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Path>Output\Shift_Register.vhdp</Path>
+      <Header>Shift_Register.vhdp</Header>
     </Items>
   </Items>
 </ProjectRoot>
