@@ -1,205 +1,207 @@
-﻿/*
+/*
     Name: Motor Controller Example
     Rev: 1.0
     Creator: Leon Beier
     Date: 08.06.2019
     Copyright (c) 2019 Protop Solutions UG. All right reserved.
-	
-	Permission is hereby granted, free of charge, to any person obtaining a copy of 
-	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
-	HDL Code without restriction, including without limitation the rights to use, 
-	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
-	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
-	subject to the following conditions:
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
 
     The above copyright notice and this permission notice shall be included in all
-	copies or substantial portions of the HDL Code.
+    copies or substantial portions of the HDL Code.
 
-    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
-	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
-	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
-	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
-	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
-*/
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+ */
 
 Main
 (
-	Encoder_L		: IN  STD_LOGIC;
-	Encoder_R		: IN  STD_LOGIC;
-	
-	Motor_R1		: OUT STD_LOGIC;
-	Motor_R2		: OUT STD_LOGIC;
-	Motor_L1		: OUT STD_LOGIC;
-	Motor_L2		: OUT STD_LOGIC;
-	
-	btn				: IN  STD_LOGIC;
-	rst				: IN  STD_LOGIC;
-	
-	led				: OUT STD_LOGIC_VECTOR(3 downto 0);
+    Encoder_L       : IN  STD_LOGIC;
+    Encoder_R       : IN  STD_LOGIC;
+    
+    Motor_R1        : OUT STD_LOGIC;
+    Motor_R2        : OUT STD_LOGIC;
+    Motor_L1        : OUT STD_LOGIC;
+    Motor_L2        : OUT STD_LOGIC;
+    
+    btn             : IN  STD_LOGIC;
+    rst             : IN  STD_LOGIC;
+    
+    led             : OUT STD_LOGIC_VECTOR(3 downto 0);
 )
 {
-	AttributeDeclaration
-	{
-		CONSTANT Max_Length							: NATURAL := 10000;
-		
-		SIGNAL MR1									: STD_LOGIC := '0';
-		SIGNAL MR2									: STD_LOGIC := '0';
-		SIGNAL ML1									: STD_LOGIC := '0';
-		SIGNAL ML2									: STD_LOGIC := '0';
-		
-		SIGNAL Motor_Controller_RST_Drive			: STD_LOGIC := '0';
-		
-		SIGNAL Motor_Controller_Speed_L             : NATURAL   range 0 to Max_Length;
-		SIGNAL Motor_Controller_Speed_R             : NATURAL   range 0 to Max_Length;
-		SIGNAL Motor_Controller_Driven_L            : NATURAL   range 0 to Max_Length;
-		SIGNAL Motor_Controller_Driven_R            : NATURAL   range 0 to Max_Length;
-		SIGNAL Motor_Controller_Correction			: INTEGER;
-		
-		SIGNAL Motor_Controller_Drive_L             : INTEGER   range (-1)*Max_Length to Max_Length := 0;
-		SIGNAL Motor_Controller_Drive_R             : INTEGER   range (-1)*Max_Length to Max_Length := 0;
-		SIGNAL Motor_Controller_Drive_Speed			: NATURAL   range 0 to 255;
-		
-		SIGNAL Motor_Controller_Finished			: STD_LOGIC := '0';
-		SIGNAL Motor_Controller_Error				: STD_LOGIC := '0';
-		
-		TYPE Route_Array IS ARRAY (natural range <>) OF Integer range (-1)*Max_Length to Max_Length;
-		CONSTANT Route_L	 : Route_Array :=	(
-													1000,
-													-10,
-													-200,
-													10,
-													1000,
-													-10
-												);
-		
-		CONSTANT Route_R	 : Route_Array :=	(
-													1000,
-													-10,
-													200,
-													-10,
-													1000,
-													-10
-												);
-		
-		CONSTANT Route_Speed : Route_Array := 	(
-													255,
-													255,
-													255,
-													255,
-													255,
-													255
-												);
-		
-		SIGNAL Route_Start	: NATURAL := 0;		--Index in Array an dem gestartet wird
-		SIGNAL Route_Length	: NATURAL := 6;		--Wie viele Strecken sollen aus dem Array abgefahren werden
-	}
-	
-	NewComponent Motor_Controller 
-	(
-		CLK_Frequency       => 50000000,	--100khz 8 bit pwm
-		PWM_Frequency       => 100000,
-		Bits_Resolution     => 8,
-		
-		Holes_In_Disk       => 14,			--1 to save Logic Elements
-		Gear_Ratio          => 20,			--Length is (Drive(n)_L*Wheel_Circumference)/(Holes_In_Disk*Gear_Ratio)
-		Wheel_Circumference => 204,			--Speed is (Speed_L*Wheel_Circumference)/(Holes_In_Disk*Gear_Ratio)
-		Time_Invert_Divider => 50,
-		Max_Time            => 1000000,		--1s
-		Max_Length          => Max_Length,
-		Error_Delay 		=> 500,
-		Correction_Step		=> 1,
-		Length_Corr_Step	=> 25,
-		Max_Length_Diff     => 10,			--Correction bit higher to see it in action (if one motor is a bit faster)
-		
-		Reset               => NOT rst,
-		Encoder_L           => Encoder_L,   --connection to I/Os
-		Encoder_R           => Encoder_R,
-		Motor_LF            => ML1,
-		Motor_LB            => ML2,
-		Motor_RF            => MR1,
-		Motor_RB            => MR2,
-		Enable              => '1',
-		RST_Drive           => Motor_Controller_RST_Drive,
-		Drive_L             => Motor_Controller_Drive_L,
-		Drive_R             => Motor_Controller_Drive_R,
-		Drive_Speed         => Motor_Controller_Drive_Speed,
-		Speed_L             => Motor_Controller_Speed_L,
-		Speed_R             => Motor_Controller_Speed_R,
-		Driven_L            => Motor_Controller_Driven_L,
-		Driven_R            => Motor_Controller_Driven_R,
-		Finished            => Motor_Controller_Finished,
-		Error				=> Motor_Controller_Error,
-		Correction          => Motor_Controller_Correction,
-	);
-	
-	Motor_R1 <= MR1;
-	Motor_R2 <= MR2;
-	Motor_L1 <= ML1;
-	Motor_L2 <= ML2;
-	
-	Process 
-	(
-		VARIABLE state 		: STD_LOGIC := '0';	--'0' = start driving
-		VARIABLE route_step : NATURAL   := 0;
-		VARIABLE btn_prev	: STD_LOGIC := '0';
-		VARIABLE start		: STD_LOGIC := '0';
-	)
-	{
-		--shows with the leds if the route finished, there was an error, the route is started and if driving started
-		--led <= Motor_Controller_Finished & Motor_Controller_Error & start & state;
-		led <= Motor_Controller_Finished & ML2 & MR2 & Motor_Controller_Error;
-		
-		If(rst = '0')
-		{
-			start := '0';
-			state := '0';
-			route_step := 0;
-			btn_prev := '0';
-			Motor_Controller_Drive_R <= 0;
-			Motor_Controller_Drive_L <= 0;
-			Motor_Controller_RST_Drive <= '0';
-		}
-		Else
-		{
-			If(btn_prev = '1' AND btn = '0' AND start = '0')		--Starts route on button press
-			{
-				start 		:= '1';
-				route_step 	:= Route_Start;
-				state		:= '0';
-			}
-			btn_prev := btn;
-			
-			If(start = '1')
-			{
-				If(state = '0')
-				{
-					If(Motor_Controller_Finished = '1')			--Starts driving if last route is finished
-					{
-						If(route_step < Route_Length)			--Checks if there is a part of the route left
-						{
-							Motor_Controller_Drive_L	 <= Route_L(route_step);		--Sets the length and speed for the route step
-							Motor_Controller_Drive_R     <= Route_R(route_step);
-							Motor_Controller_Drive_Speed <= Route_Speed(route_step);
-							Motor_Controller_RST_Drive   <= '1';						--resets last length counter
-							state := '1';
-						}
-						Else									--Stops driving if the route is finished
-						{
-							start := '0';
-						}
-					}
-				}
-				Else
-				{
-					Motor_Controller_RST_Drive <= '0';			--Sets reset to '0' to start driving
-					If(Motor_Controller_Finished = '0')			--Checks if driving started
-					{
-						state 		:= '0';
-						route_step 	:= route_step + 1;
-					}
-				}
-			}
-		}
-	}
+    AttributeDeclaration
+    {
+        CONSTANT Max_Length                         : NATURAL := 10000;
+        
+        SIGNAL MR1                                  : STD_LOGIC := '0';
+        SIGNAL MR2                                  : STD_LOGIC := '0';
+        SIGNAL ML1                                  : STD_LOGIC := '0';
+        SIGNAL ML2                                  : STD_LOGIC := '0';
+        
+        SIGNAL Motor_Controller_RST_Drive           : STD_LOGIC := '0';
+        
+        SIGNAL Motor_Controller_Speed_L             : NATURAL   range 0 to Max_Length;
+        SIGNAL Motor_Controller_Speed_R             : NATURAL   range 0 to Max_Length;
+        SIGNAL Motor_Controller_Driven_L            : NATURAL   range 0 to Max_Length;
+        SIGNAL Motor_Controller_Driven_R            : NATURAL   range 0 to Max_Length;
+        SIGNAL Motor_Controller_Correction          : INTEGER;
+        
+        SIGNAL Motor_Controller_Drive_L             : INTEGER   range (-1)*Max_Length to Max_Length := 0;
+        SIGNAL Motor_Controller_Drive_R             : INTEGER   range (-1)*Max_Length to Max_Length := 0;
+        SIGNAL Motor_Controller_Drive_Speed         : NATURAL   range 0 to 255;
+        
+        SIGNAL Motor_Controller_Finished            : STD_LOGIC := '0';
+        SIGNAL Motor_Controller_Error               : STD_LOGIC := '0';
+        
+        TYPE Route_Array IS ARRAY (natural range <>) OF Integer range (-1)*Max_Length to Max_Length;
+        CONSTANT Route_L     : Route_Array :=   (
+            1000,
+            -10,
+            -200,
+            10,
+            1000,
+            -10
+        );
+        
+        CONSTANT Route_R     : Route_Array :=   (
+            1000,
+            -10,
+            200,
+            -10,
+            1000,
+            -10
+        );
+        
+        CONSTANT Route_Speed : Route_Array :=   (
+            255,
+            255,
+            255,
+            255,
+            255,
+            255
+        );
+        
+        SIGNAL Route_Start  : NATURAL := 0;     --Index in Array an dem gestartet wird
+        SIGNAL Route_Length : NATURAL := 6;     --Wie viele Strecken sollen aus dem Array abgefahren werden
+    }
+    
+    NewComponent Motor_Controller
+    (
+        CLK_Frequency       => 12000000,    --100khz 8 bit pwm
+        PWM_Frequency       => 100000,
+        Bits_Resolution     => 8,
+        
+        Holes_In_Disk       => 11,          --1 to save Logic Elements
+        Gear_Ratio          => 34,          --Length is (Drive(n)_L*Wheel_Circumference)/(Holes_In_Disk*Gear_Ratio)
+        Wheel_Circumference => 204,         --Speed is (Speed_L*Wheel_Circumference)/(Holes_In_Disk*Gear_Ratio)
+        Time_Invert_Divider => 50,
+        Debounce_Cycles     => 2000,
+        Max_Time            => 1000000,     --1s
+        Max_Length          => Max_Length,
+        Error_Delay         => 500,
+        Correction_Step     => 1,
+        Correction_Cycles   => 1,
+        Length_Corr_Step    => 25,
+        Max_Length_Diff     => 10,          --Correction bit higher to see it in action (if one motor is a bit faster)
+        
+        Reset               => NOT rst,
+        Encoder_L           => Encoder_L,   --connection to I/Os
+        Encoder_R           => Encoder_R,
+        Motor_LF            => ML1,
+        Motor_LB            => ML2,
+        Motor_RF            => MR1,
+        Motor_RB            => MR2,
+        Enable              => '1',
+        RST_Drive           => Motor_Controller_RST_Drive,
+        Drive_L             => Motor_Controller_Drive_L,
+        Drive_R             => Motor_Controller_Drive_R,
+        Drive_Speed         => Motor_Controller_Drive_Speed,
+        Speed_L             => Motor_Controller_Speed_L,
+        Speed_R             => Motor_Controller_Speed_R,
+        Driven_L            => Motor_Controller_Driven_L,
+        Driven_R            => Motor_Controller_Driven_R,
+        Finished            => Motor_Controller_Finished,
+        Error               => Motor_Controller_Error,
+        Correction          => Motor_Controller_Correction,
+    );
+    
+    Motor_R1 <= MR1;
+    Motor_R2 <= MR2;
+    Motor_L1 <= ML1;
+    Motor_L2 <= ML2;
+    
+    Process
+    (
+        VARIABLE state      : STD_LOGIC := '0'; --'0' = start driving
+        VARIABLE route_step : NATURAL   := 0;
+        VARIABLE btn_prev   : STD_LOGIC := '0';
+        VARIABLE start      : STD_LOGIC := '0';
+    )
+    {
+        --shows with the leds if the route finished, there was an error, the route is started and if driving started
+        --led <= Motor_Controller_Finished & Motor_Controller_Error & start & state;
+        led <= Motor_Controller_Finished & ML2 & MR2 & Motor_Controller_Error;
+        
+        If(rst = '0')
+        {
+            start := '0';
+            state := '0';
+            route_step := 0;
+            btn_prev := '0';
+            Motor_Controller_Drive_R <= 0;
+            Motor_Controller_Drive_L <= 0;
+            Motor_Controller_RST_Drive <= '0';
+        }
+        Else
+        {
+            If(btn_prev = '1' AND btn = '0' AND start = '0')        --Starts route on button press
+            {
+                start       := '1';
+                route_step  := Route_Start;
+                state       := '0';
+            }
+            btn_prev := btn;
+            
+            If(start = '1')
+            {
+                If(state = '0')
+                {
+                    If(Motor_Controller_Finished = '1')         --Starts driving if last route is finished
+                    {
+                        If(route_step < Route_Length)           --Checks if there is a part of the route left
+                        {
+                            Motor_Controller_Drive_L     <= Route_L(route_step);        --Sets the length and speed for the route step
+                            Motor_Controller_Drive_R     <= Route_R(route_step);
+                            Motor_Controller_Drive_Speed <= Route_Speed(route_step);
+                            Motor_Controller_RST_Drive   <= '1';                        --resets last length counter
+                            state := '1';
+                        }
+                        Else                                    --Stops driving if the route is finished
+                        {
+                            start := '0';
+                        }
+                    }
+                }
+                Else
+                {
+                    Motor_Controller_RST_Drive <= '0';          --Sets reset to '0' to start driving
+                    If(Motor_Controller_Finished = '0')         --Checks if driving started
+                    {
+                        state       := '0';
+                        route_step  := route_step + 1;
+                    }
+                }
+            }
+        }
+    }
 }

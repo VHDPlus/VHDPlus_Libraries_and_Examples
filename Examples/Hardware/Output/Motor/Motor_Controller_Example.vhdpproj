@@ -1,23 +1,16 @@
 <?xml version="1.0"?>
-<ArrayOfProjectEntry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>\Motor_Controller.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Extensions\Motor\Example</ProjectPath>
-    <IsExpanded>false</IsExpanded>
-  </ProjectEntry>
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>Motor_Controller_Example.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Extensions\Motor\Example</ProjectPath>
-    <IsExpanded>false</IsExpanded>
-  </ProjectEntry>
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>\Motor_Encoder.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Extensions\Motor\Example</ProjectPath>
-    <IsExpanded>false</IsExpanded>
-  </ProjectEntry>
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>\PWM.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Extensions\Motor\Example</ProjectPath>
-    <IsExpanded>true</IsExpanded>
-  </ProjectEntry>
-</ArrayOfProjectEntry>
+<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Header>Motor_Controller_Example</Header>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>Motor_Controller.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>Motor_Controller_Example.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>Motor_Encoder.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>PWM.vhdp</Header>
+  </Items>
+</ProjectRoot>

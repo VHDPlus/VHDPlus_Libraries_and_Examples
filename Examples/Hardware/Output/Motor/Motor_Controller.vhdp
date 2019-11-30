@@ -66,6 +66,23 @@
                     }
     
     Example:     Motor_Controller_Example
+    
+    Example settings:
+        "6V 210RPM Encoder Motor with Wheel":
+        Holes_In_Disk = 11
+        Gear_Ratio = 34
+        Wheel_Circumference = 204
+        Correction_Step = 1
+        Correction_Cycles = 1
+        Debounce_Cycles     = 2000
+        
+        "12V Metal Gear Tank Encoder Motor":
+        Holes_In_Disk = 20
+        Gear_Ratio = 90
+        Wheel_Circumference = 100
+        Correction_Step = 1
+        Correction_Cycles = 5
+        Debounce_Cycles     = 500
  */
 
 Component Motor_Controller
@@ -79,8 +96,9 @@ Component Motor_Controller
         Holes_In_Disk       : NATURAL := 1;          --Changes from Low to High for one turn (Holes in Encoder Disk or Poles)
         Gear_Ratio          : NATURAL := 1;          --20 = 1:20 Gear ratio
         Wheel_Circumference : NATURAL := 1;          --Diameter*π in mm or the unit you want to use for the outputs
-        Time_Invert_Divider : NATURAL := 12;         --This value decides how precisely the Controller corrects the speed (more info in Motor_Encoder)
-        Max_Time            : NATURAL := 1000000;    --Max_Time/(Frequency/Time_Invert_Divider) max seconds between holes
+        Time_Invert_Divider : NATURAL := 12;         --This value decides how precisely the Controller corrects the speed (more info in Motor_Encoder) (12 & 12MHz = Max_Time is in µs)
+        Debounce_Cycles     : NATURAL := 500;       --Only counts encoder edge if it keeps value for this amount of cycles
+        Max_Time            : NATURAL := 1000000;    --Max_Time/(Frequency/Time_Invert_Divider) = max seconds between holes
         Max_Length          : NATURAL := 10000;      --10m if you use mm as unit
         Error_Delay         : NATURAL := 500;        --time Controller waits with outputting error and stopping motors at the beginning
         
@@ -171,6 +189,7 @@ Component Motor_Controller
         Wheel_Circumference => Wheel_Circumference,
         Max_Length          => Max_Length,
         Time_Invert_Divider => Time_Invert_Divider,
+        Debounce_Cycles     => Debounce_Cycles,
         Max_Time            => Max_Time,
         
         Encoder_In          => Encoder_L,
@@ -268,7 +287,7 @@ Component Motor_Controller
             {
                 If(Length_Left-Length_Right > Max_Length_Diff)                  --Left driven more than right
                 {
-                    If(Stop_Left = '0')
+                    If(Stop_Left = '0' AND Correction_Buf > (-1)*(2**Bits_Resolution))
                     {
                         Correction_Buf <= Correction_Buf - Length_Corr_Step;    --slows left down
                     }
@@ -277,7 +296,7 @@ Component Motor_Controller
                 }
                 Else
                 {
-                    If(Stop_Right = '0')
+                    If(Stop_Right = '0' AND Correction_Buf < (2**Bits_Resolution))
                     {
                         Correction_Buf <= Correction_Buf + Length_Corr_Step;
                     }
