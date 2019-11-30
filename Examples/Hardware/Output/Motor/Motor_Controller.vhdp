@@ -89,23 +89,29 @@ Component Motor_Controller
 (
     Generic
     (
+        --General
         CLK_Frequency       : NATURAL := 12000000;   --system clock frequency in Hz
+        --PWM Settings
         PWM_Frequency       : NATURAL := 100000;     --PWM switching frequency in Hz
         Bits_Resolution     : NATURAL := 8;          --bits of resolution setting the duty cycle
-        
+        --Wheel Settings
         Holes_In_Disk       : NATURAL := 1;          --Changes from Low to High for one turn (Holes in Encoder Disk or Poles)
         Gear_Ratio          : NATURAL := 1;          --20 = 1:20 Gear ratio
         Wheel_Circumference : NATURAL := 1;          --Diameter*π in mm or the unit you want to use for the outputs
-        Time_Invert_Divider : NATURAL := 12;         --This value decides how precisely the Controller corrects the speed (more info in Motor_Encoder) (12 & 12MHz = Max_Time is in µs)
-        Debounce_Cycles     : NATURAL := 500;       --Only counts encoder edge if it keeps value for this amount of cycles
-        Max_Time            : NATURAL := 1000000;    --Max_Time/(Frequency/Time_Invert_Divider) = max seconds between holes
-        Max_Length          : NATURAL := 10000;      --10m if you use mm as unit
-        Error_Delay         : NATURAL := 500;        --time Controller waits with outputting error and stopping motors at the beginning
-        
+        --Encoder Settings
+        Debounce_Cycles     : NATURAL := 500;        --Only counts encoder edge if it keeps value for this amount of cycles
+        Max_Length          : NATURAL := 10000;      --10.000 = 10m if you use mm as unit
+        --Speed Correction Settings
+        Error_Delay         : NATURAL := 500;        --time Controller waits with outputting error and stopping motors at the beginning (in ms)
         Correction_Step     : NATURAL := 1;          --Speed added to correct motor speed each rising edge of encoder
         Correction_Cycles   : NATURAL := 1;          --Cycles after correction_step is added
         Length_Corr_Step    : NATURAL := 25;         --Speed added if Length_L and Length_R are Max_Length_Diff apart (will take Length_Corr_Step encoder edges to go back to normal speed)
         Max_Length_Diff     : NATURAL := 10;         --If Length_L and Length_R are Max_Length_Diff apart Length_Corr_Step is added to speed to correct
+        --Accelerate and Brake Settings
+        Accel_Length        : NATURAL := 1;          --100 = 10cm acceleration at the beginning
+        Brake_Length        : NATURAL := 1;          --100 = 10cm braking at the end
+        Accel_Speed         : NATURAL := 1;          --100 = increases speed by 100 while acceleration
+        Brake_Speed         : NATURAL := 1;          --100 = decreases speed by 100 while braking
     );
     Reset           : IN  STD_LOGIC := '0';
     
@@ -142,6 +148,8 @@ Component Motor_Controller
 {
     AttributeDeclaration
     {
+        CONSTANT Max_Time : NATURAL := 1000000;
+        
         SIGNAL Motor_Left_PWM       : STD_LOGIC := '0';
         SIGNAL Motor_Left_Speed     : STD_LOGIC_VECTOR(Bits_Resolution-1 DOWNTO 0) := (others => '0');
         SIGNAL Motor_Right_PWM      : STD_LOGIC := '0';
@@ -158,6 +166,9 @@ Component Motor_Controller
         
         SIGNAL Correct              : STD_LOGIC := '0';     --If '1' corrects speed to have both motors run at same speed ('0' if only one motor runs)
         SIGNAL Correction_Buf       : INTEGER range ((-1)*(2**Bits_Resolution))-Length_Corr_Step to (2**Bits_Resolution)+Length_Corr_Step := 0;
+        
+        SIGNAL Accel_Brake_L        : NATURAL range 0 to 2**Bits_Resolution := 0;
+        SIGNAL Accel_Brake_R        : NATURAL range 0 to 2**Bits_Resolution := 0;
         
         SIGNAL Stop_Right           : STD_LOGIC := '0';
         SIGNAL Stop_Left            : STD_LOGIC := '0';
@@ -188,7 +199,7 @@ Component Motor_Controller
         Gear_Ratio          => Gear_Ratio,
         Wheel_Circumference => Wheel_Circumference,
         Max_Length          => Max_Length,
-        Time_Invert_Divider => Time_Invert_Divider,
+        Time_Invert_Divider => CLK_Frequency/1000000,
         Debounce_Cycles     => Debounce_Cycles,
         Max_Time            => Max_Time,
         
@@ -208,7 +219,8 @@ Component Motor_Controller
         Gear_Ratio          => Gear_Ratio,
         Wheel_Circumference => Wheel_Circumference,
         Max_Length          => Max_Length,
-        Time_Invert_Divider => Time_Invert_Divider,
+        Time_Invert_Divider => CLK_Frequency/1000000,
+        Debounce_Cycles     => Debounce_Cycles,
         Max_Time            => Max_Time,
         
         Encoder_In          => Encoder_R,
@@ -248,6 +260,52 @@ Component Motor_Controller
     
     SIGNAL Correct_Count : NATURAL range 0 to Correction_Cycles-1 := 0;
     SIGNAL Correct_Last  : NATURAL range 0 to 2 := 0;
+    
+    Process Accel_Brake_Controller_L ()
+    {
+        If(Reset = '1' OR RST_Drive = '1')
+        {
+            Accel_Brake_L <= 0;
+        }
+        Else
+        {
+            If(Length_Left > abs(Drive_L)-Brake_Length)
+            {
+                Accel_Brake_L <= (Brake_Length-(abs(Drive_L)-Length_Left))*(Brake_Speed/Brake_Length);
+            }
+            ElsIf(Length_Left < Accel_Length)
+            {
+                Accel_Brake_L <= (Accel_Length-Length_Left)*(Accel_Speed/Accel_Length);
+            }
+            Else
+            {
+                Accel_Brake_L <= 0;
+            }
+        }
+    }
+    
+    Process Accel_Brake_Controller_R ()
+    {
+        If(Reset = '1' OR RST_Drive = '1')
+        {
+            Accel_Brake_R <= 0;
+        }
+        Else
+        {
+            If(Length_Right > abs(Drive_R)-Brake_Length)
+            {
+                Accel_Brake_R <= (Brake_Length-(abs(Drive_R)-Length_Right))*(Brake_Speed/Brake_Length);
+            }
+            ElsIf(Length_Right < Accel_Length)
+            {
+                Accel_Brake_R <= (Accel_Length-Length_Right)*(Accel_Speed/Accel_Length);
+            }
+            Else
+            {
+                Accel_Brake_R <= 0;
+            }
+        }
+    }
     
     Process Speed_Controller ()
     {
@@ -386,17 +444,17 @@ Component Motor_Controller
                 --Isn't ready with route and the other motor turns (doesn't stop effected motor to see if problem fixed)
                 If(abs(Drive_L) > Length_Left AND (Error_Out = '0' OR problem_side = 1))
                 {
-                    If(Drive_Speed+Correction_Buf > (2**Bits_Resolution)-1)     --Check if Speed with Correction is out of range
+                    If(Drive_Speed+Correction_Buf-Accel_Brake_L > (2**Bits_Resolution)-1)     --Check if Speed with Correction is out of range
                     {
                         Motor_Left_Speed    <= (others => '1');
                     }
-                    Elsif(Drive_Speed+Correction_Buf < 0)
+                    Elsif(Drive_Speed+Correction_Buf-Accel_Brake_L < 0)
                     {
                         Motor_Left_Speed    <= (others => '0');
                     }
                     Else
                     {
-                        Motor_Left_Speed    <= STD_LOGIC_VECTOR(TO_UNSIGNED(Drive_Speed+Correction_Buf, Bits_Resolution));
+                        Motor_Left_Speed    <= STD_LOGIC_VECTOR(TO_UNSIGNED(Drive_Speed+Correction_Buf-Accel_Brake_L, Bits_Resolution));
                     }
                     
                     If(Drive_L > 0)                     --should go forward
@@ -422,17 +480,17 @@ Component Motor_Controller
                 
                 If(abs(Drive_R) > Length_Right AND (Error_Out = '0' OR problem_side = 2))   --same as for left motor
                 {
-                    If(Drive_Speed-Correction_Buf > (2**Bits_Resolution)-1)
+                    If(Drive_Speed-Correction_Buf-Accel_Brake_R > (2**Bits_Resolution)-1)
                     {
                         Motor_Right_Speed   <= (others => '1');
                     }
-                    Elsif(Drive_Speed-Correction_Buf < 0)
+                    Elsif(Drive_Speed-Correction_Buf-Accel_Brake_R < 0)
                     {
                         Motor_Right_Speed   <= (others => '0');
                     }
                     Else
                     {
-                        Motor_Right_Speed   <= STD_LOGIC_VECTOR(TO_UNSIGNED(Drive_Speed-Correction_Buf, Bits_Resolution));
+                        Motor_Right_Speed   <= STD_LOGIC_VECTOR(TO_UNSIGNED(Drive_Speed-Correction_Buf-Accel_Brake_R, Bits_Resolution));
                     }
                     
                     If(Drive_R > 0)
@@ -456,7 +514,7 @@ Component Motor_Controller
                     r_stop              := '1';
                 }
                 
-                If(r_stop = '0' AND l_stop = '0')       --if both motors are running the direction correction runs
+                If(r_stop = '0' AND l_stop = '0' AND Accel_Brake_L = 0 AND Accel_Brake_R = 0)       --if both motors are running the direction correction runs
                 {
                     Correct <= '1';
                 }
