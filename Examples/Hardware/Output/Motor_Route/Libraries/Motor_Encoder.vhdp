@@ -1,0 +1,312 @@
+/*
+    Name: Motor Encoder
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 08.06.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important:   -Depending on Holes_In_Disk, Gear_Ratio, Wheel_Circumference and the Max_Length, this component can use a lot of logic elements
+                 -If you remove Holes_In_Disk, Gear_Ratio and Wheel_Circumference, the values are in encoder impulses and not mm
+                 -This component doesn't uses two encoder inputs, so it cannot differ between for- and backward
+    
+    Description: -This Component counts the driven length with an encoder
+                 -To check the speed of the encoder, you can either use Time that is updated every encoder impuls and is the time between the impulses
+                  or you can use Speed that is updated every second and is the speed in mm/s (if Holes_In_Disk, Gear_Ratio and Wheel_Circumference are correct and in mm)
+    
+    Insertion:   -Right click on Motor_Encoder.vhdp -> Add to project
+                 -Add NewComponent of Motor_Encoder in your code
+                 -Remove CLK_Frequency if you use a VHDP Core and no PLL
+                 -Remove or set the parameters (information next to the declaration)
+                 -Set Holes_In_Disk, Gear_Ratio and Wheel_Circumference to the values of your Motor to get the values in mm,
+                  otherwise Drive_L/R, Driven_L/R and Speed_L/R are in Encoder impules (per second), but you save Logic Elements.
+                  You can set the length to drive by writing Drive_L/R <= ([Length]*Wheel_Circumference)/(Holes_In_Disk*Gear_Ratio)
+                 -Right click the name Motor_Encoder next to NewComponent and create the needed signals (Max_Length and Max_Time in the declarations have to be replaced with the values you chose or you have to use a constant)
+    
+    Function:    1. Read Length, Time and Speed if you need it or wait with If(New_Length = '1') { ... } outside of a Thread on new data
+                 2. Set Length_RST to '1' (and '0' afterwards) to reset length to 0
+    
+    Example:     Motor_Controller
+ */
+
+Component Motor_Encoder
+(
+    Generic
+    (
+        CLK_Frequency       : NATURAL := 12000000;
+        Holes_In_Disk       : NATURAL := 1;         --Changes from Low to High for one turn (Holes in Encoder Disk or Poles)
+        Gear_Ratio          : NATURAL := 1;         --34 = 1:34 Gear ratio
+        Wheel_Circumference : NATURAL := 1;         --Diameter*π in mm or the unit u want to use for the outputs
+        Max_Length          : NATURAL := 10000;     --10m if you use mm as unit
+        Time_Invert_Divider : NATURAL := 12;        --Cycles between encoder signals (Time) are divided by this value (12 & 12MHz = Time in µs)
+        Debounce_Cycles     : NATURAL := 500;       --Only counts encoder edge if it keeps value for this amount of cycles
+        Max_Time            : NATURAL := 1000000;   --Max_Time/(CLK_Frequency/Time_Invert_Divider) max seconds between holes
+    );
+    Encoder_In      : IN  STD_LOGIC := '0';         --Encoder Input
+    
+    Reset           : IN  STD_LOGIC := '0';         --Resets everything
+    Length_RST      : IN  STD_LOGIC := '0';         --Resets counted length
+    
+    Length          : OUT NATURAL range 0 to Max_Length := 0;   --Length counted
+    New_Length      : OUT STD_LOGIC := '0';                     --One cycle high on new length
+    Time            : OUT NATURAL range 0 to Max_Time := Max_Time; --Time between last holes -> Lower = Higher Speed
+    Speed           : OUT NATURAL range 0 to Max_Length := 0;   --Returns every second the driven Length (Length and Time update more frequently)
+)
+{
+    AttributeDeclaration
+    {
+        SIGNAL OUT_Length               : NATURAL  range 0 to Max_Length := 0;
+        SIGNAL OUT_New_Length           : STD_LOGIC := '0';
+        SIGNAL OUT_Time                 : NATURAL  range 0 to Max_Time  := 0;
+        
+        SIGNAL Encoder_Trig             : STD_LOGIC := '0';
+    }
+    
+    Connections
+    {
+        Encoder_In,
+    }
+
+    Length <= OUT_Length;
+    Time   <= OUT_Time;
+    New_Length <= OUT_New_Length;
+    
+    Process Time_Counter
+    (
+        VARIABLE div        : NATURAL range 0 to Time_Invert_Divider-1 := 0;
+        VARIABLE cnt        : NATURAL range 0 to Max_Time := 0;
+    )
+    {
+        If(Reset = '1')
+        {
+            cnt       := 0;
+            div       := 0;
+            OUT_Time  <= 0;
+        }
+        Else
+        {
+            If(Encoder_Trig = '1')              --Returns Counter on rising edge of Encoder
+            {
+                OUT_Time  <= cnt;
+                cnt       := 0;
+                div       := 0;
+            }
+            Else
+            {
+                If(div < Time_Invert_Divider-1)   --Counts until Time_Invert_Divider
+                {
+                    div := div + 1;
+                }
+                Elsif (cnt < Max_Time)          --Increases cnt afterwards
+                {
+                    div := 0;
+                    cnt := cnt + 1;
+                }
+                Else
+                {
+                    OUT_Time  <= cnt;
+                }
+            }
+        }
+    }
+    
+    Process Speed_Counter
+    (
+        VARIABLE cnt            : NATURAL range 0 to CLK_Frequency  := 0;
+        VARIABLE l_Length       : NATURAL range 0 to Max_Length := 0;
+    )
+    {
+        If(Reset = '1' OR Length_RST = '1')             --resets length on length_reset to prevent negative speed
+        {
+            cnt         := 0;
+            l_Length    := 0;
+        }
+        Else
+        {
+            If(cnt = CLK_Frequency)                         --1s since last test
+            {
+                Speed    <= OUT_Length - l_Length;      --Speed = difference between last length
+                l_Length := OUT_Length;                 --updates last length
+                cnt      := 0;                          --starts waiting next second
+            }
+            Else
+            {
+                cnt      := cnt + 1;                    --waits
+            }
+        }
+    }
+
+    Process Length_Counter
+    (
+        --if more cycles = 1mm
+        CONSTANT mm_edges  : NATURAL := ((Holes_In_Disk*Gear_Ratio)/Wheel_Circumference);
+        CONSTANT cm_edges  : NATURAL := ((10*Holes_In_Disk*Gear_Ratio)/Wheel_Circumference);
+        CONSTANT dm_edges  : NATURAL := ((100*Holes_In_Disk*Gear_Ratio)/Wheel_Circumference);
+        
+        VARIABLE mm_cnt         : NATURAL range 0 to mm_edges   := 0;
+        VARIABLE cm_cnt         : NATURAL range 0 to cm_edges   := 0;
+        VARIABLE len_cm         : NATURAL range 0 to Max_Length/10 := 0;
+        VARIABLE dm_cnt         : NATURAL range 0 to dm_edges   := 0;
+        VARIABLE len_dm         : NATURAL range 0 to Max_Length/100 := 0;
+        
+        --if 1 cycle = more mm
+        CONSTANT edge_mm  : NATURAL := (Wheel_Circumference/(Holes_In_Disk*Gear_Ratio));
+        CONSTANT edge_cm  : NATURAL := (10*Wheel_Circumference/(Holes_In_Disk*Gear_Ratio));
+        CONSTANT edge_dm  : NATURAL := (100*Wheel_Circumference/(Holes_In_Disk*Gear_Ratio));
+        
+        VARIABLE edge_cm_cnt         : NATURAL range 0 to 9   := 0;
+        VARIABLE edge_dm_cnt         : NATURAL range 0 to 99   := 0;
+    )
+    {
+        If(Reset = '1' OR Length_RST = '1')     --Resets Length on Reset and Length_RST
+        {
+            OUT_Length      <= 0;
+            len_cm          := 0;
+            len_dm          := 0;
+            mm_cnt          := 0;
+            cm_cnt          := 0;
+            dm_cnt          := 0;
+            OUT_New_Length  <= '0';
+        }
+        Else
+        {
+            If(Encoder_Trig = '1' AND OUT_Length < Max_Length)  --Increases cnt on rising edge of Encoder anf calculates driven Length
+            {
+                If(mm_edges > 0)
+                {
+                    If(mm_cnt < mm_edges) { mm_cnt := mm_cnt + 1; }
+                    Else
+                    {
+                        mm_cnt := 0;
+                        OUT_Length <= OUT_Length + 1;
+                    }
+                    
+                    If(cm_cnt < cm_edges) { cm_cnt := cm_cnt + 1; }
+                    Elsif((len_dm * 100 + len_cm * 10) < Max_Length)
+                    {
+                        cm_cnt := 0;
+                        mm_cnt := 0;
+                        len_cm := len_cm + 1;
+                        OUT_Length <= len_dm * 100 + len_cm * 10;
+                    }
+                    Else { OUT_Length <= Max_Length; }
+                    
+                    If(dm_cnt < dm_edges) { dm_cnt := dm_cnt + 1; }
+                    Elsif(len_dm*100 < Max_Length)
+                    {
+                        dm_cnt := 0;
+                        cm_cnt := 0;
+                        mm_cnt := 0;
+                        len_dm := len_dm + 1;
+                        len_cm := 0;
+                        OUT_Length <= len_dm * 100;
+                    }
+                    Else { OUT_Length <= Max_Length; }
+                }
+                Else
+                {
+                    OUT_Length <= OUT_Length + edge_mm;
+                    
+                    If(edge_cm_cnt < 9) { edge_cm_cnt := edge_cm_cnt + 1; }
+                    Elsif((len_cm * edge_cm + len_dm * edge_dm) < Max_Length)
+                    {
+                        edge_cm_cnt := 0;
+                        len_cm := len_cm + 1;
+                        OUT_Length <= len_cm * edge_cm + len_dm * edge_dm;
+                    }
+                    Else { OUT_Length <= Max_Length; }
+                    
+                    If(edge_dm_cnt < 99) { edge_dm_cnt := edge_dm_cnt + 1; }
+                    Elsif(len_dm * edge_dm < Max_Length)
+                    {
+                        edge_dm_cnt := 0;
+                        edge_cm_cnt := 0;
+                        len_dm := len_dm + 1;
+                        len_cm := 0;
+                        OUT_Length <= len_dm * edge_dm;
+                    }
+                    Else { OUT_Length <= Max_Length; }
+                }
+                OUT_New_Length  <= '1';
+            }
+            Else
+            {
+                OUT_New_Length <= '0';
+            }
+            
+            /*
+            If(Encoder_Trig = '1' AND cnt < Counts_For_Max_Length)  --Increases cnt on rising edge of Encoder anf calculates driven Length
+            {
+                cnt             := cnt + 1;
+                OUT_Length      <= ((cnt+1)*Wheel_Circumference)/(Holes_In_Disk*Gear_Ratio) + 1;
+                OUT_New_Length  <= '1';
+            }
+            Else
+            {
+                OUT_New_Length <= '0';
+            }
+             */
+        }
+    }
+    
+    Process Enocder_Trig_Generator
+    (
+        VARIABLE l_Encoder      : STD_LOGIC_VECTOR (1 downto 0) := (others => '0');
+    )
+    {
+        If(Reset = '1')
+        {
+            Encoder_Trig <= '0';
+        }
+        Else
+        {
+            l_Encoder := l_Encoder(0) & Encoder_Debounced; --Shifts in Encoder Values
+            
+            If(l_Encoder(1) = '1' AND l_Encoder(0) = '0')           --Creates Trigger on rising encoder edge
+            {
+                Encoder_Trig <= '1';
+            }
+            Else
+            {
+                Encoder_Trig <= '0';
+            }
+        }
+    }
+    
+    SIGNAL Encoder_Debounced : STD_LOGIC := '0';
+    SIGNAL InputBuffer : STD_LOGIC_VECTOR(2 DOWNTO 0);
+    SIGNAL Counter : INTEGER range 0 to Debounce_Cycles-1;
+    
+    Process Debounce_Process ()
+    {
+        If((InputBuffer(1) XOR InputBuffer(2))='1')       --reset counter because input is changing
+        {
+            Counter <= 0;
+        }
+        Elsif(Counter < Debounce_Cycles-1)                 --stable input time is not yet met
+        {
+            Counter <= Counter + 1;
+        }
+        Else                                                    --stable input time is met
+        {
+            Encoder_Debounced <= InputBuffer(2);
+        }
+        InputBuffer <= InputBuffer(1 downto 0) & Encoder_In;
+    }
+}

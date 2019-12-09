@@ -1,0 +1,107 @@
+Main
+(
+    Encoder_L           : IN STD_LOGIC;
+    Encoder_R           : IN STD_LOGIC;
+    Motor_LF            : OUT STD_LOGIC;
+    Motor_LB            : OUT STD_LOGIC;
+    Motor_RF            : OUT STD_LOGIC;
+    Motor_RB            : OUT STD_LOGIC;
+    
+    Trigger             : OUT STD_LOGIC;
+    Echo                : IN STD_LOGIC;
+    
+    btn                 : in STD_LOGIC := '0';
+    leds                : OUT STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+)
+{
+    --Motor controller settings
+    CONSTANT Motor_Controller_Holes_In_Disk       : NATURAL := 20;    --21 Holes
+    CONSTANT Motor_Controller_Gear_Ratio          : NATURAL := 90;    --1:90 Ratio
+    CONSTANT Motor_Controller_Wheel_Circumference : NATURAL := 100;   --100mm circumference
+    CONSTANT Motor_Controller_Max_Length          : NATURAL := 10000; --10m
+    CONSTANT Motor_Controller_Route_Steps         : NATURAL := 10;    --10 steps
+    
+    Process ()
+    {
+        If(Ultrasonic_Controller_Dist < 10)
+        {
+            Motor_Route_Drive_Collision <= '1';
+        }
+        Else
+        {
+            Motor_Route_Drive_Collision <= '0';
+        }
+        
+        Motor_Route_Drive_Route_Start <= NOT btn;
+        
+        Motor_Route_Drive_Route_L      <= (700,  200, -320, 500, 0, 0, 0, 0, 0, 0);
+        Motor_Route_Drive_Route_R      <= (700,  200,  320, 500, 0, 0, 0, 0, 0, 0);
+        Motor_Route_Drive_Route_Speed  <= (255,  200,  255, 255, 0, 0, 0, 0, 0, 0);
+        Motor_Route_Drive_Route_Length <= 4;
+    }
+    
+    SIGNAL Motor_Route_Drive_Collision           : STD_LOGIC;
+    SIGNAL Motor_Route_Drive_Distance_L          : NATURAL;
+    SIGNAL Motor_Route_Drive_Distance_R          : NATURAL;
+    SIGNAL Motor_Route_Drive_Route_Start         : STD_LOGIC;
+    SIGNAL Motor_Route_Drive_Route_L             : Route_Array (0 to Motor_Controller_Route_Steps-1);
+    SIGNAL Motor_Route_Drive_Route_R             : Route_Array (0 to Motor_Controller_Route_Steps-1);
+    SIGNAL Motor_Route_Drive_Route_Speed         : Route_Array (0 to Motor_Controller_Route_Steps-1);
+    SIGNAL Motor_Route_Drive_Route_Length        : NATURAL     range 0 to Motor_Controller_Route_Steps;
+    
+    NewComponent Motor_Route_Drive
+    (
+        CLK_Frequency       => 12000000,
+        Route_Steps         => Motor_Controller_Route_Steps,
+        Max_Length          => Motor_Controller_Max_Length,
+        Turn_Length         => 320,
+        Turn_Speed          => 200,
+        Back_Length         => 150,
+        Back_Speed          => 200,
+        Clear_Area_Width    => 200,
+        Side_Distances      => false,
+        Check_Distance      => 300,
+        Holes_In_Disk       => Motor_Controller_Holes_In_Disk,
+        Gear_Ratio          => Motor_Controller_Gear_Ratio,
+        Wheel_Circumference => Motor_Controller_Wheel_Circumference,
+        Error_Delay         => 500,
+        Correction_Step     => 1,
+        Correction_Cycles   => 20,
+        Length_Corr_Step    => 25,
+        Max_Length_Diff     => 10,
+        Accel_Length        => 100,
+        Accel_Speed         => 50,
+        Brake_Length        => 100,
+        Brake_Speed         => 80,
+        
+        Reset               => '0',
+        Encoder_L           => Encoder_L,
+        Encoder_R           => Encoder_R,
+        Motor_LF            => Motor_LF,
+        Motor_LB            => Motor_LB,
+        Motor_RF            => Motor_RF,
+        Motor_RB            => Motor_RB,
+        Collision           => Motor_Route_Drive_Collision,
+        Distance_F          => Ultrasonic_Controller_Dist,
+        Distance_L          => Motor_Route_Drive_Distance_L,
+        Distance_R          => Motor_Route_Drive_Distance_R,
+        Route_Start         => Motor_Route_Drive_Route_Start,
+        Route_L             => Motor_Route_Drive_Route_L,
+        Route_R             => Motor_Route_Drive_Route_R,
+        Route_Speed         => Motor_Route_Drive_Route_Speed,
+        Route_Length        => Motor_Route_Drive_Route_Length,
+    );
+    
+    SIGNAL Ultrasonic_Controller_Dist             : NATURAL   range 0 to 1000;
+    
+    NewComponent Ultrasonic_Controller
+    (
+        CLK_Frequency    => 12000000,
+        Update_Frequency => 15,
+        
+        Reset            => '0',
+        Trigger          => Trigger,
+        Echo             => Echo,
+        Dist             => Ultrasonic_Controller_Dist,
+    );
+}

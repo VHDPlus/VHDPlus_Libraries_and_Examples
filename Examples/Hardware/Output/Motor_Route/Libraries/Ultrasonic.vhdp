@@ -1,0 +1,165 @@
+/*
+    Name: Ultrasonic
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 06.06.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy of 
+	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+	HDL Code without restriction, including without limitation the rights to use, 
+	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+	subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+	
+	Important: The Update_Frequency must not be 0 and above 100000
+	
+    Insertion: -Right click on Ultrasonic.vhdp -> Add to project
+			   -Add NewComponent of Ultrasonic_Controller in your code
+			   -Remove CLK_Frequency if you use a VHDP Core and no PLL
+			   -Remove Update_Frequency or set your own refresh rate (we suggest a value between 1 and 20)
+			   -Remove Reset or connect it to a signal or input
+			   -Right click the name Ultrasonic_Controller next to NewComponent and create the signal for Dist
+	
+    Function:  -The Values of Dist are the distance in front of the Ultrasonic Sensor in cm
+	            In one second the controller sends "Update_Frequency" times an impuls to measure the length
+				If the impuls doesn't come back, Dist is set to 1000, assuming the distance is too big
+			   -If the Sensor should stop measuring, set Reset to '1'
+	
+    Example:   Ultrasonic_Example
+*/
+
+Component Ultrasonic_Controller
+(
+	Generic
+	(
+		CLK_Frequency       : NATURAL := 12000000;		--Clock Frequency in HZ
+		Update_Frequency    : NATURAL := 15;			--Refresh rate in HZ (we suggest a value between 1 and 20)
+	);
+	Reset	: IN  STD_LOGIC := '0';				--active high reset (set to '1' to pause measuring)
+	Trigger : OUT STD_LOGIC := '0';				--Trigger from Sensor
+	Echo	: IN  STD_LOGIC := '0';				--Echo from Sensor
+	Dist	: OUT NATURAL range 0 to 1000 := 0; --0 to 1000 cm
+)
+{
+	AttributeDeclaration
+	{
+	    SIGNAL START	   : STD_LOGIC := '0';		--one cycle '1' to start Trigger
+		SIGNAL CM_CLK	   : STD_LOGIC := '0';		--one cycle '1' if time for one cm is over
+		SIGNAL TRIGGER_BUF : STD_LOGIC := '0';
+	}
+	
+	Connections
+	{
+	    Trigger,
+		Echo,
+	}
+	
+	Trigger <= TRIGGER_BUF;
+	
+	Process TRIGGER_PROCESS 
+	(
+		VARIABLE cnt	: NATURAL range 0 to CLK_Frequency/Update_Frequency := 0;
+	)
+	{
+		If(Reset = '1')
+		{
+			cnt := 0;
+		} 
+		Else
+		{
+			If(START = '1' AND cnt = CLK_Frequency/Update_Frequency)  --Start trigger on falling edge of Echo and after time for Update Frequency
+			{
+				TRIGGER_BUF <= '0';					--set trigger to 0
+				cnt			:= 0;
+			}
+			Else
+			{
+				If(cnt < (10*CLK_Frequency)/1000000)  --10µs impuls for trigger
+				{
+					TRIGGER_BUF <= '1';
+				}
+				Else                                  --Set to '0' for rest of time
+				{
+					TRIGGER_BUF <= '0';
+				}
+				
+				If(cnt < CLK_Frequency/Update_Frequency)
+				{
+					cnt := cnt + 1;
+				}
+			}
+		}
+	}
+	
+	Process ECHO_PROCESS 
+	(
+		VARIABLE cnt		: NATURAL range 0 to 1000 := 0;		--cm counter
+	)
+	{
+		If(Reset = '1')
+		{
+			cnt := 0;
+			START <= '0';
+		} 
+		Else
+		{
+			If(Echo = '0')	--Not receiving
+			{
+				If(cnt > 0)
+				{
+					Dist <= cnt;								--save Distance
+				}
+				cnt := 0;										--reset counter to wait for next echo
+				START <= '1';									--tell trigger to start
+			}
+			Elsif (Echo = '1' and cnt < 1000)	--counts time of sound to come back (while Echo = '1')
+			{
+				if(CM_CLK = '1')
+				{
+					cnt := cnt + 1;
+				}
+				START <= '0';
+			}
+			Elsif(cnt = 1000)
+			{
+				Dist <= cnt;
+			}
+		}
+	}
+	
+	Process CM_CLK_PROCESS
+	(
+		VARIABLE cnt	: NATURAL range 0 to (CLK_Frequency/34320)*2 := 0;			--cycles for 1cm 2*(Freq. / speed of sound) (34320 is cm/s)
+	)
+	{
+		if(Reset = '1')
+		{
+			cnt := 0;
+			CM_CLK <= '0';
+		}
+		else
+		{
+			if(cnt = (CLK_Frequency/34320)*2)			--if time for one cm is over
+			{
+				CM_CLK <= '1';						--gives pulse
+				cnt := 0;							--resets counter
+			}
+			else
+			{
+				CM_CLK <= '0';
+				cnt := cnt + 1;
+			}
+		}
+	}
+}
