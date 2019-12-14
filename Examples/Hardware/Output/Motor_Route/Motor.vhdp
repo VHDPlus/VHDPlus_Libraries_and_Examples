@@ -2,10 +2,10 @@ Main
 (
     Encoder_L           : IN STD_LOGIC;
     Encoder_R           : IN STD_LOGIC;
-    Motor_LF            : OUT STD_LOGIC;
-    Motor_LB            : OUT STD_LOGIC;
-    Motor_RF            : OUT STD_LOGIC;
-    Motor_RB            : OUT STD_LOGIC;
+    Motor_LF            : BUFFER STD_LOGIC;
+    Motor_LB            : BUFFER STD_LOGIC;
+    Motor_RF            : BUFFER STD_LOGIC;
+    Motor_RB            : BUFFER STD_LOGIC;
     
     Trigger             : OUT STD_LOGIC;
     Echo                : IN STD_LOGIC;
@@ -15,9 +15,9 @@ Main
 )
 {
     --Motor controller settings
-    CONSTANT Motor_Controller_Holes_In_Disk       : NATURAL := 20;    --21 Holes
-    CONSTANT Motor_Controller_Gear_Ratio          : NATURAL := 90;    --1:90 Ratio
-    CONSTANT Motor_Controller_Wheel_Circumference : NATURAL := 100;   --100mm circumference
+    CONSTANT Motor_Controller_Holes_In_Disk       : NATURAL := 11;    --20 = 20 Holes
+    CONSTANT Motor_Controller_Gear_Ratio          : NATURAL := 34;    --90 = 1:90 Ratio
+    CONSTANT Motor_Controller_Wheel_Circumference : NATURAL := 204;   --100 = 100mm circumference
     CONSTANT Motor_Controller_Max_Length          : NATURAL := 10000; --10m
     CONSTANT Motor_Controller_Route_Steps         : NATURAL := 10;    --10 steps
     
@@ -32,10 +32,10 @@ Main
             Motor_Route_Drive_Collision <= '0';
         }
         
-        Motor_Route_Drive_Route_Start <= NOT btn;
+        Motor_Route_Drive_Route_Start <= btn;
         
-        Motor_Route_Drive_Route_L      <= (700,  200, -320, 500, 0, 0, 0, 0, 0, 0);
-        Motor_Route_Drive_Route_R      <= (700,  200,  320, 500, 0, 0, 0, 0, 0, 0);
+        Motor_Route_Drive_Route_L      <= (800,  200, -310, 500, 0, 0, 0, 0, 0, 0);
+        Motor_Route_Drive_Route_R      <= (800,  200,  310, 500, 0, 0, 0, 0, 0, 0);
         Motor_Route_Drive_Route_Speed  <= (255,  200,  255, 255, 0, 0, 0, 0, 0, 0);
         Motor_Route_Drive_Route_Length <= 4;
     }
@@ -48,13 +48,14 @@ Main
     SIGNAL Motor_Route_Drive_Route_R             : Route_Array (0 to Motor_Controller_Route_Steps-1);
     SIGNAL Motor_Route_Drive_Route_Speed         : Route_Array (0 to Motor_Controller_Route_Steps-1);
     SIGNAL Motor_Route_Drive_Route_Length        : NATURAL     range 0 to Motor_Controller_Route_Steps;
+    SIGNAL Motor_Route_Drive_Route_Finished      : STD_LOGIC;
     
     NewComponent Motor_Route_Drive
     (
         CLK_Frequency       => 12000000,
         Route_Steps         => Motor_Controller_Route_Steps,
         Max_Length          => Motor_Controller_Max_Length,
-        Turn_Length         => 320,
+        Turn_Length         => 155,
         Turn_Speed          => 200,
         Back_Length         => 150,
         Back_Speed          => 200,
@@ -66,7 +67,7 @@ Main
         Wheel_Circumference => Motor_Controller_Wheel_Circumference,
         Error_Delay         => 500,
         Correction_Step     => 1,
-        Correction_Cycles   => 20,
+        Correction_Cycles   => 1,
         Length_Corr_Step    => 25,
         Max_Length_Diff     => 10,
         Accel_Length        => 100,
@@ -86,6 +87,7 @@ Main
         Distance_L          => Motor_Route_Drive_Distance_L,
         Distance_R          => Motor_Route_Drive_Distance_R,
         Route_Start         => Motor_Route_Drive_Route_Start,
+        Route_Finished      => Motor_Route_Drive_Route_Finished,
         Route_L             => Motor_Route_Drive_Route_L,
         Route_R             => Motor_Route_Drive_Route_R,
         Route_Speed         => Motor_Route_Drive_Route_Speed,

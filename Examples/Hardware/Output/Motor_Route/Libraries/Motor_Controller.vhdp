@@ -27,7 +27,7 @@
     
     Description: -This component is build to drive an exact route with two motors with encoders
                  -The motors correct their speed in order to drive straight
-                 -You can set the distance of drive for each motor and their speed
+                 -You can set the distance to drive for each motor and their speed
                  -While the motors are driving you get information about the driven distance and the current speed
     
     Insertion:   -Right click on Motor_Controller.vhdp, Motor_Encoder.vhdp and PWM.vhdp -> Add to avtive project
@@ -35,8 +35,7 @@
                  -Remove CLK_Frequency if you use a VHDP Core and no phase-locked loop (PLL) or set a frequency according to your clock frequency
                  -Remove or set the additional parameters (more information about their function next to the declaration or hover with your cursor over the parameters in your code)
                  -Set Holes_In_Disk, Gear_Ratio and Wheel_Circumference to the values of your motor to get values in mm,
-                  otherwise Drive_L/R, Driven_L/R and Speed_L/R are given in encoder impules (per second), but in exchange you save logic elements.
-                  You can set the required distance by writing Drive_L/R <= ([Length]*Wheel_Circumference)/(Holes_In_Disk*Gear_Ratio)
+                  otherwise Drive_L/R, Driven_L/R and Speed_L/R are given in encoder impules (per second).
                  -Right click Motor_Controller next to NewComponent and create the required signals (Max_Length, Bits_Resolution and Length_Corr_Step in the declaration have to be replaced with values of you choice or you have to use constants)
     
     Function:    1. Set DriveL/R to the distance the motor has to drive in mm or use the formula([Length]*Wheel_Circumference)/(Holes_In_Disk*Gear_Ratio)

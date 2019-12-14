@@ -122,7 +122,7 @@ Component Motor_Route_Drive
     
     ----------------Route----------------
     Route_Start     : IN  STD_LOGIC := '0';     --Change from '0' to '1' start the route
-    Route_Finished  : IN  STD_LOGIC := '0';     --'1' if finished route
+    Route_Finished  : OUT STD_LOGIC := '0';     --'1' if finished route
     Route_L         : IN  Route_Array(0 to Route_Steps-1) := (0 =>  100, 1 => -200, 2 =>  300, others => 0); --Lengths that should be driven with the left wheel
     Route_R         : IN  Route_Array(0 to Route_Steps-1) := (0 => -100, 1 =>  200, 2 => -300, others => 0); --Lengths that should be driven with the right wheel
     Route_Speed     : IN  Route_Array(0 to Route_Steps-1) := (0 =>  100, 1 =>  200, 2 =>  255, others => 0); --Speed for the individual steps
@@ -192,14 +192,6 @@ Component Motor_Route_Drive
     --motor_doll <= true when Collision = '1' OR Motor_Controller_Error = '1' else false;
     motor_coll <= true when Collision = '1' else false;
     
-    SIGNAL ISSP_source : std_logic_vector (7 downto 0);
-    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0);
-    NewComponent ISSP
-    (
-        source => ISSP_source,
-        probe  => ISSP_probe,
-    );
-    
     Process ()
     {
         Thread
@@ -218,8 +210,6 @@ Component Motor_Route_Drive
                 NewFunction startRoute (Motor_Controller_RST_Drive, Motor_Controller_Finished);
                 While(Motor_Controller_Finished = '0' AND Route_Error = '0')
                 {
-                    ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(1,ISSP_probe'LENGTH));
-                    
                     VARIABLE l_left   : NATURAL range 0 to Max_Length := 0;
                     VARIABLE r_left   : NATURAL range 0 to Max_Length := 0;
                     VARIABLE x_offset : INTEGER range (-1) * Max_Length to Max_Length := 0;
@@ -301,7 +291,6 @@ Component Motor_Route_Drive
                                             NewFunction startRoute (Motor_Controller_RST_Drive, Motor_Controller_Finished);
                                             While(Motor_Controller_Finished = '0')
                                             {
-                                                ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(3,ISSP_probe'LENGTH));
                                                 --Drive back if the object is still there
                                                 If(motor_coll)
                                                 {

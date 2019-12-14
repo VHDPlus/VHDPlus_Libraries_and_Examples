@@ -31,4 +31,7 @@
   <Items xsi:type="ProjectFileVHDP">
     <Header>Motor_Route_Drive.vhdp</Header>
   </Items>
+  <Items xsi:type="ProjectFileGHDP">
+    <Header>motor_sim.ghdp</Header>
+  </Items>
 </ProjectRoot>
