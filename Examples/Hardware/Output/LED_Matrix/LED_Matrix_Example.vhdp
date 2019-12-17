@@ -32,15 +32,15 @@ Main
     DIN_O           : OUT STD_LOGIC := '0';
 )
 {
-    CONSTANT TextScroll : BOOLEAN := false;
+    CONSTANT TextScroll : BOOLEAN := true;
     
     CONSTANT Panels                : NATURAL := 4;
-    CONSTANT MaxChars              : NATURAL := 23;
+    CONSTANT MaxChars              : NATURAL := 32;
     SIGNAL LED_Matrix_Config       : STD_LOGIC := '1';
     SIGNAL LED_Matrix_Panel_Bitmap : LED_Matrix_Array ((panels*8)-1 downto 0);
     SIGNAL LED_Matrix_Update       : STD_LOGIC := '0';
-    SIGNAL LED_Matrix_Text_Text    : STD_LOGIC_VECTOR ((maxChars*8)-1 downto 0) := s"This could be your text";
-    SIGNAL LED_Matrix_Text_Length  : NATURAL          range 0 to maxChars := 28;
+    SIGNAL LED_Matrix_Text_Text    : STD_LOGIC_VECTOR ((MaxChars*8)-1 downto 0) := s"This could be your text" & s"xxxxxxxxx"; --all bits have to be declared, so I added 9 extra chars (MaxChars-Chars in Text)
+    SIGNAL LED_Matrix_Text_Length  : NATURAL          range 0 to MaxChars := 23;
     SIGNAL LED_Matrix_Set_Text     : STD_LOGIC;
     
     SIGNAL LED_Matrix_Text_Text_Matrix : LED_Matrix_Array ((panels*8)-1 downto 0);
@@ -102,7 +102,7 @@ Main
                 LED_Matrix_Set_Text     <= '0';
                 While(Button = '0')  --While button not pressed -> show text
                 {
-                    LED_Matrix_Set_Text     <= '1';
+                    LED_Matrix_Set_Text <= '1';
                 }
                 Wait(10ms);
                 While(Button = '1'){}

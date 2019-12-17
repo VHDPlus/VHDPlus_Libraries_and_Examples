@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Header>LED_Matrix_Example</Header>
-  <fileWatcherIgnore />
   <Items xsi:type="ProjectFileVHDP">
     <Header>LED_Matrix.vhdp</Header>
   </Items>
