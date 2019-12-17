@@ -1,90 +1,93 @@
-﻿/*
+/*
     Name: Frequency Divider Example
     Rev: 1.0
     Creator: Leon Beier
     Date: 05.08.2019
     Copyright (c) 2019 Protop Solutions UG. All right reserved.
-	
-	Permission is hereby granted, free of charge, to any person obtaining a copy of 
-	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
-	HDL Code without restriction, including without limitation the rights to use, 
-	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
-	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
-	subject to the following conditions:
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
 
     The above copyright notice and this permission notice shall be included in all
-	copies or substantial portions of the HDL Code.
+    copies or substantial portions of the HDL Code.
 
-    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
-	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
-	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
-	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
-	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
-*/
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+ */
 
 Main
 (
-	LED : BUFFER STD_LOGIC_VECTOR(2 downto 0) := (others => '0');
+    LED : OUT STD_LOGIC := '0';
 )
 {
-	
-	Process ()
-	{
-		Thread --12MHz
-		{
-			LED(0) <= NOT LED(0);
-			Wait(3000000); --250ms
-		}
-	}
-	
-	SIGNAL CLK_6MHz : STD_LOGIC;
-	
-	NewComponent Frequency_Divider 
-	(
-		Divider => 2,   --12MHz/2 = 6MHz
-		Impuls  => '0',
+    SIGNAL led_outputs : STD_LOGIC_VECTOR (2 downto 0) := (others => '0');
+    
+    LED <= led_outputs(2);
+    
+    Process ()
+    {
+        Thread --12MHz
+        {
+            led_outputs(0) <= NOT led_outputs(0);
+            Wait(3000000); --250ms
+        }
+    }
+    
+    SIGNAL CLK_6MHz : STD_LOGIC;
+    
+    NewComponent Frequency_Divider
+    (
+        Divider => 2,   --12MHz/2 = 6MHz
+        Impuls  => '0',
 
-		CLK_Out => CLK_6MHz,
-	);
-	
-	Process ()
-	{
-		If(rising_edge(CLK_6MHz))
-		{
-			Thread --6MHz
-			{
-				LED(1) <= NOT LED(1);
-				Wait(3000000); --500ms
-			}
-		}
-	}
-	
-	SIGNAL CLK_3MHz : STD_LOGIC;
-	
-	NewComponent Frequency_Divider 
-	(
-		Divider => 4,   --12MHz/4 = 3MHz
-		Impuls  => '1',
+        CLK_Out => CLK_6MHz,
+    );
+    
+    Process ()
+    {
+        If(rising_edge(CLK_6MHz))
+        {
+            Thread --6MHz
+            {
+                led_outputs(1) <= NOT led_outputs(1);
+                Wait(3000000); --500ms
+            }
+        }
+    }
+    
+    SIGNAL CLK_3MHz : STD_LOGIC;
+    
+    NewComponent Frequency_Divider
+    (
+        Divider => 4,   --12MHz/4 = 3MHz
+        Impuls  => '1',
 
-		CLK_Out => CLK_3MHz,
-	);
-	
-	Process ()
-	{
-		VARIABLE Counter : NATURAL range 0 to 3000000 := 0;
-		
-		If(CLK_3MHz = '1')
-		{
-			If(Counter = 3000000)
-			{
-				LED(2) <= NOT LED(2);
-				Counter := 0;
-			}
-			Else
-			{
-				Counter := Counter + 1;
-			}
-		}
-	}
+        CLK_Out => CLK_3MHz,
+    );
+    
+    Process ()
+    {
+        VARIABLE Counter : NATURAL range 0 to 3000000 := 0;
+        
+        If(CLK_3MHz = '1')
+        {
+            If(Counter = 3000000)
+            {
+                led_outputs(2) <= NOT led_outputs(2);
+                Counter := 0;
+            }
+            Else
+            {
+                Counter := Counter + 1;
+            }
+        }
+    }
 }

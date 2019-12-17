@@ -1,23 +1,17 @@
 <?xml version="1.0"?>
-<ArrayOfProjectEntry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>\LED_Matrix.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Hardware\Others\LED_Matrix\Example</ProjectPath>
-    <IsExpanded>false</IsExpanded>
-  </ProjectEntry>
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>LED_Matrix_Example.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Hardware\Others\LED_Matrix\Example</ProjectPath>
-    <IsExpanded>false</IsExpanded>
-  </ProjectEntry>
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>\LED_Matrix_Text.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Hardware\Others\LED_Matrix\Example</ProjectPath>
-    <IsExpanded>false</IsExpanded>
-  </ProjectEntry>
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>\SPI_Master.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Hardware\Others\LED_Matrix\Example</ProjectPath>
-    <IsExpanded>false</IsExpanded>
-  </ProjectEntry>
-</ArrayOfProjectEntry>
+<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Header>LED_Matrix_Example</Header>
+  <fileWatcherIgnore />
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>LED_Matrix.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>LED_Matrix_Example.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>LED_Matrix_Text.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>SPI_Master.vhdp</Header>
+  </Items>
+</ProjectRoot>

@@ -1,13 +1,11 @@
 <?xml version="1.0"?>
-<ArrayOfProjectEntry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>\Input_Debouncer.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Basics\Input_Debouncer\Example</ProjectPath>
-    <IsExpanded>true</IsExpanded>
-  </ProjectEntry>
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>Input_Debouncer_Example.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Basics\Input_Debouncer\Example</ProjectPath>
-    <IsExpanded>false</IsExpanded>
-  </ProjectEntry>
-</ArrayOfProjectEntry>
+<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Header>Input_Debouncer_Example</Header>
+  <fileWatcherIgnore />
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>Input_Debouncer.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>Input_Debouncer_Example.vhdp</Header>
+  </Items>
+</ProjectRoot>
