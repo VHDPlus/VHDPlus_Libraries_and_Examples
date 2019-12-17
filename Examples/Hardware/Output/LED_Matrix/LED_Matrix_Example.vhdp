@@ -35,11 +35,11 @@ Main
     CONSTANT TextScroll : BOOLEAN := false;
     
     CONSTANT Panels                : NATURAL := 4;
-    CONSTANT MaxChars              : NATURAL := 28;
+    CONSTANT MaxChars              : NATURAL := 23;
     SIGNAL LED_Matrix_Config       : STD_LOGIC := '1';
     SIGNAL LED_Matrix_Panel_Bitmap : LED_Matrix_Array ((panels*8)-1 downto 0);
     SIGNAL LED_Matrix_Update       : STD_LOGIC := '0';
-    SIGNAL LED_Matrix_Text_Text    : STD_LOGIC_VECTOR ((maxChars*8)-1 downto 0) := x"48696572206bf66e6e74652069687220746578742073746568656e20";
+    SIGNAL LED_Matrix_Text_Text    : STD_LOGIC_VECTOR ((maxChars*8)-1 downto 0) := s"This could be your text";
     SIGNAL LED_Matrix_Text_Length  : NATURAL          range 0 to maxChars := 28;
     SIGNAL LED_Matrix_Set_Text     : STD_LOGIC;
     
@@ -114,38 +114,38 @@ Main
         {
             --Define image to show
             LED_Matrix_Panel_Bitmap <=
-              ( "00000000",
-                "00011111",
-                "00100000",
-                "01000000",
-                "00100000",
-                "00011111",
-                "00000000",
-                "01111111",
-                "00001000",
-                "00001000",
-                "00001000",
-                "01111111",
-                "00000000",
-                "01111111",
-                "01000001",
-                "01000001",
-                "01000001",
-                "00111110",
-                "00000000",
-                "01111111",
-                "00001001",
-                "00001001",
-                "00001001",
-                "00000110",
-                "00010000",
-                "00110000",
-                "01100000",
-                "00110000",
-                "00011000",
-                "00001100",
-                "00000110",
-                "00000000");
+            ( "00000000",
+              "00011111",
+              "00100000",
+              "01000000",
+              "00100000",
+              "00011111",
+              "00000000",
+              "01111111",
+              "00001000",
+              "00001000",
+              "00001000",
+              "01111111",
+              "00000000",
+              "01111111",
+              "01000001",
+              "01000001",
+              "01000001",
+              "00111110",
+              "00000000",
+              "01111111",
+              "00001001",
+              "00001001",
+              "00001001",
+              "00000110",
+              "00010000",
+              "00110000",
+              "01100000",
+              "00110000",
+              "00011000",
+              "00001100",
+              "00000110",
+              "00000000");
             
             Thread
             {

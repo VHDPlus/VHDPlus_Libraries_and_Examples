@@ -99,7 +99,7 @@ Component LED_Matrix
     NewComponent SPI_Master
     (
         CLK_Frequency => CLK_Frequency,
-        SPI_CLK  => 8000000,
+        SPI_CLK  => 4000000,
         Bits     => Bits,
         CPol     => '0',
         CPha     => '0',
