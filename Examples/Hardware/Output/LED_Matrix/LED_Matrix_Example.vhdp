@@ -27,14 +27,16 @@ Main
 (
     Button          : IN STD_LOGIC := '0';
     
-    CS_O            : OUT STD_LOGIC := '1';
-    CLK_O           : OUT STD_LOGIC := '0';
+    CS_O            : BUFFER STD_LOGIC := '1';
+    CLK_O           : BUFFER STD_LOGIC := '0';
     DIN_O           : OUT STD_LOGIC := '0';
 )
 {
+    CONSTANT TextScroll : BOOLEAN := false;
+    
     CONSTANT Panels                : NATURAL := 4;
     CONSTANT MaxChars              : NATURAL := 28;
-    SIGNAL LED_Matrix_Config       : STD_LOGIC;
+    SIGNAL LED_Matrix_Config       : STD_LOGIC := '1';
     SIGNAL LED_Matrix_Panel_Bitmap : LED_Matrix_Array ((panels*8)-1 downto 0);
     SIGNAL LED_Matrix_Update       : STD_LOGIC := '0';
     SIGNAL LED_Matrix_Text_Text    : STD_LOGIC_VECTOR ((maxChars*8)-1 downto 0) := x"48696572206bf66e6e74652069687220746578742073746568656e20";
@@ -84,18 +86,16 @@ Main
     
     Process ()
     {
-        VARIABLE vhdpImageEn : BOOLEAN := false;
-        
-        If(Button = '0')   --second button pressed for scrolling
+        If(TextScroll)   --second button pressed for scrolling
         {
             LED_Matrix_Panel_Bitmap <= LED_Matrix_Text_Text_Matrix;
             LED_Matrix_Update       <= LED_Matrix_Text_Text_En;
             LED_Matrix_Set_Text     <= '1';
-            vhdpImageEn := false;
         }
         Else
         {
             LED_Matrix_Set_Text <= '0';
+            LED_Matrix_Update   <= Button;
 
             LED_Matrix_Panel_Bitmap <= ( "00000000",
                                          "00011111",
@@ -129,17 +129,6 @@ Main
                                          "00001100",
                                          "00000110",
                                          "00000000");
-            
-            Thread
-            {
-                LED_Matrix_Update <= '0';
-                Wait(1ms);
-                LED_Matrix_Update <= '1';
-                Wait(1ms);
-                LED_Matrix_Update <= '0';
-                vhdpImageEn := true;
-                While(vhdpImageEn){}
-            }
         }
     }
 }

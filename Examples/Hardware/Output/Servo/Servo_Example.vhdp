@@ -31,10 +31,7 @@ Main
     btn         : IN  STD_LOGIC;
 )
 {
-    AttributeDeclaration
-    {
-        SIGNAL Servo_Controller_Pos      : NATURAL   range 0 to 127;
-    }
+    SIGNAL Servo_Controller_Pos      : NATURAL   range 0 to 127;
     
     NewComponent Servo_Controller 
     (

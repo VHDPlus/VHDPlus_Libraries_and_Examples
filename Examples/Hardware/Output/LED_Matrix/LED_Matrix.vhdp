@@ -65,7 +65,7 @@ Component LED_Matrix
     Reset           : IN STD_LOGIC := '0';
     
     CS_O            : BUFFER STD_LOGIC := '1';
-    CLK_O           : OUT STD_LOGIC := '0';
+    CLK_O           : BUFFER STD_LOGIC := '0';
     DIN_O           : OUT STD_LOGIC := '0';
     
     Panel_Bitmap    : IN LED_Matrix_Array ((Panels*8)-1 downto 0) := (others => (others => '0'));
