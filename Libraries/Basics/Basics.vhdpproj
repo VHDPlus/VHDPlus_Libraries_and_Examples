@@ -1,8 +1,10 @@
 <?xml version="1.0"?>
 <ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Header>Basics</Header>
+  <fileWatcherIgnore />
   <Items xsi:type="ProjectFolder">
     <Header>Converter</Header>
+    <fileWatcherIgnore />
     <Items xsi:type="ProjectFileVHDP">
       <Header>BinaryToBcd.vhdp</Header>
     </Items>
@@ -15,6 +17,7 @@
   </Items>
   <Items xsi:type="ProjectFolder">
     <Header>ISSP</Header>
+    <fileWatcherIgnore />
     <Items xsi:type="ProjectFile">
       <Header>ISSP.qsys</Header>
     </Items>
@@ -24,6 +27,7 @@
   </Items>
   <Items xsi:type="ProjectFolder">
     <Header>Memory</Header>
+    <fileWatcherIgnore />
     <Items xsi:type="ProjectFileVHDP">
       <Header>Single-Port_RAM.vhdp</Header>
     </Items>
@@ -33,8 +37,10 @@
   </Items>
   <Items xsi:type="ProjectFolder">
     <Header>NIOSDuino</Header>
+    <fileWatcherIgnore />
     <Items xsi:type="ProjectFolder">
       <Header>inc</Header>
+      <fileWatcherIgnore />
       <Items xsi:type="ProjectFile">
         <Header>avalon_pwm_regs.h</Header>
       </Items>
@@ -57,11 +63,9 @@
   </Items>
   <Items xsi:type="ProjectFolder">
     <Header>PLL</Header>
+    <fileWatcherIgnore />
     <Items xsi:type="ProjectFile">
       <Header>PLL.qip</Header>
-    </Items>
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>PLL.qsys.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFile">
       <Header>PLL.vhd</Header>

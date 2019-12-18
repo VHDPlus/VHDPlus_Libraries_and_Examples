@@ -1,8 +1,10 @@
 <?xml version="1.0"?>
 <ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Header>Interface</Header>
+  <fileWatcherIgnore />
   <Items xsi:type="ProjectFolder">
     <Header>I2C</Header>
+    <fileWatcherIgnore />
     <Items xsi:type="ProjectFileVHDP">
       <Header>I2C.vhdp</Header>
     </Items>
@@ -12,6 +14,7 @@
   </Items>
   <Items xsi:type="ProjectFolder">
     <Header>I2S</Header>
+    <fileWatcherIgnore />
     <Items xsi:type="ProjectFileVHDP">
       <Header>I2S_IN.vhdp</Header>
     </Items>
@@ -21,6 +24,7 @@
   </Items>
   <Items xsi:type="ProjectFolder">
     <Header>UART</Header>
+    <fileWatcherIgnore />
     <Items xsi:type="ProjectFileVHDP">
       <Header>UART.vhdp</Header>
     </Items>
@@ -33,6 +37,7 @@
   </Items>
   <Items xsi:type="ProjectFolder">
     <Header>SPI</Header>
+    <fileWatcherIgnore />
     <Items xsi:type="ProjectFileVHDP">
       <Header>SPI_Master.vhdp</Header>
     </Items>

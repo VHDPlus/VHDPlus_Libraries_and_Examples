@@ -1,10 +1,13 @@
 <?xml version="1.0"?>
 <ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Header>Hardware</Header>
+  <fileWatcherIgnore />
   <Items xsi:type="ProjectFolder">
     <Header>Input</Header>
+    <fileWatcherIgnore />
     <Items xsi:type="ProjectFolder">
       <Header>MAX10_ADC</Header>
+      <fileWatcherIgnore />
       <Items xsi:type="ProjectFileVHDP">
         <Header>ADC_MAX10.vhdp</Header>
       </Items>
@@ -33,8 +36,10 @@
   </Items>
   <Items xsi:type="ProjectFolder">
     <Header>Output</Header>
+    <fileWatcherIgnore />
     <Items xsi:type="ProjectFolder">
       <Header>LED_Matrix</Header>
+      <fileWatcherIgnore />
       <Items xsi:type="ProjectFileVHDP">
         <Header>LED_Matrix.vhdp</Header>
       </Items>
@@ -44,11 +49,15 @@
     </Items>
     <Items xsi:type="ProjectFolder">
       <Header>Motor</Header>
+      <fileWatcherIgnore />
       <Items xsi:type="ProjectFileVHDP">
         <Header>Motor_Controller.vhdp</Header>
       </Items>
       <Items xsi:type="ProjectFileVHDP">
         <Header>Motor_Encoder.vhdp</Header>
+      </Items>
+	  <Items xsi:type="ProjectFileVHDP">
+        <Header>Motor_Route_Drive.vhdp</Header>
       </Items>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
