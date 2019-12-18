@@ -1,3 +1,70 @@
+/*
+    Name: Motor Route Drive
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 09.12.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important:   -Motor_Controller.vhdp, Motor_Encoder.vhdp and PWM.vhdp have to be added to your project
+                 -Two dc motors with encoders (and an ultrasonic sensor for full functionality) are necessary for this component
+    
+    Description: -This component is build to drive an exact route and surround objects on the route
+                 -The motors correct their speed in order to drive straight
+                 -You can set the distances and speeds of the route parts and start driving
+    
+    Insertion:   -Right click on the Motor folder and PWM.vhdp -> Add to active project
+                 -Add NewComponent of Motor_Route_Drive into your code
+                 -Check if the default values fit your application and correct them (more information about their function next to the declaration or hover with your cursor over the parameters in your code)
+                  -> Turn_Length, Back_Length, Clear_Area_Width and Check_Distance have to be set depending on your robot
+                 -Set Holes_In_Disk, Gear_Ratio and Wheel_Circumference to the values of your motor to get all distance values in mm.
+                 -Right click Motor_Route_Drive next to NewComponent and create the required signals
+    
+    Function:    1. Set the route lengths, speeds and the number of route steps (Set Route_Steps to the maximum amount of steps)
+                    Motor_Route_Drive_Route_L      <= (700,  200, -320, 500, 0, 0, 0, 0, 0, 0);  --700mm + 200mm forward, turn left and 500mm forward
+                    Motor_Route_Drive_Route_R      <= (700,  200,  320, 500, 0, 0, 0, 0, 0, 0);
+                    Motor_Route_Drive_Route_Speed  <= (255,  200,  255, 255, 0, 0, 0, 0, 0, 0);
+                    Motor_Route_Drive_Route_Length <= 4; --Drive all 4 steps
+                 2. Start driving
+                    Motor_Route_Drive_Route_Start  <= '1';
+                    While(Motor_Route_Drive_Route_Finished = '1') {}
+                    Motor_Route_Drive_Route_Start  <= '0';
+                 3. Wait until route finished
+                    While(Motor_Route_Drive_Route_Finished = '0') {}
+    Example:     Route_Example
+    
+    Example settings:
+        "6V 210RPM Encoder Motor with Wheel":
+        Holes_In_Disk = 11
+        Gear_Ratio = 34
+        Wheel_Circumference = 204
+        Correction_Step = 1
+        Correction_Cycles = 1
+        
+        "12V Metal Gear Tank Encoder Motor":
+        Holes_In_Disk = 20
+        Gear_Ratio = 90
+        Wheel_Circumference = 100
+        Correction_Step = 1
+        Correction_Cycles = 20
+ */
+
 Component Motor_Route_Drive
 (
     Package Route_Array_Package
@@ -54,12 +121,13 @@ Component Motor_Route_Drive
     Distance_R      : IN  NATURAL := 0;         --Right Distance in cm. Helps with surrounding an object (if set to -1, the robot turns to check if the way is clear)
     
     ----------------Route----------------
-    Route_Start     : IN  STD_LOGIC := '0';
+    Route_Start     : IN  STD_LOGIC := '0';     --Change from '0' to '1' start the route
+    Route_Finished  : OUT STD_LOGIC := '0';     --'1' if finished route
     Route_L         : IN  Route_Array(0 to Route_Steps-1) := (0 =>  100, 1 => -200, 2 =>  300, others => 0); --Lengths that should be driven with the left wheel
     Route_R         : IN  Route_Array(0 to Route_Steps-1) := (0 => -100, 1 =>  200, 2 => -300, others => 0); --Lengths that should be driven with the right wheel
     Route_Speed     : IN  Route_Array(0 to Route_Steps-1) := (0 =>  100, 1 =>  200, 2 =>  255, others => 0); --Speed for the individual steps
     Route_Length    : IN  NATURAL range 0 to Route_Steps := 0; --Number of route steps that should be driven
-    Route_Error     : BUFFER STD_LOGIC := '0';
+    Route_Error     : BUFFER STD_LOGIC := '0';  --'1' if there was an error while driving the route
 )
 {
     CONSTANT PWM_Frequency   : NATURAL := 100000;
@@ -138,6 +206,7 @@ Component Motor_Route_Drive
         {
             While(Route_Start = '0') {} --wait while Route_Start '0'
             Route_Error <= '0';
+            Route_Finished <= '0';
             StepFor(VARIABLE i : INTEGER := 0; i < Route_Length AND Route_Error = '0'; i := i + 1)
             {
                 --set route part
@@ -296,7 +365,7 @@ Component Motor_Route_Drive
                     }
                 }
             }
-            
+            Route_Finished <= '1';
             While(Route_Start = '1') {} --wait while Start is '1'
         }
     }

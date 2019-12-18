@@ -285,4 +285,22 @@ Class
             }
         }
     }
+	
+	--Converts string to one STD_LOGIC_VECTOR (e.g. for led matrix or LCD display)
+	StepFunction stringToVector
+    (
+        iString : String_Type;
+        oVector : STD_LOGIC_VECTOR;
+    )
+    {
+        iString.Write <= '0';
+        StepFor(VARIABLE StV_i : INTEGER := 0; StV_i < iString.Length; StV_i := StV_i + 1)
+        {
+            iString.Address <= StV_i;
+            Step
+            {
+                oVector((iString.Length-StV_i)*8-1 downto (iString.Length-StV_i-1)*8) <= iString.Data_OUT;
+            }
+        }
+    }
 }

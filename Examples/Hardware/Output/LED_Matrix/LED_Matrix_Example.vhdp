@@ -36,6 +36,7 @@ Main
     
     CONSTANT Panels                : NATURAL := 4;
     CONSTANT MaxChars              : NATURAL := 32;
+    
     SIGNAL LED_Matrix_Config       : STD_LOGIC := '1';
     SIGNAL LED_Matrix_Panel_Bitmap : LED_Matrix_Array ((panels*8)-1 downto 0);
     SIGNAL LED_Matrix_Update       : STD_LOGIC := '0';
@@ -97,7 +98,7 @@ Main
                 Wait(10ms);
                 LED_Matrix_Config <= '1'; --Send settings
                 Step{ LED_Matrix_Config <= '0'; }
-                Wait(10ms);
+                Wait(10ms);               --Waiting maybe reduce problems
                 
                 LED_Matrix_Set_Text     <= '0';
                 While(Button = '0')  --While button not pressed -> show text
