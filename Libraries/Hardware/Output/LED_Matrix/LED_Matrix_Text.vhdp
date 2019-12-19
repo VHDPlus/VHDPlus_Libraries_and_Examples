@@ -140,7 +140,7 @@ Component LED_Matrix_Text
                     Else
                     {
                         --current_char := Text (((Text_Length-char_count)*8)-1 downto ((Text_Length-1-char_count)*8));
-                        current_char := Text (char_count*8-1 downto (char_count-1)*8);
+                        current_char := Text ((MaxChars-char_count)*8-1 downto ((MaxChars-char_count)-1)*8);
                         
                         Case(current_char)
                         {
