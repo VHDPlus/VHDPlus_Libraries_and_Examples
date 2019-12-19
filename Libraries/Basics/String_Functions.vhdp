@@ -285,12 +285,11 @@ Class
             }
         }
     }
-	
-	--Converts string to one STD_LOGIC_VECTOR (e.g. for led matrix or LCD display)
-	StepFunction stringToVector
+    
+    --Converts string to one STD_LOGIC_VECTOR (e.g. for led matrix or LCD display)
+    StepFunction stringToVector
     (
         iString       : String_Type;
-        iVectorLength : NATURAL;  --Maximum length of vector (in bytes)
         oVector       : STD_LOGIC_VECTOR;
     )
     {
@@ -300,7 +299,7 @@ Class
             iString.Address <= StV_i;
             Step
             {
-                oVector((iVectorLength-StV_i)*8-1 downto (iVectorLength-StV_i-1)*8) <= iString.Data_OUT;
+                oVector(((oVector'LENGTH/8)-StV_i)*8-1 downto ((oVector'LENGTH/8)-StV_i-1)*8) <= iString.Data_OUT;
             }
         }
     }
