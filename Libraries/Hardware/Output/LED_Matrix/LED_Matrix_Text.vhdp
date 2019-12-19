@@ -4,650 +4,650 @@
     Creator: Leon Beier
     Date: 07.06.2019
     Copyright (c) 2019 Protop Solutions UG. All right reserved.
-	
-	Permission is hereby granted, free of charge, to any person obtaining a copy of 
-	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
-	HDL Code without restriction, including without limitation the rights to use, 
-	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
-	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
-	subject to the following conditions:
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of 
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+    HDL Code without restriction, including without limitation the rights to use, 
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+    subject to the following conditions:
 
     The above copyright notice and this permission notice shall be included in all
-	copies or substantial portions of the HDL Code.
+    copies or substantial portions of the HDL Code.
 
     THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
-	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
-	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
-	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
-	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
-	
-	Important: -LED_Matrix.vhdp and SPI_V2.vhdp has to be added to your project too
-	           -A LED_Matrix instance has to be added next to the LED_Matrix_Text instance and be connected with Text_Matrix->Panel_Bitmap and Text_En->Update
-			   -If you set Scroll to '1', you have to keep Set_Text at '1' to keep scrolling
-	
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important: -LED_Matrix.vhdp and SPI_V2.vhdp has to be added to your project too
+               -A LED_Matrix instance has to be added next to the LED_Matrix_Text instance and be connected with Text_Matrix->Panel_Bitmap and Text_En->Update
+               -If you set Scroll to '1', you have to keep Set_Text at '1' to keep scrolling
+    
     Insertion: -Right click on LED_Matrix_Text.vhdp, LED_Matrix.vhdp and SPI_V2.vhdp -> Add to project
-			   -Add NewComponent of LED_Matrix_Text and LED_Matrix in your code
-			   -Follow the Instruction of LED_Matrix
-			   -Remove CLK_Frequency if you use a VHDP Core and no PLL
-			   -Set your number of Panels, the maximum of chars to display and ScrollSpeed
-			   -Connect Text_Matrix and Text_En with Panel_Bitmap and Update
-			   -Right click the name LED_Matrix_Text next to NewComponent and create the needed signals (Panels and MaxChars in the declarations have to be replaced with the Panel and MaxChar values or you have to use a constant)
-	
+               -Add NewComponent of LED_Matrix_Text and LED_Matrix in your code
+               -Follow the Instruction of LED_Matrix
+               -Remove CLK_Frequency if you use a VHDP Core and no PLL
+               -Set your number of Panels, the maximum of chars to display and ScrollSpeed
+               -Connect Text_Matrix and Text_En with Panel_Bitmap and Update
+               -Right click the name LED_Matrix_Text next to NewComponent and create the needed signals (Panels and MaxChars in the declarations have to be replaced with the Panel and MaxChar values or you have to use a constant)
+    
     Function:  1. Set the text to display (e.g. Text(31 downto 0) <= x"54657374")
-			   2. Set the length of the text (e.g. Text_Length <= 4)
-			   3. Set Scroll to '1' if the text is too long for the matrix
-			   4. Change Set_Text from '0' to '1' (e.g. call Step{ Set_Text <= '0' } before)
-	
+               2. Set the length of the text (e.g. Text_Length <= 4)
+               3. Set Scroll to '1' if the text is too long for the matrix
+               4. Change Set_Text from '0' to '1' (e.g. call Step{ Set_Text <= '0' } before)
+    
     Example:   LED_Matrix_Example
 */
 
 Component LED_Matrix_Text
 (
-	Generic
-	(
-		CLK_Frequency	: NATURAL := 12000000;
-		Panels 		: NATURAL := 4;
-		MaxChars	: NATURAL := 10;
-		ScrollSpeed : NATURAL := 5;		--Divider of 1s -> 10 = 100ms
-	);
-	
-	Reset			: IN  STD_LOGIC := '0';
-	
-	Text			: IN  STD_LOGIC_VECTOR ((MaxChars*8)-1 downto 0) := (others => '0');
-	Text_Length		: IN  NATURAL range 0 to MaxChars := 4;
-	Set_Text		: IN  STD_LOGIC := '0';
-	Scroll			: IN  STD_LOGIC := '1';
-	
-	Text_Matrix		: OUT LED_Matrix_Array ((Panels*8)-1 downto 0) := (others => (others => '0'));
-	Text_En			: OUT STD_LOGIC := '0';
+    Generic
+    (
+        CLK_Frequency   : NATURAL := 12000000;
+        Panels      : NATURAL := 4;
+        MaxChars    : NATURAL := 10;
+        ScrollSpeed : NATURAL := 5;     --Divider of 1s -> 10 = 100ms
+    );
+    
+    Reset           : IN  STD_LOGIC := '0';
+    
+    Text            : IN  STD_LOGIC_VECTOR ((MaxChars*8)-1 downto 0) := (others => '0');
+    Text_Length     : IN  NATURAL range 0 to MaxChars := 4;
+    Set_Text        : IN  STD_LOGIC := '0';
+    Scroll          : IN  STD_LOGIC := '1';
+    
+    Text_Matrix     : OUT LED_Matrix_Array ((Panels*8)-1 downto 0) := (others => (others => '0'));
+    Text_En         : OUT STD_LOGIC := '0';
 )
 {
-	Process Text_Converter 
-	(
-		VARIABLE current_char	: STD_LOGIC_VECTOR (7 downto 0) := x"00";
-		VARIABLE matrix_char	: LED_Matrix_Array (4 downto 0);
-		VARIABLE set_text_prev  : STD_LOGIC := '0';
-		VARIABLE convert_en		: STD_LOGIC := '0';
-		VARIABLE char_count 	: NATURAL range 0 to MaxChars-1 := 0;
-		VARIABLE row_count		: NATURAL range 0 to Panels*8 := 0;
-		
-		VARIABLE scroll_wait	: NATURAL range 0 to CLK_Frequency/ScrollSpeed := 0;
-		VARIABLE scroll_char	: NATURAL range 0 to MaxChars-1 := 0;
-		VARIABLE scroll_row		: NATURAL range 0 to 5;
-	)
-	{
-		If(Reset = '1')
-		{
-			current_char := x"00";
-			convert_en   := '0';
-			scroll_row   := 0;
-			scroll_char  := 0;
-		}
-		Else
-		{
-			If(set_text_prev = '0' AND Set_Text = '1')
-			{
-				current_char := x"FF";
-				convert_en   := '1';
-				scroll_row   := 4;
-				scroll_char  := Text_Length-1;
-				Text_Matrix  <= (others => (others => '0'));
-			}
-			set_text_prev := Set_Text;
-			
-			If(Set_Text = '0' AND Scroll = '1')
-			{
-				convert_en := '0';
-			}
-			
-			If(convert_en = '0')
-			{
-				Text_En    <= '0';
-			}
-			Else
-			{
-				If(scroll_wait > 0)
-				{
-					scroll_wait  := scroll_wait - 1;
-					Text_En      <= '0';
-					current_char := x"FF";
-				}
-				Else
-				{
-					If(current_char = x"FF")
-					{
-						If(scroll_row < 5)
-						{
-							scroll_row := scroll_row + 1;
-						}
-						Else
-						{
-							scroll_row := 0;
-							If(scroll_char < Text_Length-1)
-							{
-								scroll_char := scroll_char + 1;
-							}
-							Else
-							{
-								scroll_char := 0;
-							}
-						}
-						row_count    := 0;
-						char_count   := scroll_char;
-						current_char := x"00";
-					}
-					Else
-					{
-						--current_char := Text (((Text_Length-char_count)*8)-1 downto ((Text_Length-1-char_count)*8));
-						current_char := Text ((Text_Length-char_count)*8-1 downto ((Text_Length-char_count)-1)*8);
-						
-						Case(current_char)
-						{
-							When(x"20")	--space
-							{
-								matrix_char := ( "00000000",
-												 "00000000",
-												 "00000000",
-												 "00000000",
-												 "00000000" );
-							}
-							When(x"21") --!
-							{
-								matrix_char := ( "00000000",
-												 "00000000",
-												 "01011111",
-												 "00000000",
-												 "00000000" );
-							}
-							When(x"22") --"
-							{
-								matrix_char := ( "00000100",
-												 "00000011",
-												 "00000100",
-												 "00000011",
-												 "00000000" );
-							}
-							When(x"25") --%
-							{
-								matrix_char := ( "00100011",
-												 "00010011",
-												 "00001000",
-												 "01100100",
-												 "01100010" );
-							}
-							When(x"28") --(
-							{
-								matrix_char := ( "00000000",
-												 "00000000",
-												 "00111110",
-												 "01000001",
-												 "00000000" );
-							}
-							When(x"29") --)
-							{
-								matrix_char := ( "00000000",
-												 "01000001",
-												 "00111110",
-												 "00000000",
-												 "00000000" );
-							}
-							When(x"2B") --+
-							{
-								matrix_char := ( "00001000",
-												 "00001000",
-												 "00111110",
-												 "00001000",
-												 "00001000" );
-							}
-							When(x"2C") -- ,
-							{
-								matrix_char := ( "00000000",
-												 "01000000",
-												 "00110000",
-												 "00000000",
-												 "00000000" );
-							}
-							When(x"2D") -- -
-							{
-								matrix_char := ( "00001000",
-												 "00001000",
-												 "00001000",
-												 "00001000",
-												 "00001000" );
-							}
-							When(x"2E") --.
-							{
-								matrix_char := ( "00000000",
-												 "00000000",
-												 "01000000",
-												 "00000000",
-												 "00000000" );
-							}
-							When(x"2F") --/
-							{
-								matrix_char := ( "00000010",
-												 "00000100",
-												 "00001000",
-												 "00010000",
-												 "00100000" );
-							}
-							When(x"30") --0
-							{
-								matrix_char := ( "00111110",
-												 "01000101",
-												 "01001001",
-												 "01010001",
-												 "00111110" );
-							}
-							When(x"31") --1
-							{
-								matrix_char := ( "00000000",
-												 "01000010",
-												 "01111111",
-												 "01000000",
-												 "00000000" );
-							}
-							When(x"32") --2
-							{
-								matrix_char := ( "01000010",
-												 "01100001",
-												 "01010001",
-												 "01001001",
-												 "01000110" );
-							}
-							When(x"33") --3
-							{
-								matrix_char := ( "00100010",
-												 "01000001",
-												 "01001001",
-												 "01001001",
-												 "00110110" );
-							}
-							When(x"34") --4
-							{
-								matrix_char := ( "00011000",
-												 "00010100",
-												 "00010010",
-												 "01111111",
-												 "00010000" );
-							}
-							When(x"35") --5
-							{
-								matrix_char := ( "01001111",
-												 "01001001",
-												 "01001001",
-												 "01001001",
-												 "00110001" );
-							}
-							When(x"36") --6
-							{
-								matrix_char := ( "00111110",
-												 "01001001",
-												 "01001001",
-												 "01001001",
-												 "00110010" );
-							}
-							When(x"37") --7
-							{
-								matrix_char := ( "00000001",
-												 "00000001",
-												 "01111001",
-												 "00000101",
-												 "00000011" );
-							}
-							When(x"38") --8
-							{
-								matrix_char := ( "00110110",
-												 "01001001",
-												 "01001001",
-												 "01001001",
-												 "00110110" );
-							}
-							When(x"39") --9
-							{
-								matrix_char := ( "00100110",
-												 "01001001",
-												 "01001001",
-												 "01001001",
-												 "00111110" );
-							}
-							When(x"3A") --:
-							{
-								matrix_char := ( "00000000",
-												 "00000000",
-												 "00100100",
-												 "00000000",
-												 "00000000" );
-							}
-							When(x"3C") --<
-							{
-								matrix_char := ( "00000000",
-												 "00001000",
-												 "00010100",
-												 "00100010",
-												 "01000001" );
-							}
-							When(x"3D") --=
-							{
-								matrix_char := ( "00100100",
-												 "00100100",
-												 "00100100",
-												 "00100100",
-												 "00100100" );
-							}
-							When(x"3E") -->
-							{
-								matrix_char := ( "01000001",
-												 "00100010",
-												 "00010100",
-												 "00001000",
-												 "00000000" );
-							}
-							When(x"3F") --?
-							{
-								matrix_char := ( "00000010",
-												 "00000001",
-												 "01010001",
-												 "00001001",
-												 "00000110" );
-							}
-							When(x"41" | x"61") --A
-							{
-								matrix_char := ( "01111100",
-												 "00001010",
-												 "00001001",
-												 "00001010",
-												 "01111100" );
-							}
-							When(x"42"| x"62") --B
-							{
-								matrix_char := ( "01111111",
-												 "01001001",
-												 "01001001",
-												 "01001001",
-												 "00110110" );
-							}
-							When(x"43"| x"63") --C
-							{
-								matrix_char := ( "00111110",
-												 "01000001",
-												 "01000001",
-												 "01000001",
-												 "00100010" );
-							}
-							When(x"44"| x"64") --D
-							{
-								matrix_char := ( "01111111",
-												 "01000001",
-												 "01000001",
-												 "01000001",
-												 "00111110" );
-							}
-							When(x"45"| x"65") --E
-							{
-								matrix_char := ( "01111111",
-												 "01001001",
-												 "01001001",
-												 "01001001",
-												 "01000001" );
-							}
-							When(x"46"| x"66") --F
-							{
-								matrix_char := ( "01111111",
-												 "00001001",
-												 "00001001",
-												 "00001001",
-												 "00000001" );
-							}
-							When(x"47"| x"67") --G
-							{
-								matrix_char := ( "00111110",
-												 "01000001",
-												 "01001001",
-												 "01001001",
-												 "00111010" );
-							}
-							When(x"48"| x"68") --H
-							{
-								matrix_char := ( "01111111",
-												 "00001000",
-												 "00001000",
-												 "00001000",
-												 "01111111" );
-							}
-							When(x"49"| x"69") --I
-							{
-								matrix_char := ( "00000000",
-												 "01000001",
-												 "01111111",
-												 "01000001",
-												 "00000000" );
-							}
-							When(x"4A"| x"6A") --J
-							{
-								matrix_char := ( "00100000",
-												 "01000001",
-												 "01000001",
-												 "01000001",
-												 "00111111" );
-							}
-							When(x"4B"| x"6B") --K
-							{
-								matrix_char := ( "01111111",
-												 "00001000",
-												 "00001000",
-												 "00010100",
-												 "01100011" );
-							}
-							When(x"4C"| x"6C") --L
-							{
-								matrix_char := ( "01111111",
-												 "01000000",
-												 "01000000",
-												 "01000000",
-												 "01000000" );
-							}
-							When(x"4D"| x"6D") --M
-							{
-								matrix_char := ( "01111111",
-												 "00000010",
-												 "00000100",
-												 "00000010",
-												 "01111111" );
-							}
-							When(x"4E"| x"6E") --N
-							{
-								matrix_char := ( "01111111",
-												 "00000100",
-												 "00001000",
-												 "00010000",
-												 "01111111" );
-							}
-							When(x"4F"| x"6F") --O
-							{
-								matrix_char := ( "00111110",
-												 "01000001",
-												 "01000001",
-												 "01000001",
-												 "00111110" );
-							}
-							When(x"50"| x"70") --P
-							{
-								matrix_char := ( "01111111",
-												 "00001001",
-												 "00001001",
-												 "00001001",
-												 "00000110" );
-							}
-							When(x"51"| x"71") --Q
-							{
-								matrix_char := ( "00111110",
-												 "01000001",
-												 "01010001",
-												 "01100001",
-												 "01111110" );
-							}
-							When(x"52"| x"72")	--R
-							{
-								matrix_char := ( "01111111",
-												 "00001001",
-												 "00001001",
-												 "00001001",
-												 "01110110" );
-							}
-							When(x"53"| x"73") --S	
-							{
-								matrix_char := ( "00100110",
-												 "01001001",
-												 "01001001",
-												 "01001001",
-												 "00110010" );
-							}
-							When(x"54"| x"74")	--T
-							{
-								matrix_char := ( "00000001",
-												 "00000001",
-												 "01111111",
-												 "00000001",
-												 "00000001" );
-							}
-							When(x"55"| x"75")	--U
-							{
-								matrix_char := ( "00111111",
-												 "01000000",
-												 "01000000",
-												 "01000000",
-												 "00111111" );
-							}
-							When(x"56"| x"76")	--V
-							{
-								matrix_char := ( "00011111",
-												 "00100000",
-												 "01000000",
-												 "00100000",
-												 "00011111" );
-							}
-							When(x"57"| x"77")	--W
-							{
-								matrix_char := ( "01111111",
-												 "00100000",
-												 "00010000",
-												 "00100000",
-												 "01111111" );
-							}
-							When(x"58"| x"78")	--X
-							{
-								matrix_char := ( "01100011",
-												 "00010100",
-												 "00001000",
-												 "00010100",
-												 "01100011" );
-							}
-							When(x"59"| x"79")	--Y
-							{
-								matrix_char := ( "00000011",
-												 "00000100",
-												 "01111000",
-												 "00000100",
-												 "00000011" );
-							}
-							When(x"5A"| x"7A")	--Z
-							{
-								matrix_char := ( "01100001",
-												 "01010001",
-												 "01001001",
-												 "01000101",
-												 "01000011" );
-							}
-							When(x"5F")	--_
-							{
-								matrix_char := ( "01000000",
-												 "01000000",
-												 "01000000",
-												 "01000000",
-												 "01000000" );
-							}
-							When(x"E4" | x"C4") --ä
-							{
-								matrix_char := ( "01111101",
-												 "00001010",
-												 "00001001",
-												 "00001010",
-												 "01111101" );
-							}
-							When(x"F6" | x"D6")	--ö
-							{
-								matrix_char := ( "00111101",
-												 "01000010",
-												 "01000010",
-												 "01000010",
-												 "00111101" );
-							}
-							When(x"FC" | x"DC")	--ü
-							{
-								matrix_char := ( "00111101",
-												 "01000000",
-												 "01000000",
-												 "01000000",
-												 "00111101" );
-							}
-							When(others)
-							{
-								matrix_char := ( "00000000",
-												 "00000000",
-												 "00000000",
-												 "00000000",
-												 "00000000" );
-							}
-						}
-						
-						For(i IN 0 to 4)
-						{
-							If((i >= scroll_row OR scroll_char /= char_count OR (Scroll = '0' AND row_count > 1)) AND row_count < (Panels*8))
-							{
-								Text_Matrix ((Panels*8)-1-row_count) <= matrix_char (4-i);
-								row_count := row_count + 1;
-							}
-						}
-						
-						If(row_count < (Panels*8))
-						{
-							Text_Matrix ((Panels*8)-1-row_count) <= "00000000";
-							row_count := row_count + 1;
+    Process Text_Converter 
+    (
+        VARIABLE current_char   : STD_LOGIC_VECTOR (7 downto 0) := x"00";
+        VARIABLE matrix_char    : LED_Matrix_Array (4 downto 0);
+        VARIABLE set_text_prev  : STD_LOGIC := '0';
+        VARIABLE convert_en     : STD_LOGIC := '0';
+        VARIABLE char_count     : NATURAL range 0 to MaxChars-1 := 0;
+        VARIABLE row_count      : NATURAL range 0 to Panels*8 := 0;
+        
+        VARIABLE scroll_wait    : NATURAL range 0 to CLK_Frequency/ScrollSpeed := 0;
+        VARIABLE scroll_char    : NATURAL range 0 to MaxChars-1 := 0;
+        VARIABLE scroll_row     : NATURAL range 0 to 5;
+    )
+    {
+        If(Reset = '1')
+        {
+            current_char := x"00";
+            convert_en   := '0';
+            scroll_row   := 0;
+            scroll_char  := 0;
+        }
+        Else
+        {
+            If(set_text_prev = '0' AND Set_Text = '1')
+            {
+                current_char := x"FF";
+                convert_en   := '1';
+                scroll_row   := 4;
+                scroll_char  := Text_Length-1;
+                Text_Matrix  <= (others => (others => '0'));
+            }
+            set_text_prev := Set_Text;
+            
+            If(Set_Text = '0' AND Scroll = '1')
+            {
+                convert_en := '0';
+            }
+            
+            If(convert_en = '0')
+            {
+                Text_En    <= '0';
+            }
+            Else
+            {
+                If(scroll_wait > 0)
+                {
+                    scroll_wait  := scroll_wait - 1;
+                    Text_En      <= '0';
+                    current_char := x"FF";
+                }
+                Else
+                {
+                    If(current_char = x"FF")
+                    {
+                        If(scroll_row < 5)
+                        {
+                            scroll_row := scroll_row + 1;
+                        }
+                        Else
+                        {
+                            scroll_row := 0;
+                            If(scroll_char < Text_Length-1)
+                            {
+                                scroll_char := scroll_char + 1;
+                            }
+                            Else
+                            {
+                                scroll_char := 0;
+                            }
+                        }
+                        row_count    := 0;
+                        char_count   := scroll_char;
+                        current_char := x"00";
+                    }
+                    Else
+                    {
+                        --current_char := Text (((Text_Length-char_count)*8)-1 downto ((Text_Length-1-char_count)*8));
+                        current_char := Text (char_count*8-1 downto (char_count-1)*8);
+                        
+                        Case(current_char)
+                        {
+                            When(x"20") --space
+                            {
+                                matrix_char := ( "00000000",
+                                                 "00000000",
+                                                 "00000000",
+                                                 "00000000",
+                                                 "00000000" );
+                            }
+                            When(x"21") --!
+                            {
+                                matrix_char := ( "00000000",
+                                                 "00000000",
+                                                 "01011111",
+                                                 "00000000",
+                                                 "00000000" );
+                            }
+                            When(x"22") --"
+                            {
+                                matrix_char := ( "00000100",
+                                                 "00000011",
+                                                 "00000100",
+                                                 "00000011",
+                                                 "00000000" );
+                            }
+                            When(x"25") --%
+                            {
+                                matrix_char := ( "00100011",
+                                                 "00010011",
+                                                 "00001000",
+                                                 "01100100",
+                                                 "01100010" );
+                            }
+                            When(x"28") --(
+                            {
+                                matrix_char := ( "00000000",
+                                                 "00000000",
+                                                 "00111110",
+                                                 "01000001",
+                                                 "00000000" );
+                            }
+                            When(x"29") --)
+                            {
+                                matrix_char := ( "00000000",
+                                                 "01000001",
+                                                 "00111110",
+                                                 "00000000",
+                                                 "00000000" );
+                            }
+                            When(x"2B") --+
+                            {
+                                matrix_char := ( "00001000",
+                                                 "00001000",
+                                                 "00111110",
+                                                 "00001000",
+                                                 "00001000" );
+                            }
+                            When(x"2C") -- ,
+                            {
+                                matrix_char := ( "00000000",
+                                                 "01000000",
+                                                 "00110000",
+                                                 "00000000",
+                                                 "00000000" );
+                            }
+                            When(x"2D") -- -
+                            {
+                                matrix_char := ( "00001000",
+                                                 "00001000",
+                                                 "00001000",
+                                                 "00001000",
+                                                 "00001000" );
+                            }
+                            When(x"2E") --.
+                            {
+                                matrix_char := ( "00000000",
+                                                 "00000000",
+                                                 "01000000",
+                                                 "00000000",
+                                                 "00000000" );
+                            }
+                            When(x"2F") --/
+                            {
+                                matrix_char := ( "00000010",
+                                                 "00000100",
+                                                 "00001000",
+                                                 "00010000",
+                                                 "00100000" );
+                            }
+                            When(x"30") --0
+                            {
+                                matrix_char := ( "00111110",
+                                                 "01000101",
+                                                 "01001001",
+                                                 "01010001",
+                                                 "00111110" );
+                            }
+                            When(x"31") --1
+                            {
+                                matrix_char := ( "00000000",
+                                                 "01000010",
+                                                 "01111111",
+                                                 "01000000",
+                                                 "00000000" );
+                            }
+                            When(x"32") --2
+                            {
+                                matrix_char := ( "01000010",
+                                                 "01100001",
+                                                 "01010001",
+                                                 "01001001",
+                                                 "01000110" );
+                            }
+                            When(x"33") --3
+                            {
+                                matrix_char := ( "00100010",
+                                                 "01000001",
+                                                 "01001001",
+                                                 "01001001",
+                                                 "00110110" );
+                            }
+                            When(x"34") --4
+                            {
+                                matrix_char := ( "00011000",
+                                                 "00010100",
+                                                 "00010010",
+                                                 "01111111",
+                                                 "00010000" );
+                            }
+                            When(x"35") --5
+                            {
+                                matrix_char := ( "01001111",
+                                                 "01001001",
+                                                 "01001001",
+                                                 "01001001",
+                                                 "00110001" );
+                            }
+                            When(x"36") --6
+                            {
+                                matrix_char := ( "00111110",
+                                                 "01001001",
+                                                 "01001001",
+                                                 "01001001",
+                                                 "00110010" );
+                            }
+                            When(x"37") --7
+                            {
+                                matrix_char := ( "00000001",
+                                                 "00000001",
+                                                 "01111001",
+                                                 "00000101",
+                                                 "00000011" );
+                            }
+                            When(x"38") --8
+                            {
+                                matrix_char := ( "00110110",
+                                                 "01001001",
+                                                 "01001001",
+                                                 "01001001",
+                                                 "00110110" );
+                            }
+                            When(x"39") --9
+                            {
+                                matrix_char := ( "00100110",
+                                                 "01001001",
+                                                 "01001001",
+                                                 "01001001",
+                                                 "00111110" );
+                            }
+                            When(x"3A") --:
+                            {
+                                matrix_char := ( "00000000",
+                                                 "00000000",
+                                                 "00100100",
+                                                 "00000000",
+                                                 "00000000" );
+                            }
+                            When(x"3C") --<
+                            {
+                                matrix_char := ( "00000000",
+                                                 "00001000",
+                                                 "00010100",
+                                                 "00100010",
+                                                 "01000001" );
+                            }
+                            When(x"3D") --=
+                            {
+                                matrix_char := ( "00100100",
+                                                 "00100100",
+                                                 "00100100",
+                                                 "00100100",
+                                                 "00100100" );
+                            }
+                            When(x"3E") -->
+                            {
+                                matrix_char := ( "01000001",
+                                                 "00100010",
+                                                 "00010100",
+                                                 "00001000",
+                                                 "00000000" );
+                            }
+                            When(x"3F") --?
+                            {
+                                matrix_char := ( "00000010",
+                                                 "00000001",
+                                                 "01010001",
+                                                 "00001001",
+                                                 "00000110" );
+                            }
+                            When(x"41" | x"61") --A
+                            {
+                                matrix_char := ( "01111100",
+                                                 "00001010",
+                                                 "00001001",
+                                                 "00001010",
+                                                 "01111100" );
+                            }
+                            When(x"42"| x"62") --B
+                            {
+                                matrix_char := ( "01111111",
+                                                 "01001001",
+                                                 "01001001",
+                                                 "01001001",
+                                                 "00110110" );
+                            }
+                            When(x"43"| x"63") --C
+                            {
+                                matrix_char := ( "00111110",
+                                                 "01000001",
+                                                 "01000001",
+                                                 "01000001",
+                                                 "00100010" );
+                            }
+                            When(x"44"| x"64") --D
+                            {
+                                matrix_char := ( "01111111",
+                                                 "01000001",
+                                                 "01000001",
+                                                 "01000001",
+                                                 "00111110" );
+                            }
+                            When(x"45"| x"65") --E
+                            {
+                                matrix_char := ( "01111111",
+                                                 "01001001",
+                                                 "01001001",
+                                                 "01001001",
+                                                 "01000001" );
+                            }
+                            When(x"46"| x"66") --F
+                            {
+                                matrix_char := ( "01111111",
+                                                 "00001001",
+                                                 "00001001",
+                                                 "00001001",
+                                                 "00000001" );
+                            }
+                            When(x"47"| x"67") --G
+                            {
+                                matrix_char := ( "00111110",
+                                                 "01000001",
+                                                 "01001001",
+                                                 "01001001",
+                                                 "00111010" );
+                            }
+                            When(x"48"| x"68") --H
+                            {
+                                matrix_char := ( "01111111",
+                                                 "00001000",
+                                                 "00001000",
+                                                 "00001000",
+                                                 "01111111" );
+                            }
+                            When(x"49"| x"69") --I
+                            {
+                                matrix_char := ( "00000000",
+                                                 "01000001",
+                                                 "01111111",
+                                                 "01000001",
+                                                 "00000000" );
+                            }
+                            When(x"4A"| x"6A") --J
+                            {
+                                matrix_char := ( "00100000",
+                                                 "01000001",
+                                                 "01000001",
+                                                 "01000001",
+                                                 "00111111" );
+                            }
+                            When(x"4B"| x"6B") --K
+                            {
+                                matrix_char := ( "01111111",
+                                                 "00001000",
+                                                 "00001000",
+                                                 "00010100",
+                                                 "01100011" );
+                            }
+                            When(x"4C"| x"6C") --L
+                            {
+                                matrix_char := ( "01111111",
+                                                 "01000000",
+                                                 "01000000",
+                                                 "01000000",
+                                                 "01000000" );
+                            }
+                            When(x"4D"| x"6D") --M
+                            {
+                                matrix_char := ( "01111111",
+                                                 "00000010",
+                                                 "00000100",
+                                                 "00000010",
+                                                 "01111111" );
+                            }
+                            When(x"4E"| x"6E") --N
+                            {
+                                matrix_char := ( "01111111",
+                                                 "00000100",
+                                                 "00001000",
+                                                 "00010000",
+                                                 "01111111" );
+                            }
+                            When(x"4F"| x"6F") --O
+                            {
+                                matrix_char := ( "00111110",
+                                                 "01000001",
+                                                 "01000001",
+                                                 "01000001",
+                                                 "00111110" );
+                            }
+                            When(x"50"| x"70") --P
+                            {
+                                matrix_char := ( "01111111",
+                                                 "00001001",
+                                                 "00001001",
+                                                 "00001001",
+                                                 "00000110" );
+                            }
+                            When(x"51"| x"71") --Q
+                            {
+                                matrix_char := ( "00111110",
+                                                 "01000001",
+                                                 "01010001",
+                                                 "01100001",
+                                                 "01111110" );
+                            }
+                            When(x"52"| x"72")  --R
+                            {
+                                matrix_char := ( "01111111",
+                                                 "00001001",
+                                                 "00001001",
+                                                 "00001001",
+                                                 "01110110" );
+                            }
+                            When(x"53"| x"73") --S  
+                            {
+                                matrix_char := ( "00100110",
+                                                 "01001001",
+                                                 "01001001",
+                                                 "01001001",
+                                                 "00110010" );
+                            }
+                            When(x"54"| x"74")  --T
+                            {
+                                matrix_char := ( "00000001",
+                                                 "00000001",
+                                                 "01111111",
+                                                 "00000001",
+                                                 "00000001" );
+                            }
+                            When(x"55"| x"75")  --U
+                            {
+                                matrix_char := ( "00111111",
+                                                 "01000000",
+                                                 "01000000",
+                                                 "01000000",
+                                                 "00111111" );
+                            }
+                            When(x"56"| x"76")  --V
+                            {
+                                matrix_char := ( "00011111",
+                                                 "00100000",
+                                                 "01000000",
+                                                 "00100000",
+                                                 "00011111" );
+                            }
+                            When(x"57"| x"77")  --W
+                            {
+                                matrix_char := ( "01111111",
+                                                 "00100000",
+                                                 "00010000",
+                                                 "00100000",
+                                                 "01111111" );
+                            }
+                            When(x"58"| x"78")  --X
+                            {
+                                matrix_char := ( "01100011",
+                                                 "00010100",
+                                                 "00001000",
+                                                 "00010100",
+                                                 "01100011" );
+                            }
+                            When(x"59"| x"79")  --Y
+                            {
+                                matrix_char := ( "00000011",
+                                                 "00000100",
+                                                 "01111000",
+                                                 "00000100",
+                                                 "00000011" );
+                            }
+                            When(x"5A"| x"7A")  --Z
+                            {
+                                matrix_char := ( "01100001",
+                                                 "01010001",
+                                                 "01001001",
+                                                 "01000101",
+                                                 "01000011" );
+                            }
+                            When(x"5F") --_
+                            {
+                                matrix_char := ( "01000000",
+                                                 "01000000",
+                                                 "01000000",
+                                                 "01000000",
+                                                 "01000000" );
+                            }
+                            When(x"E4" | x"C4") --ä
+                            {
+                                matrix_char := ( "01111101",
+                                                 "00001010",
+                                                 "00001001",
+                                                 "00001010",
+                                                 "01111101" );
+                            }
+                            When(x"F6" | x"D6") --ö
+                            {
+                                matrix_char := ( "00111101",
+                                                 "01000010",
+                                                 "01000010",
+                                                 "01000010",
+                                                 "00111101" );
+                            }
+                            When(x"FC" | x"DC") --ü
+                            {
+                                matrix_char := ( "00111101",
+                                                 "01000000",
+                                                 "01000000",
+                                                 "01000000",
+                                                 "00111101" );
+                            }
+                            When(others)
+                            {
+                                matrix_char := ( "00000000",
+                                                 "00000000",
+                                                 "00000000",
+                                                 "00000000",
+                                                 "00000000" );
+                            }
+                        }
+                        
+                        For(i IN 0 to 4)
+                        {
+                            If((i >= scroll_row OR scroll_char /= char_count OR (Scroll = '0' AND row_count > 1)) AND row_count < (Panels*8))
+                            {
+                                Text_Matrix ((Panels*8)-1-row_count) <= matrix_char (4-i);
+                                row_count := row_count + 1;
+                            }
+                        }
+                        
+                        If(row_count < (Panels*8))
+                        {
+                            Text_Matrix ((Panels*8)-1-row_count) <= "00000000";
+                            row_count := row_count + 1;
 
-							If(char_count < Text_Length-1)
-							{
-								char_count := char_count + 1;
-							}
-							Else
-							{
-								If(Scroll = '0' AND row_count > 1)
-								{
-									row_count  := Panels*8;
-								}
-								Else
-								{
-									char_count := 0;
-								}
-							}
-						}
-						Else
-						{
-							If(Scroll = '1')
-							{
-								scroll_wait := CLK_Frequency/ScrollSpeed;
-								Text_En     <= '1';
-							}
-							Else
-							{
-								convert_en  := '0';
-								Text_En     <= '1';
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+                            If(char_count < Text_Length-1)
+                            {
+                                char_count := char_count + 1;
+                            }
+                            Else
+                            {
+                                If(Scroll = '0' AND row_count > 1)
+                                {
+                                    row_count  := Panels*8;
+                                }
+                                Else
+                                {
+                                    char_count := 0;
+                                }
+                            }
+                        }
+                        Else
+                        {
+                            If(Scroll = '1')
+                            {
+                                scroll_wait := CLK_Frequency/ScrollSpeed;
+                                Text_En     <= '1';
+                            }
+                            Else
+                            {
+                                convert_en  := '0';
+                                Text_En     <= '1';
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
