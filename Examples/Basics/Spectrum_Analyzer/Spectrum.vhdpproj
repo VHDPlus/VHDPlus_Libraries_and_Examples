@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Header>Spectrum</Header>
+  <fileWatcherIgnore />
+  <Items xsi:type="ProjectFolder">
+    <Header>Libraries</Header>
+    <fileWatcherIgnore />
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>I2S_IN.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>LED_Matrix.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>SPI_Master.vhdp</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>Butterfly.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>Main.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>Spectrum_Analyzer.vhdp</Header>
+  </Items>
+</ProjectRoot>

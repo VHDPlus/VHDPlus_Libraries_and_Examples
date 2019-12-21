@@ -1,0 +1,136 @@
+/*
+    Name: I2S IN
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 22.08.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy of 
+	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+	HDL Code without restriction, including without limitation the rights to use, 
+	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+	subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+	
+    Insertion: -Right click on I2C_IN.vhdp -> Add to project
+			   -Add NewComponent of I2S_Interface_IN in your code
+			   -Remove CLK_Frequency if you use a VHDP Core and no PLL
+			   -Change Sampling_Frequency, Data_Width, Sample_Bits and BCLK_Edge depending on the device to connect 
+			    (see the description next to the declarations and use the datasheet for your device)
+			   -Remove Reset or connect it to a signal or input
+			   -Right click the name I2S_Interface_IN next to NewComponent and create the needed signals
+	
+    Function:  -Wait until Ready changes it's value
+    		   -Read the data in Data_L if Ready is now '1' and the data in Data_R if Ready is '0'
+    		    
+    Example:   I2S_Example
+*/
+
+Component I2S_Interface_IN
+(
+	Generic
+	(
+		CLK_Frequency		: NATURAL					:= 12000000; --System Clock frequency
+		Sampling_Frequency	: NATURAL 					:= 48000; 	 --frequency of LRCLK (both channels)
+		Data_Width 			: INTEGER range 16 to 32 	:= 18;	     --Number of data bits in a sample
+    	Sample_Bits 		: INTEGER range 16 to 32	:= 32;	     --Number of bclk periods for one sample
+    	BCLK_Edge			: STD_LOGIC					:= '1';	     --'1' for Receiving Data on falling edge and '0' for Receiving Data on rising edge
+	);
+	Reset	: IN  STD_LOGIC									:= '0';				--Active high reset
+	LRCLK	: OUT STD_LOGIC 								:= '0';				--LRCLK input from adc
+	BCLK	: OUT STD_LOGIC 								:= '0';				--BCLK input from adc
+	Data	: IN  STD_LOGIC 								:= '0';				--DATA input from adc
+	Data_L	: OUT STD_LOGIC_VECTOR(Data_Width-1 downto 0) 	:= (others => '0');	--Data received from adc when LRCLK is '0'
+	Data_R	: OUT STD_LOGIC_VECTOR(Data_Width-1 downto 0) 	:= (others => '0');	--Data received from adc when LRCLK is '1'
+	Ready	: OUT STD_LOGIC									:= '0';				--Goes to '1' if Data_L and DATA_R are new and to '0' if Data_L is new
+)
+{
+
+    SIGNAL DATA_REG			: STD_LOGIC_VECTOR(Data_Width-1 downto 0) 	:= (others => '0');
+
+	CONSTANT BCLK_END		: NATURAL := INTEGER(REAL(CLK_Frequency)/REAL(Sampling_Frequency*Sample_Bits*2))-1;
+	SIGNAL BCLK_COUNTER		: NATURAL range 0 to BCLK_END := 0;
+	SIGNAL LRCLK_COUNTER	: NATURAL range 0 to Sample_Bits := 0;
+	
+	SIGNAL LRCLK_BUF		: STD_LOGIC := '0';
+	SIGNAL BCLK_BUF			: STD_LOGIC := '0';
+	
+	SIGNAL BIT_COUNTER		: NATURAL range 0 to Data_Width := 0;
+	
+	LRCLK <= LRCLK_BUF;
+	BCLK  <= BCLK_BUF;
+	
+	Connections
+	{
+	    LRCLK,
+	    BCLK,
+	    Data,
+	}
+	
+	Process I2C_PROCESS ()
+	{
+		if(Reset = '1')
+		{
+			LRCLK_BUF <= '0';
+			BCLK_BUF  <= '0';
+		}
+		else
+		{
+			If(BCLK_COUNTER = BCLK_END)
+			{
+				BCLK_BUF  <= NOT BCLK_BUF;
+				BCLK_COUNTER <= 0;
+				if(BIT_COUNTER < Data_Width AND BCLK_BUF = BCLK_Edge)
+				{
+					BIT_COUNTER <= BIT_COUNTER + 1;
+					if(LRCLK_BUF = '0')
+					{
+						DATA_REG <= DATA_REG(Data_Width - 2 downto 0) & Data;
+					}
+					else
+					{
+						DATA_REG <= DATA_REG(Data_Width - 2 downto 0) & Data;
+					}
+				}
+				if(BCLK_BUF = BCLK_Edge)
+				{
+					if(LRCLK_COUNTER = Sample_Bits-1)
+					{
+						if(LRCLK_BUF = '0')			--finished with Right and starts now with Left
+						{
+							Data_L <= DATA_REG;
+							Ready <= '1';
+						}
+						else
+						{
+							Data_R <= DATA_REG;
+							Ready <= '0';
+						}
+						
+						LRCLK_BUF <= NOT LRCLK_BUF;
+						LRCLK_COUNTER <= 0;
+						BIT_COUNTER <= 0;
+					}
+					else
+					{
+						LRCLK_COUNTER <= LRCLK_COUNTER + 1;
+					}
+				}
+			}
+			else
+			{
+				BCLK_COUNTER <= BCLK_COUNTER + 1;
+			}
+		}
+	}
+}

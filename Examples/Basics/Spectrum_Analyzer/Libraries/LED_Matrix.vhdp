@@ -1,0 +1,265 @@
+/*
+    Name: LED Matrix
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 06.06.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy of 
+	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+	HDL Code without restriction, including without limitation the rights to use, 
+	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+	subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+	
+	Important: -SPI_Master.vhdp has to be added to your project too
+	           -To display a text, you have to add LED_Matrix_Text.vhdp
+			   -The matrix has to be connected when you connect power or you hav to trigger Config
+	
+    Insertion: -Right click on LED_Matrix.vhdp and SPI_Master.vhdp -> Add to project
+			   -Add NewComponent of LED_Matrix in your code
+			   -Remove CLK_Frequency if you use a VHDP Core and no PLL
+			   -Set your number of panels
+			   -Remove Rotate_seg and Mirror or change the values if the image isn't displayed correctly
+			   -Right click the name LED_Matrix next to NewComponent and create the needed signals (Panels in the Panel_Bitmap declaration has to be replaced with the panel count or you have to use a constant)
+	
+    Function:  -Configuration:
+	            1. Set Brightness to a value between 0 and 15 and Shutdown to '0' for normal operation
+				2. Change Config from '0' to '1' (e.g. call Step{ Config <= '0' } before)
+			   -Display:
+			    1. Set Panel_Bitmap to your image (Panel_Bitmap(0) <= "11111111"; would light up every LED in the first column. One column has always 8 LEDs )
+				2. Change Update from '0' to '1' (e.g. call Step{ Update <= '0' } before)
+	
+    Example:   LED_Matrix_Example
+*/
+
+Component LED_Matrix
+(
+	Package LED_Matrix_Package
+	(
+		TYPE LED_Matrix_Array IS ARRAY (natural range <>) OF STD_LOGIC_VECTOR(7 downto 0);
+	);
+	
+	Generic
+	(
+		CLK_Frequency : NATURAL := 12000000;
+		Panels 		  : NATURAL := 4;
+		Rotate_seg	  : STD_LOGIC := '1';		--rotates each segment by 90° for some matrices
+		Mirror		  : STD_LOGIC := '1';		--mirrors image on long side
+	);
+	
+	Reset			: IN STD_LOGIC := '0';
+	
+	CS_O			: BUFFER STD_LOGIC := '1';
+	CLK_O			: OUT STD_LOGIC := '0';
+	DIN_O			: OUT STD_LOGIC := '0';
+	
+	Panel_Bitmap	: IN LED_Matrix_Array ((Panels*8)-1 downto 0) := (others => (others => '0'));
+	Update			: IN STD_LOGIC := '0';
+	
+	Brightness		: IN NATURAL range 0 to 15 := 5;
+	Shutdown		: IN STD_LOGIC := '0';
+	Config			: IN STD_LOGIC := '0';
+)
+{
+	CONSTANT Bits				  : NATURAL := 16;
+	SIGNAL SPI_Interface_TX_Data  : STD_LOGIC_VECTOR (Bits-1 downto 0);
+	SIGNAL SPI_Interface_Enable   : STD_LOGIC;
+	SIGNAL SPI_Interface_Busy     : STD_LOGIC;
+	SIGNAL SPI_Interface_RX_Data  : STD_LOGIC_VECTOR (Bits-1 downto 0);	--unused
+	
+	SIGNAL Panel_Counter : NATURAL range 0 to Panels := 0;
+	SIGNAL Row_Counter   : NATURAL range 0 to 8	 	 := 0;
+	
+	Connections
+	{
+	    CS_O,
+	    CLK_O,
+	    DIN_O,
+	}
+
+	Function reverse_any_vector (return std_logic_vector; a: in std_logic_vector)
+	{
+		variable result: std_logic_vector(a'RANGE);
+		alias aa: std_logic_vector(a'REVERSE_RANGE) is a;
+		For(i in aa'RANGE)
+		{
+			result(i) := aa(i);
+		}
+		return result;
+	}
+	
+	NewComponent SPI_Master
+	(
+		CLK_Frequency => CLK_Frequency,
+		SPI_CLK  => 8000000,
+		Bits     => Bits,
+		CPol     => '0',
+		CPha     => '0',
+
+		Reset    => Reset,
+		MISO     => '0',
+		SCLK     => CLK_O,
+		MOSI     => DIN_O,
+		TX_Data  => SPI_Interface_TX_Data,
+		Enable   => SPI_Interface_Enable,
+		Cont     => '0',
+		Busy     => SPI_Interface_Busy,
+		RX_Data  => SPI_Interface_RX_Data,
+	);
+	
+	Process update_process
+	(
+		VARIABLE update_prev	: STD_LOGIC := '0';
+		VARIABLE text_prev		: STD_LOGIC := '0';
+		VARIABLE update_en		: STD_LOGIC := '0';
+		VARIABLE wait_busy		: STD_LOGIC := '0';
+		VARIABLE end_delay		: STD_LOGIC := '0';
+		
+		VARIABLE config_prev	: STD_LOGIC := '0';
+		VARIABLE config_en		: STD_LOGIC := '1';
+		
+		VARIABLE matrix			: LED_Matrix_Array ((Panels*8)-1 downto 0) := (others => (others => '0'));
+	)
+	{
+		If(Reset = '1')
+		{
+			wait_busy     := '0';
+			update_en     := '0';
+			update_prev   := '0';
+			Panel_Counter <= 0;
+			Row_Counter   <= 0;
+			CS_O	      <= '1';
+			end_delay     := '0';
+		}
+		Else
+		{
+			If(update_prev = '0' AND Update = '1')
+			{
+				update_en	:= '1';
+				If(Rotate_seg = '0')
+				{
+					matrix      := Panel_Bitmap;
+				}
+				Else
+				{
+					For(i IN 0 to Panels-1)
+					{
+						For(x IN 0 to 7)		--Row
+						{
+							For(y IN 0 to 7)	--Column
+							{
+								If(Mirror = '1')
+								{
+									matrix((i*8)+(7-y))(x) := Panel_Bitmap((i*8)+x)(y);
+								}
+								Else
+								{
+									matrix((i*8)+y)(x) := Panel_Bitmap((i*8)+x)(y);
+								}
+							}
+						}
+					}
+				}
+			}
+			update_prev := Update;
+			
+			If(config_prev = '0' AND Config = '1')
+			{
+				config_en	:= '1';
+			}
+			config_prev := Config;
+			
+			If(update_en = '1' OR config_en = '1')
+			{
+				If(wait_busy = '0')
+				{
+					If(config_en = '0')
+					{
+						SPI_Interface_TX_Data(11 downto 8) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Row_Counter+1, 4));
+						SPI_Interface_TX_Data(7 downto 0)  <= reverse_any_vector(matrix((Panel_Counter)*8+Row_Counter));
+					}
+					Else
+					{
+						Case(Row_Counter)
+						{
+							When(0) 	--Shutdown
+							{
+								SPI_Interface_TX_Data <= "000011000000000" & (NOT Shutdown);
+							}
+							When(1) 	--Scan Limit
+							{
+								SPI_Interface_TX_Data <= x"0B07";
+							}
+							When(2) 	--Intensity
+							{
+								SPI_Interface_TX_Data <= "000010100000" & STD_LOGIC_VECTOR(TO_UNSIGNED(Brightness, 4));
+							}
+							When(others)
+							{
+								update_en := '0';
+							}
+						}
+					}
+					SPI_Interface_Enable <= '1';
+					CS_O	      		 <= '0';
+					If(SPI_Interface_Busy = '1')
+					{
+						wait_busy := '1';
+					}
+				}
+				Else
+				{
+					SPI_Interface_Enable <= '0';
+					If(SPI_Interface_Busy = '0')
+					{		
+						If(Panel_Counter < Panels-1)
+						{
+							Panel_Counter <= Panel_Counter + 1;
+							wait_busy     := '0';
+						}
+						Else
+						{
+							If(end_delay = '0')
+							{
+								end_delay     := '1';
+							}
+							Else
+							{
+								end_delay     := '0';
+								
+								Panel_Counter <= 0;
+								CS_O	      <= '1';
+								wait_busy     := '0';
+								If((Row_Counter < 7 AND update_en = '1') OR (Row_Counter < 2 AND config_en = '1'))
+								{
+									Row_Counter <= Row_Counter + 1;
+								}
+								Else
+								{
+									update_en   := '0';
+									config_en   := '0';
+									Row_Counter <= 0;
+								}
+							}
+						}
+					}
+				}
+			}
+			Else
+			{
+				CS_O <= '1';
+			}
+		}
+	}
+}

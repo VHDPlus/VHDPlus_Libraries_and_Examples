@@ -71,6 +71,16 @@
       <Header>PLL.vhd</Header>
     </Items>
   </Items>
+  <Items xsi:type="ProjectFolder">
+    <Header>Spectrum_Analyzer</Header>
+    <fileWatcherIgnore />
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Butterfly.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Spectrum_Analyzer.vhdp</Header>
+    </Items>
+  </Items>
   <Items xsi:type="ProjectFileVHDP">
     <Header>Frequency_Divider.vhdp</Header>
   </Items>

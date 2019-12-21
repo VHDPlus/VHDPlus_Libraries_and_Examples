@@ -1,0 +1,124 @@
+/*
+    Name: Main (Spectrum Analyzer Example)
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 06.08.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+	
+	This Example uses an "Adafruit I2S MEMS Microphone Breakout - SPH0645LM4H" and a 32x8 LED matrix 
+	to analyze and visualize the ambient sound.
+	See the documentation of the original project here: https://github.com/shamim-hussain/fpga_fft_spectrum_analyzer
+ */
+
+Main
+(
+    LRCLK              : OUT STD_LOGIC;
+    BCLK               : OUT STD_LOGIC;
+    Data               : IN STD_LOGIC;
+    CS_O          : BUFFER STD_LOGIC;
+    CLK_O         : OUT STD_LOGIC;
+    DIN_O         : OUT STD_LOGIC;
+)
+{
+    SIGNAL I2S_Interface_IN_Data_L             : STD_LOGIC_VECTOR (18-1 downto 0);
+    SIGNAL I2S_Interface_IN_Data_R             : STD_LOGIC_VECTOR (18-1 downto 0);
+    SIGNAL I2S_Interface_IN_Ready              : STD_LOGIC;
+    NewComponent I2S_Interface_IN
+    (
+        CLK_Frequency      => 12000000,
+        Sampling_Frequency => 32000,
+        Data_Width         => 18,
+        Sample_Bits        => 32,
+        BCLK_Edge          => '1',
+        
+        Reset              => '0',
+        LRCLK              => LRCLK,
+        BCLK               => BCLK,
+        Data               => Data,
+        Data_L             => I2S_Interface_IN_Data_L,
+        Data_R             => I2S_Interface_IN_Data_R,
+        Ready              => I2S_Interface_IN_Ready,
+    );
+
+    SIGNAL Spectrum_Analyzer_data_o : Spectrum_Type;
+    NewComponent Spectrum_Analyzer
+    (
+        CLK_Frequency     => 12000000,
+        Sample_Frequency  => 10000,
+        Frequency_Numbers => 32,
+
+        adc_in            => resize((SIGNED(I2S_Interface_IN_Data_L)+6130)/8, 8),
+        data_o            => Spectrum_Analyzer_data_o,
+    );
+    
+    SIGNAL LED_Matrix_Panel_Bitmap  : LED_Matrix_Array ((4*8)-1 downto 0);
+    SIGNAL LED_Matrix_Update        : STD_LOGIC;
+    SIGNAL LED_Matrix_Config        : STD_LOGIC;
+    NewComponent LED_Matrix
+    (
+        CLK_Frequency => 12000000,
+        Panels        => 4,
+        Rotate_seg    => '1',
+        Mirror        => '1',
+        
+        Reset         => '0',
+        CS_O          => CS_O,
+        CLK_O         => CLK_O,
+        DIN_O         => DIN_O,
+        Panel_Bitmap  => LED_Matrix_Panel_Bitmap,
+        Update        => LED_Matrix_Update,
+        Config        => LED_Matrix_Config,
+    );
+    
+    Process ()
+    {
+        Thread
+        {
+            --Load settings (brightness and shutdown)
+            LED_Matrix_Config <= '0'; --Wait on start (not absolutely necessary)
+            Wait(10ms);
+            LED_Matrix_Config <= '1'; --Send settings
+            Step{ LED_Matrix_Config <= '0'; }
+            Wait(10ms);
+            
+            While(true)
+            {
+                For(i IN 0 to 31)
+                {
+                    If(Spectrum_Analyzer_data_o(i) > 127){LED_Matrix_Panel_Bitmap(i)(0) <= '1';}Else{LED_Matrix_Panel_Bitmap(i)(0) <= '0';}
+                    If(Spectrum_Analyzer_data_o(i) > 64) {LED_Matrix_Panel_Bitmap(i)(1) <= '1';}Else{LED_Matrix_Panel_Bitmap(i)(1) <= '0';}
+                    If(Spectrum_Analyzer_data_o(i) > 31) {LED_Matrix_Panel_Bitmap(i)(2) <= '1';}Else{LED_Matrix_Panel_Bitmap(i)(2) <= '0';}
+                    If(Spectrum_Analyzer_data_o(i) > 15) {LED_Matrix_Panel_Bitmap(i)(3) <= '1';}Else{LED_Matrix_Panel_Bitmap(i)(3) <= '0';}
+                    If(Spectrum_Analyzer_data_o(i) > 7)  {LED_Matrix_Panel_Bitmap(i)(4) <= '1';}Else{LED_Matrix_Panel_Bitmap(i)(4) <= '0';}
+                    If(Spectrum_Analyzer_data_o(i) > 3)  {LED_Matrix_Panel_Bitmap(i)(5) <= '1';}Else{LED_Matrix_Panel_Bitmap(i)(5) <= '0';}
+                    If(Spectrum_Analyzer_data_o(i) > 1)  {LED_Matrix_Panel_Bitmap(i)(6) <= '1';}Else{LED_Matrix_Panel_Bitmap(i)(6) <= '0';}
+                    If(Spectrum_Analyzer_data_o(i) > 0)  {LED_Matrix_Panel_Bitmap(i)(7) <= '1';}Else{LED_Matrix_Panel_Bitmap(i)(7) <= '0';}
+                }
+                
+                --Update image -> show already defined image
+                LED_Matrix_Update     <= '0';
+                Step { LED_Matrix_Update <= '1'; }
+                
+                Wait(50ms);
+            }
+        }
+    }
+    
+}

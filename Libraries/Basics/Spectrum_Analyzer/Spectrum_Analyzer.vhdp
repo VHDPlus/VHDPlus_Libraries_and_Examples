@@ -1,0 +1,385 @@
+/*
+    Name: Spectrum_Analyzer
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 21.12.2019
+
+    This file is a derivation of the implementation found at: https://github.com/shamim-hussain/fpga_fft_spectrum_analyzer
+    
+    Important: Also Butterfly.vhdp has to be inserted
+    
+    Insertion: -Right click on Spectrum_Analyzer folder -> Add to project
+               -Add NewComponent of Spectrum_Analyzer in your code
+               -Check the parameters if they fit your application
+               -Connect the ADC_IN pin with the analog signal you want to analyze
+               -Right click the name Spectrum_Analyzer next to NewComponent and create the needed signals
+    
+    Function:  -Wait until New_Data changes from '0' to '1'
+               -Read the created data with data_o
+                -data(0) is the lowest frequency (about (Sample_Frequency/4)/Frequency_Numbers)
+                -data(Frequency_Numbers-1) is the highest frequency (about Sample_Frequency/4)
+    
+    Example:   Spectrum Example
+ */
+
+Component Spectrum_Analyzer
+(
+    Include
+    (
+        IEEE.STD_LOGIC_1164,
+        IEEE.NUMERIC_STD,
+        IEEE.MATH_REAL,
+        Spectrum_Type_Package,
+    );
+    Package Spectrum_Type_Package
+    (
+        TYPE Spectrum_Type IS ARRAY (0 to 31) OF UNSIGNED (7 downto 0);
+    );
+    Generic
+    (
+        CLK_Frequency     : NATURAL := 12000000;
+        Sample_Frequency  : NATURAL := 10000;
+        Frequency_Numbers : NATURAL := 32;    --8/16/32(/64/128 with adapted Spectrum_Type)
+    );
+    -----------inputs and outputs-----------
+    data_o   : OUT Spectrum_Type;
+    New_Data : OUT STD_LOGIC;
+    adc_in   : IN  SIGNED (7 downto 0) := (others => '0');
+)
+{
+    --Used Attribute Declaration to keep sequence
+    AttributeDeclaration
+    {
+        --If sfd = 11 -> sampling frequency = 3kHz -> n = 64 -> 46Hz total
+        CONSTANT n   : NATURAL := Frequency_Numbers*2; --Number of processed samples -> limits resolution (n/2 = max freq. number)
+        CONSTANT nl2 : NATURAL := INTEGER(CEIL(LOG2(REAL(Frequency_Numbers))))+1;  --steps (4 = 8 frequencies, 5 = 16 freq., 6 = 32 freq.)
+        CONSTANT cfd : NATURAL := 4;  --CLK_Frequency/2^(cfd+1) = compute frequency
+        CONSTANT sfd : NATURAL := INTEGER(LOG2(REAL(CLK_Frequency/Sample_Frequency)))-1; --CLK_Frequency/2^(sfd+1) = sampling frequency -> limits maximum frequency
+        CONSTANT sts : NATURAL := 4;  --stages = nl2-1
+        
+        -----------inputs and outputs-----------
+        SIGNAL clk_cfd : STD_LOGIC := '0';
+        SIGNAL clk_sfd : STD_LOGIC := '0';
+        
+        -----------states and stages-----------
+        SIGNAL stage : UNSIGNED (sts-1 downto 0)     := (others => '0');
+        SIGNAL cnt   : UNSIGNED (nl2-2 downto 0)     := (others => '0');
+        SIGNAL state : UNSIGNED (nl2+sts-2 downto 0) := shift_left(TO_UNSIGNED(nl2+1, nl2+sts-1), (nl2-1));
+
+        -----------samples and data-----------
+        TYPE samples_type IS ARRAY (0 to n-1) OF SIGNED (7 downto 0);
+        SIGNAL samples : samples_type := (others => (others => '0'));
+        
+        TYPE data_type IS ARRAY (0 to n-1) OF SIGNED (15 downto 0);
+        SIGNAL data : data_type := (others => (others => '0'));
+        
+        SIGNAL i : INTEGER := 0;
+        
+        -----------Look up table-----------
+        TYPE lut128_type IS ARRAY (0 to 127) OF SIGNED (15 downto 0);
+        SIGNAL lut128 : lut128_type :=
+        (
+            "0111111100000000",
+            "0111111111111100",
+            "0111111111111001",
+            "0111111111110110",
+            "0111111111110011",
+            "0111111111110000",
+            "0111111011101101",
+            "0111111011101010",
+            "0111110111100111",
+            "0111110011100011",
+            "0111110011100000",
+            "0111101111011101",
+            "0111101011011010",
+            "0111100111010111",
+            "0111100011010100",
+            "0111011111010001",
+            "0111011011001111",
+            "0111010111001100",
+            "0111001111001001",
+            "0111001011000110",
+            "0111000011000011",
+            "0110111111000000",
+            "0110110110111110",
+            "0110110010111011",
+            "0110101010111000",
+            "0110100010110110",
+            "0110011010110011",
+            "0110010010110001",
+            "0110001010101110",
+            "0110000010101100",
+            "0101111010101010",
+            "0101110010100111",
+            "0101101010100101",
+            "0101100010100011",
+            "0101010110100001",
+            "0101001110011111",
+            "0101000110011101",
+            "0100111010011011",
+            "0100110010011001",
+            "0100100110010111",
+            "0100011110010101",
+            "0100010010010011",
+            "0100000110010010",
+            "0011111110010000",
+            "0011110010001111",
+            "0011100110001101",
+            "0011011010001100",
+            "0011001110001010",
+            "0011000010001001",
+            "0010111010001000",
+            "0010101110000111",
+            "0010100010000110",
+            "0010010110000101",
+            "0010001010000100",
+            "0001111110000011",
+            "0001110010000011",
+            "0001100010000010",
+            "0001010110000001",
+            "0001001010000001",
+            "0000111110000000",
+            "0000110010000000",
+            "0000100110000000",
+            "0000011010000000",
+            "0000001110000000",
+            "0000000010000000",
+            "1111110010000000",
+            "1111100110000000",
+            "1111011010000000",
+            "1111001110000000",
+            "1111000010000000",
+            "1110110110000001",
+            "1110101010000001",
+            "1110011110000010",
+            "1110001110000011",
+            "1110000010000011",
+            "1101110110000100",
+            "1101101010000101",
+            "1101011110000110",
+            "1101010010000111",
+            "1101000110001000",
+            "1100111110001001",
+            "1100110010001010",
+            "1100100110001100",
+            "1100011010001101",
+            "1100001110001111",
+            "1100000010010000",
+            "1011111010010010",
+            "1011101110010011",
+            "1011100010010101",
+            "1011011010010111",
+            "1011001110011001",
+            "1011000110011011",
+            "1010111010011101",
+            "1010110010011111",
+            "1010101010100001",
+            "1010011110100011",
+            "1010010110100101",
+            "1010001110100111",
+            "1010000110101010",
+            "1001111110101100",
+            "1001110110101110",
+            "1001101110110001",
+            "1001100110110011",
+            "1001011110110110",
+            "1001010110111000",
+            "1001001110111011",
+            "1001001010111110",
+            "1001000011000000",
+            "1000111111000011",
+            "1000110111000110",
+            "1000110011001001",
+            "1000101011001100",
+            "1000100111001111",
+            "1000100011010001",
+            "1000011111010100",
+            "1000011011010111",
+            "1000010111011010",
+            "1000010011011101",
+            "1000001111100000",
+            "1000001111100011",
+            "1000001011100111",
+            "1000000111101010",
+            "1000000111101101",
+            "1000000011110000",
+            "1000000011110011",
+            "1000000011110110",
+            "1000000011111001",
+            "1000000011111100"
+        );
+
+        TYPE lut_type IS ARRAY (0 to n/2-1) OF SIGNED (15 downto 0);
+        Function assignLUT(return lut_type; lut128 : lut128_type; n : NATURAL)
+        {
+            VARIABLE a : lut_type;
+            For(i IN 0 to n/2-1)
+            {
+                a(i) := lut128((128/(n/2)) * i);
+            }
+            return a;
+        }
+        SIGNAL lut : lut_type := assignLUT(lut128, n);
+    }
+
+    -----------butterfly-----------
+    SIGNAL bfin1, bfin2, tf, bfout1, bfout2 : SIGNED (15 downto 0) := (others => '0');
+    --Calculates complex operation
+    NewComponent Butterfly
+    (
+        in1  => bfin1,
+        in2  => bfin2,
+        tf   => tf,
+        out1 => bfout1,
+        out2 => bfout2,
+    );
+    
+    -----------butterfly indice-----------
+    SIGNAL ind1, ind2 : UNSIGNED (nl2-1 downto 0) := (others => '0');
+    SIGNAL tind       : UNSIGNED (nl2-2 downto 0) := (others => '0');
+    SIGNAL pos        : UNSIGNED (sts-1 downto 0) := (others => '0');
+    
+    -----------state creater-----------
+    cnt   <= state(nl2-2 downto 0);         --cnt = frequency to check
+    stage <= state(nl2+sts-2 downto nl2-1); --analyze step
+    
+    -----------indice selection-----------
+    SIGNAL mask : UNSIGNED (nl2-1 downto 0) := (others => '0');
+    --pos -> current stage - 1 (1 - 5)
+    pos <= stage - 1;
+    Function repeatLogic (return STD_LOGIC_VECTOR; arg : STD_LOGIC; n : INTEGER)
+    {
+        VARIABLE buf : STD_LOGIC_VECTOR (n-1 downto 0) := (others => arg);
+        return buf;
+    }
+    --mask wenn nl2 = 5 -> 11111 -> [posx0]1[posx0] -> 00000/00100/01110/11111
+    mask <= shift_left(shift_right(UNSIGNED(repeatLogic('1', nl2)), TO_INTEGER(pos)), TO_INTEGER(pos));
+    ind1 <= shift_left((('0' & cnt) and mask), 1) or (('0' & cnt) and (not mask));
+    ind2 <= (ind1 or shift_left(TO_UNSIGNED(1, nl2), TO_INTEGER(pos)));
+    tind <= shift_left(cnt, (nl2 - TO_INTEGER(stage)));
+    
+    -----------butterfly input selection-----------
+    bfin1 <= data(TO_INTEGER(ind1));
+    bfin2 <= data(TO_INTEGER(ind2));
+    tf    <= lut(TO_INTEGER(tind));
+    
+    -----------bit reversal-----------
+    
+    TYPE c_type IS ARRAY (0 to n-1) OF UNSIGNED (nl2-1 downto 0);
+    SIGNAL c : c_type := (others => (others => '0'));
+    SIGNAL r : c_type := (others => (others => '0'));
+    Generate (for k in 0 to n-1)
+    {
+        c(k) <= TO_UNSIGNED(k,nl2);
+        Generate (for l in 0 to nl2-1)
+        {
+            r(k)(l) <= c(k)(nl2-1-l);
+        }
+    }
+    
+    -----------power value-----------
+    SIGNAL val           : SIGNED (15 downto 0) := (others => '0');
+    SIGNAL re, im        : SIGNED (7 downto 0)  := (others => '0');
+    SIGNAL re2, im2, sum : SIGNED (15 downto 0) := (others => '0');
+    SIGNAL aval          : SIGNED (7 downto 0)  := (others => '0');
+    SIGNAL sc            : BOOLEAN := false;
+    
+    sc <= true when (TO_INTEGER(stage) = nl2+2) else false;
+    val <= data(TO_INTEGER(cnt));
+    re(7 downto 0) <= data(n/2)(15 downto 8) when sc else val(14 downto 8) & '0';
+    im(7 downto 0) <= data(n/2)(7 downto 0)  when sc else val(6 downto 0) & '0';
+    re2 <= resize(re, re2'LENGTH);
+    im2 <= resize(im, im2'LENGTH);
+    --Result
+    sum <= TO_SIGNED(TO_INTEGER(re2)**2 + TO_INTEGER(im2)**2, sum'LENGTH);
+    --8bit result
+    aval <= sum(13 downto 6)-1 when sum(14) = '1' else sum(13 downto 6);
+    
+    -----------output calculation-----------
+    SIGNAL outr : Spectrum_Type := (others => (others => '0'));
+    data_o <= outr;
+    
+    --final output
+    SIGNAL ocount : UNSIGNED (sfd+2 downto 0) := (others => '0');
+    clk_cfd <= ocount(cfd);
+    clk_sfd <= ocount(sfd);
+    
+    -----------create clock-----------
+    Process ()
+    {
+        ocount <= ocount + 1;
+    }
+    
+    -----------next state logic-----------
+    Process ()
+    {
+        If(rising_edge(clk_cfd))
+        {
+            Case(stage)
+            {
+                --Copy saved samples to data to analyze on start
+                When(TO_UNSIGNED(0, sts))
+                {
+                    For(i IN 0 to n-1)
+                    {
+                        data(TO_INTEGER(c(i))) <= samples(TO_INTEGER(r(i))) & x"00";
+                    }
+                    --stage = 1
+                    state(nl2+sts-2 downto nl2-1) <= TO_UNSIGNED(1, sts);
+                    --cnt = 0
+                    state(nl2-2 downto 0) <= TO_UNSIGNED(0, nl2-1);
+                }
+                When(TO_UNSIGNED(2**(sts-1)-1, sts))
+                {
+                    state <= (others => '0');
+                }
+                --Save Output data to buffer
+                When(TO_UNSIGNED(2**(sts-1)-2, sts))
+                {
+                    If(TO_INTEGER(cnt) < 2**(nl2-2))
+                    {
+                        outr(TO_INTEGER(cnt)*2) <= UNSIGNED(STD_LOGIC_VECTOR(aval));
+                    }
+                    Else
+                    {
+                        outr((2**(nl2-1)-TO_INTEGER(cnt))*2-1) <= UNSIGNED(STD_LOGIC_VECTOR(aval));
+                    }
+                    
+                    state <= state + 1;
+                }
+                --1-5 = save calculated data from bfout1/2 in data at ind1/2
+                When(others)
+                {
+                    For(i IN 0 to n-1)
+                    {
+                        If(TO_INTEGER(ind1) = i)
+                        {
+                            data(i) <= bfout1;
+                        }
+                    }
+                    For(i IN 0 to n-1)
+                    {
+                        If(TO_INTEGER(ind2) = i)
+                        {
+                            data(i) <= bfout2;
+                        }
+                    }
+                    state <= state + 1;
+                }
+            }
+        }
+    }
+    
+    -----------sampling block-----------
+    Process ()
+    {
+        If(rising_edge(clk_sfd))
+        {
+            For(i IN 1 to n-1)
+            {
+                samples(i) <= samples(i-1);
+            }
+            samples(0) <= adc_in;
+        }
+    }
+}
