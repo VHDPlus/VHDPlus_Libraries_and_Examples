@@ -21,10 +21,6 @@
     COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
     AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
     WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
-	
-	This Example uses an "Adafruit I2S MEMS Microphone Breakout - SPH0645LM4H" and a 32x8 LED matrix 
-	to analyze and visualize the ambient sound.
-	See the documentation of the original project here: https://github.com/shamim-hussain/fpga_fft_spectrum_analyzer
  */
 
 Main
@@ -57,7 +53,8 @@ Main
         Ready              => I2S_Interface_IN_Ready,
     );
 
-    SIGNAL Spectrum_Analyzer_data_o : Spectrum_Type;
+    SIGNAL Spectrum_Analyzer_data_o    : Spectrum_Type;
+    SIGNAL Spectrum_Analyzer_New_Data  : STD_LOGIC;
     NewComponent Spectrum_Analyzer
     (
         CLK_Frequency     => 12000000,
@@ -65,6 +62,7 @@ Main
         Frequency_Numbers => 32,
 
         adc_in            => resize((SIGNED(I2S_Interface_IN_Data_L)+6130)/8, 8),
+        New_Data          => Spectrum_Analyzer_New_Data,
         data_o            => Spectrum_Analyzer_data_o,
     );
     
@@ -116,7 +114,7 @@ Main
                 LED_Matrix_Update     <= '0';
                 Step { LED_Matrix_Update <= '1'; }
                 
-                Wait(50ms);
+                While(Spectrum_Analyzer_New_Data = '0') {}
             }
         }
     }

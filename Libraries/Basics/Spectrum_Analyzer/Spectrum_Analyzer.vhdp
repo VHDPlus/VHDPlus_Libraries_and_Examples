@@ -16,8 +16,10 @@
     
     Function:  -Wait until New_Data changes from '0' to '1'
                -Read the created data with data_o
-                -data(0) is the lowest frequency (about (Sample_Frequency/4)/Frequency_Numbers)
-                -data(Frequency_Numbers-1) is the highest frequency (about Sample_Frequency/4)
+                -Two numbers next to each other are the same frequencies from different samples (data(0) and data(1) for example)
+                -data(0)/(1) is the lowest frequency
+                -data(Frequency_Numbers-1)(Frequency_Numbers-2) is the highest frequency
+                -The frequencies increase by about Sample_Frequency/4 or Sample_Frequency/2 for each pair
     
     Example:   Spectrum Example
  */
@@ -42,9 +44,9 @@ Component Spectrum_Analyzer
         Frequency_Numbers : NATURAL := 32;    --8/16/32(/64/128 with adapted Spectrum_Type)
     );
     -----------inputs and outputs-----------
-    data_o   : OUT Spectrum_Type;
+    Data_o   : OUT Spectrum_Type;
     New_Data : OUT STD_LOGIC;
-    adc_in   : IN  SIGNED (7 downto 0) := (others => '0');
+    ADC_in   : IN  SIGNED (7 downto 0) := (others => '0');
 )
 {
     --Used Attribute Declaration to keep sequence
@@ -53,7 +55,7 @@ Component Spectrum_Analyzer
         --If sfd = 11 -> sampling frequency = 3kHz -> n = 64 -> 46Hz total
         CONSTANT n   : NATURAL := Frequency_Numbers*2; --Number of processed samples -> limits resolution (n/2 = max freq. number)
         CONSTANT nl2 : NATURAL := INTEGER(CEIL(LOG2(REAL(Frequency_Numbers))))+1;  --steps (4 = 8 frequencies, 5 = 16 freq., 6 = 32 freq.)
-        CONSTANT cfd : NATURAL := 4;  --CLK_Frequency/2^(cfd+1) = compute frequency
+        CONSTANT cfd : NATURAL := 0;  --CLK_Frequency/2^(cfd+1) = compute frequency
         CONSTANT sfd : NATURAL := INTEGER(LOG2(REAL(CLK_Frequency/Sample_Frequency)))-1; --CLK_Frequency/2^(sfd+1) = sampling frequency -> limits maximum frequency
         CONSTANT sts : NATURAL := 4;  --stages = nl2-1
         
@@ -320,6 +322,7 @@ Component Spectrum_Analyzer
                 --Copy saved samples to data to analyze on start
                 When(TO_UNSIGNED(0, sts))
                 {
+                    New_Data <= '0';
                     For(i IN 0 to n-1)
                     {
                         data(TO_INTEGER(c(i))) <= samples(TO_INTEGER(r(i))) & x"00";
@@ -331,6 +334,7 @@ Component Spectrum_Analyzer
                 }
                 When(TO_UNSIGNED(2**(sts-1)-1, sts))
                 {
+                    New_Data <= '1';
                     state <= (others => '0');
                 }
                 --Save Output data to buffer
@@ -347,23 +351,11 @@ Component Spectrum_Analyzer
                     
                     state <= state + 1;
                 }
-                --1-5 = save calculated data from bfout1/2 in data at ind1/2
+                --1-5 = save calculated data from bfout1/2 in data at ind1/2 for next stage
                 When(others)
                 {
-                    For(i IN 0 to n-1)
-                    {
-                        If(TO_INTEGER(ind1) = i)
-                        {
-                            data(i) <= bfout1;
-                        }
-                    }
-                    For(i IN 0 to n-1)
-                    {
-                        If(TO_INTEGER(ind2) = i)
-                        {
-                            data(i) <= bfout2;
-                        }
-                    }
+                    data(TO_INTEGER(ind1)) <= bfout1;
+                    data(TO_INTEGER(ind2)) <= bfout2;
                     state <= state + 1;
                 }
             }
