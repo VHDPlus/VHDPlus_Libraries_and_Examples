@@ -18,10 +18,9 @@
     
     Function:  -Wait until New_Data changes from '0' to '1'
                -Read the created data with data_o
-                -Two numbers next to each other are the same frequencies from different samples (data(0) and data(1) for example)
-                -data(0)/(1) is the lowest frequency
-                -data(Frequency_Numbers-1)(Frequency_Numbers-2) is the highest frequency
-                -The frequencies increase by about Sample_Frequency/4 or Sample_Frequency/2 for each pair
+                -data(0) is the lowest frequency
+                -data(Frequency_Numbers-1) is the highest frequency
+                -The frequencies increase by about Sample_Frequency/2 (if Range_Multiplier = 1)
     
     Example:   Spectrum Example
  */
