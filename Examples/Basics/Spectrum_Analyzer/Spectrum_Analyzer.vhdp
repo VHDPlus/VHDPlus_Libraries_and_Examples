@@ -6,7 +6,9 @@
 
     This file is a derivation of the implementation found at: https://github.com/shamim-hussain/fpga_fft_spectrum_analyzer
     
-    Important: Also Butterfly.vhdp has to be inserted
+    Important: -Also Butterfly.vhdp has to be inserted
+               -By increasing Frequency_Numbers you can analyze a wider spectrum, but the analyzer uses more logic elements
+               -You can set the range multiplier > 1 to get more subfrequencies with a fewer Frequency_Number. This only estimates the values between
     
     Insertion: -Right click on Spectrum_Analyzer folder -> Add to project
                -Add NewComponent of Spectrum_Analyzer in your code
@@ -41,7 +43,8 @@ Component Spectrum_Analyzer
     (
         CLK_Frequency     : NATURAL := 12000000;
         Sample_Frequency  : NATURAL := 10000;
-        Frequency_Numbers : NATURAL := 32;    --8/16/32(/64/128 with adapted Spectrum_Type)
+        Frequency_Numbers : NATURAL := 16;    --8/16/32(/64/128 with adapted Spectrum_Type)
+        Range_Multiplier  : NATURAL := 1;     --1 = only measured frequencies
     );
     -----------inputs and outputs-----------
     Data_o   : OUT Spectrum_Type;
@@ -53,8 +56,8 @@ Component Spectrum_Analyzer
     AttributeDeclaration
     {
         --If sfd = 11 -> sampling frequency = 3kHz -> n = 64 -> 46Hz total
-        CONSTANT n   : NATURAL := Frequency_Numbers*2; --Number of processed samples -> limits resolution (n/2 = max freq. number)
-        CONSTANT nl2 : NATURAL := INTEGER(CEIL(LOG2(REAL(Frequency_Numbers))))+1;  --steps (4 = 8 frequencies, 5 = 16 freq., 6 = 32 freq.)
+        CONSTANT n   : NATURAL := Frequency_Numbers*4; --Number of processed samples -> limits resolution (n/2 = max freq. number)
+        CONSTANT nl2 : NATURAL := INTEGER(CEIL(LOG2(REAL(Frequency_Numbers*2))))+1;  --steps (4 = 8 frequencies, 5 = 16 freq., 6 = 32 freq.)
         CONSTANT cfd : NATURAL := 0;  --CLK_Frequency/2^(cfd+1) = compute frequency
         CONSTANT sfd : NATURAL := INTEGER(LOG2(REAL(CLK_Frequency/Sample_Frequency)))-1; --CLK_Frequency/2^(sfd+1) = sampling frequency -> limits maximum frequency
         CONSTANT sts : NATURAL := 4;  --stages = nl2-1
@@ -284,12 +287,10 @@ Component Spectrum_Analyzer
     SIGNAL re, im        : SIGNED (7 downto 0)  := (others => '0');
     SIGNAL re2, im2, sum : SIGNED (15 downto 0) := (others => '0');
     SIGNAL aval          : SIGNED (7 downto 0)  := (others => '0');
-    SIGNAL sc            : BOOLEAN := false;
-    
-    sc <= true when (TO_INTEGER(stage) = nl2+2) else false;
+
     val <= data(TO_INTEGER(cnt));
-    re(7 downto 0) <= data(n/2)(15 downto 8) when sc else val(14 downto 8) & '0';
-    im(7 downto 0) <= data(n/2)(7 downto 0)  when sc else val(6 downto 0) & '0';
+    re(7 downto 0) <= val(14 downto 8) & '0';
+    im(7 downto 0) <= val(6 downto 0) & '0';
     re2 <= resize(re, re2'LENGTH);
     im2 <= resize(im, im2'LENGTH);
     --Result
@@ -332,24 +333,98 @@ Component Spectrum_Analyzer
                     --cnt = 0
                     state(nl2-2 downto 0) <= TO_UNSIGNED(0, nl2-1);
                 }
-                When(TO_UNSIGNED(2**(sts-1)-1, sts))
-                {
-                    New_Data <= '1';
-                    state <= (others => '0');
-                }
                 --Save Output data to buffer
-                When(TO_UNSIGNED(2**(sts-1)-2, sts))
+                When(TO_UNSIGNED(2**(sts-1)-2, sts) | TO_UNSIGNED(2**(sts-1)-1, sts))
                 {
-                    If(TO_INTEGER(cnt) < 2**(nl2-2))
+                    If(Range_Multiplier = 1 AND stage = TO_UNSIGNED(2**(sts-1)-2, sts))
                     {
-                        outr(TO_INTEGER(cnt)*2) <= UNSIGNED(STD_LOGIC_VECTOR(aval));
+                        If(TO_INTEGER(cnt) < 2**(nl2-2))
+                        {
+                            outr(TO_INTEGER(cnt)) <= UNSIGNED(STD_LOGIC_VECTOR(aval));
+                        }
+                        Else
+                        {
+                            outr((2**(nl2-1)-TO_INTEGER(cnt))) <= outr((2**(nl2-1)-TO_INTEGER(cnt))) + UNSIGNED(STD_LOGIC_VECTOR(aval));
+                        }
                     }
                     Else
                     {
-                        outr((2**(nl2-1)-TO_INTEGER(cnt))*2-1) <= UNSIGNED(STD_LOGIC_VECTOR(aval));
+                        VARIABLE current_freq : NATURAL range 0 to (2**(nl2-1)*Range_Multiplier)-1 := 0;
+                        if (TO_INTEGER(cnt) < 2**(nl2-1))
+                        {
+                            current_freq := TO_INTEGER(cnt)*Range_Multiplier;
+                            If(TO_INTEGER(cnt) < 2**(nl2-2) AND stage = TO_UNSIGNED(2**(sts-1)-2, sts))
+                            {
+                                outr(current_freq) <= UNSIGNED(STD_LOGIC_VECTOR(aval));
+                            }
+                            Else
+                            {
+                                VARIABLE outr_buf   : UNSIGNED (7 downto 0);
+                                VARIABLE outr_buf2  : UNSIGNED (7 downto 0);
+                                VARIABLE bigger     : BOOLEAN;
+                                VARIABLE muchbigger : BOOLEAN;
+                                If(stage = TO_UNSIGNED(2**(sts-1)-1, sts))
+                                {
+                                    --Calculate last estimate when finished
+                                    outr_buf := outr(0);
+                                    outr_buf2 := outr(Range_Multiplier);
+                                }
+                                Else
+                                {
+                                    --Calculate current frequency slot (for Multi = 2 0, 30, 28...)
+                                    current_freq := (2**(nl2-1)*Range_Multiplier) - current_freq;
+                                    --Save summed value
+                                    outr_buf := outr(current_freq) + UNSIGNED(STD_LOGIC_VECTOR(aval));
+                                    --Save measured value
+                                    outr(current_freq) <= outr_buf;
+                                    --Checks which value is smaller and replaces values between with the smaler value
+                                    outr_buf2 := outr(current_freq+Range_Multiplier);
+                                }
+                                bigger     := false;
+                                muchbigger := false;
+
+                                If(outr_buf2 < outr_buf)
+                                {
+                                    bigger := true;
+                                    If(outr_buf2 & "00" < outr_buf)
+                                    {
+                                        muchbigger := true;
+                                    }
+                                    outr_buf := outr_buf2;
+                                }
+                                Else
+                                {
+                                    If(outr_buf & "00" < outr_buf2)
+                                    {
+                                        muchbigger := true;
+                                    }
+                                }
+                                
+                                --Create subvalues
+                                For(i IN 1 to Range_Multiplier-1)
+                                {
+                                    If(muchbigger AND ((i = 1 AND bigger) OR (i = (Range_Multiplier-1) AND NOT bigger)))
+                                    {
+                                        outr(current_freq+i) <= outr_buf(6 downto 0)&'0';
+                                    }
+                                    Else
+                                    {
+                                        outr(current_freq+i) <= outr_buf;
+                                    }
+                                }
+                            }
+                        }
                     }
                     
-                    state <= state + 1;
+                    If(stage = TO_UNSIGNED(2**(sts-1)-1, sts))
+                    {
+                        New_Data <= '1';
+                        state <= (others => '0');
+                    }
+                    Else
+                    {
+                        state <= state + 1;
+                    }
                 }
                 --1-5 = save calculated data from bfout1/2 in data at ind1/2 for next stage
                 When(others)

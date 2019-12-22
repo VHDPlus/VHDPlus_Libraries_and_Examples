@@ -33,6 +33,8 @@ Main
     DIN_O         : OUT STD_LOGIC;
 )
 {
+    CONSTANT volume_divider : NATURAL := 8;  -- lower value = higehr volume
+    
     SIGNAL I2S_Interface_IN_Data_L             : STD_LOGIC_VECTOR (18-1 downto 0);
     SIGNAL I2S_Interface_IN_Data_R             : STD_LOGIC_VECTOR (18-1 downto 0);
     SIGNAL I2S_Interface_IN_Ready              : STD_LOGIC;
@@ -59,9 +61,10 @@ Main
     (
         CLK_Frequency     => 12000000,
         Sample_Frequency  => 10000,
-        Frequency_Numbers => 32,
+        Frequency_Numbers => 16,
+        Range_Multiplier  => 2,
 
-        adc_in            => resize((SIGNED(I2S_Interface_IN_Data_L)+6130)/8, 8),
+        adc_in            => resize((SIGNED(I2S_Interface_IN_Data_L)+6130)/volume_divider, 8),
         New_Data          => Spectrum_Analyzer_New_Data,
         data_o            => Spectrum_Analyzer_data_o,
     );
