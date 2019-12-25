@@ -90,7 +90,7 @@ Class
     )
     {
         oString.Write <= '1';
-        StepFor(VARIABLE appendCount : NATURAL := 0; appendCount < iString.Length; appendCount := appendCount + 1)
+        StepFor(VARIABLE appendCount : NATURAL range 0 to 255 := 0; appendCount < iString.Length; appendCount := appendCount + 1)
         {
             iString.Address <= appendCount;
             Step
@@ -212,7 +212,7 @@ Class
     )
     {
         oNatural <= 0;
-        StepFor(VARIABLE convertCharCount : NATURAL := 0; convertCharCount < iString.Length; convertCharCount := convertCharCount + 1)
+        StepFor(VARIABLE convertCharCount : NATURAL range 0 to 255 := 0; convertCharCount < iString.Length; convertCharCount := convertCharCount + 1)
         {
             iString.Address <= convertCharCount;
             Step
@@ -240,7 +240,7 @@ Class
     )
     {
         oString.Length <= 0;
-        StepFor(VARIABLE substringCount : NATURAL := startindex; substringCount < length+startindex; substringCount := substringCount + 1)
+        StepFor(VARIABLE substringCount : NATURAL range 0 to 255 := startindex; substringCount < length+startindex; substringCount := substringCount + 1)
         {
             iString.Address <= substringCount;
             Step
@@ -267,7 +267,7 @@ Class
     {
         CONSTANT valueVar : STD_LOGIC_VECTOR(valueLen*8-1 downto 0) := value;
         index <= -1;
-        StepFor(VARIABLE indexCount : NATURAL := startIndex; indexCount < iString.Length; indexCount := indexCount + 1)
+        StepFor(VARIABLE indexCount : NATURAL range 0 to 255 := startIndex; indexCount < iString.Length; indexCount := indexCount + 1)
         {
             iString.Address <= indexCount;
             Step
@@ -294,7 +294,7 @@ Class
     )
     {
         iString.Write <= '0';
-        StepFor(VARIABLE StV_i : INTEGER := 0; StV_i < iString.Length; StV_i := StV_i + 1)
+        StepFor(VARIABLE StV_i : NATURAL range 0 to 255 := 0; StV_i < iString.Length; StV_i := StV_i + 1)
         {
             iString.Address <= StV_i;
             Step

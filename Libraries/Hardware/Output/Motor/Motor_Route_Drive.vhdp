@@ -97,10 +97,11 @@ Component Motor_Route_Drive
         Length_Corr_Step    : NATURAL := 25;         --Speed added if Length_L and Length_R are Max_Length_Diff apart (will take Length_Corr_Step encoder edges to go back to normal speed)
         Max_Length_Diff     : NATURAL := 10;         --If Length_L and Length_R are Max_Length_Diff apart Length_Corr_Step is added to speed to correct
         --Accelerate and Brake Settings
-        Accel_Length        : NATURAL := 1;          --100 = 10cm acceleration at the beginning
-        Brake_Length        : NATURAL := 1;          --100 = 10cm braking at the end
-        Accel_Speed         : NATURAL := 1;          --100 = increases speed by 100 while acceleration
-        Brake_Speed         : NATURAL := 1;          --100 = decreases speed by 100 while braking
+        Accel_Length        : NATURAL := 50;         --50  = 5cm acceleration at the beginning
+        Brake_Length        : NATURAL := 50;         --50  = 5cm braking at the end
+        Accel_Speed         : NATURAL := 100;        --100 = increases speed by 100 while acceleration
+        Brake_Speed         : NATURAL := 100;        --100 = decreases speed by 100 while braking
+        Max_Turn_Time       : NATURAL := 2000;       --2000 = If wheel needs longer than 2000ms to turn 360°, it doesn't tries to brake or accelerate & 10x2000ms until an error appears
     );
     Reset           : IN  STD_LOGIC := '0';
     
@@ -127,6 +128,9 @@ Component Motor_Route_Drive
     Route_Speed     : IN  Route_Array(0 to Route_Steps-1) := (0 =>  100, 1 =>  200, 2 =>  255, others => 0); --Speed for the individual steps
     Route_Length    : IN  NATURAL range 0 to Route_Steps := 0; --Number of route steps that should be driven
     Route_Error     : BUFFER STD_LOGIC := '0';  --'1' if there was an error while driving the route
+    
+    ----------------Debug----------------
+    State           : OUT NATURAL range 0 to 255 := 0;
 )
 {
     CONSTANT PWM_Frequency   : NATURAL := 100000;
@@ -165,6 +169,7 @@ Component Motor_Route_Drive
         Brake_Length        => Brake_Length,
         Accel_Speed         => Accel_Speed,
         Brake_Speed         => Brake_Speed,
+        Max_Turn_Time       => Max_Turn_Time,
         
         Reset               => Reset,
         Encoder_L           => Encoder_L,
@@ -186,15 +191,16 @@ Component Motor_Route_Drive
         Error               => Motor_Controller_Error,
         Correction          => Motor_Controller_Correction,
     );
-    
+
     SIGNAL motor_coll : BOOLEAN;
-    --motor_doll <= true when Collision = '1' OR Motor_Controller_Error = '1' else false;
-    motor_coll <= true when Collision = '1' else false;
+    motor_coll <= true when Collision = '1' OR Motor_Controller_Error = '1' else false;
+    --motor_coll <= true when Collision = '1' else false;
     
     Process ()
     {
         Thread
         {
+            State <= 0;
             While(Route_Start = '0') {} --wait while Route_Start '0'
             Route_Error <= '0';
             Route_Finished <= '0';
@@ -204,6 +210,7 @@ Component Motor_Route_Drive
                 Motor_Controller_Drive_L <= Route_L(i);
                 Motor_Controller_Drive_R <= Route_R(i);
                 Motor_Controller_Drive_Speed <= Route_Speed(i);
+                State <= 32 + i;
                 
                 --start driving
                 NewFunction startRoute (Motor_Controller_RST_Drive, Motor_Controller_Finished);
@@ -212,6 +219,7 @@ Component Motor_Route_Drive
                     VARIABLE l_left   : NATURAL range 0 to Max_Length := 0;
                     VARIABLE r_left   : NATURAL range 0 to Max_Length := 0;
                     VARIABLE x_offset : INTEGER range (-1) * Max_Length to Max_Length := 0;
+                    x_offset := 0;
                     If(motor_coll)
                     {
                         --save left over length
@@ -220,28 +228,44 @@ Component Motor_Route_Drive
                         If(Route_L(i) < 0) { l_left := l_left * (-1); }
                         If(Route_R(i) < 0) { r_left := r_left * (-1); }
                         
+                        State <= 1;
+                        
                         --Drive back
                         NewFunction Drive_Back (Back_Length, Back_Speed, Motor_Controller_Drive_L, Motor_Controller_Drive_R, Motor_Controller_Drive_Speed, Motor_Controller_RST_Drive, Motor_Controller_Finished);
                         l_left := l_left + Back_Length;
                         r_left := r_left + Back_Length;
-                        If(Side_Distances)
+                        
+                        --Turn left
+                        NewFunction Turn_Left  (Turn_Length, Turn_Speed, Motor_Controller_Drive_L, Motor_Controller_Drive_R, Motor_Controller_Drive_Speed, Motor_Controller_RST_Drive, Motor_Controller_Finished);
+                        VARIABLE Route_Clear    : BOOLEAN := false;
+                        SIGNAL   Left_Not_Clear   : BOOLEAN := false;
+                        VARIABLE clear_before : BOOLEAN := false;
+                        Left_Not_Clear <= false;
+                        Route_Clear    := false;
+                        clear_before   := false;
+                        --Drive til route clear
+                        While(NOT Route_Clear AND Route_Error = '0')
                         {
-                            --Turn left
-                            NewFunction Turn_Left  (Turn_Length, Turn_Speed, Motor_Controller_Drive_L, Motor_Controller_Drive_R, Motor_Controller_Drive_Speed, Motor_Controller_RST_Drive, Motor_Controller_Finished);
-                            Left_Not_Clear <= false;
-                            Route_Clear    := false;
-                            --Drive til route clear
-                            While(NOT Route_Clear)
+                            Motor_Controller_Drive_L <= Check_Distance;
+                            Motor_Controller_Drive_R <= Check_Distance;
+                            Motor_Controller_Drive_Speed <= Back_Speed;
+                            State <= 2;
+                            NewFunction startRoute (Motor_Controller_RST_Drive, Motor_Controller_Finished);
+                            While(Motor_Controller_Finished = '0' AND Route_Error = '0')
                             {
-                                Motor_Controller_Drive_L <= Check_Distance;
-                                Motor_Controller_Drive_R <= Check_Distance;
-                                Motor_Controller_Drive_Speed <= Back_Speed;
-                                NewFunction startRoute (Motor_Controller_RST_Drive, Motor_Controller_Finished);
-                                While(Motor_Controller_Finished = '0' AND Route_Error = '0')
+                                --Check if left route is not clear
+                                If(motor_coll)
                                 {
-                                    --Check if left route is not clear
-                                    If(motor_coll)
+                                    If(Left_Not_Clear)
                                     {
+                                        State <= 3;
+                                        Route_Error <= '1';
+                                        Motor_Controller_Drive_L <= 0;
+                                        Motor_Controller_Drive_R <= 0;
+                                    }
+                                    Else
+                                    {
+                                        State <= 4;
                                         Left_Not_Clear <= true;
                                         x_offset       := x_offset + Motor_Controller_Driven_R - Back_Length;
                                         --Drive Back
@@ -258,223 +282,130 @@ Component Motor_Route_Drive
                                         {
                                             If(motor_coll)
                                             {
+                                                State <= 5;
                                                 Route_Error <= '1';
                                                 Motor_Controller_Drive_L <= 0;
                                                 Motor_Controller_Drive_R <= 0;
                                             }
                                         }
-                                    }
-                                }
-                                --Check if the robot can drive the rest of the route
-                                If(Route_Error = '0')
-                                {
-                                    x_offset := x_offset + Check_Distance;
-
-                                    --Checks if there is enought space to go past the object
-                                    If((Left_Not_Clear AND Distance_L*10 > l_left) OR (NOT Left_Not_Clear AND Distance_R*10 > l_left))
-                                    {
-                                        --If yes, it still drives one time further to the side, so the robot has enought space on the side
-                                        If(clear_before)
-                                        {
-                                            NewFunction Turn_Right_Check (Left_Not_Clear, Turn_Length, Turn_Speed, Motor_Controller_Drive_L, Motor_Controller_Drive_R, Motor_Controller_Drive_Speed, Motor_Controller_RST_Drive, Motor_Controller_Finished);
-                                            
-                                            --Drive left over route
-                                            failed := false;
-                                            clear_before := false;
-                                            Motor_Controller_Drive_L <= l_left;
-                                            Motor_Controller_Drive_R <= r_left;
-                                            Motor_Controller_Drive_Speed <= Route_Speed(i);
-                                            NewFunction startRoute (Motor_Controller_RST_Drive, Motor_Controller_Finished);
-                                            While(Motor_Controller_Finished = '0')
-                                            {
-                                                --Drive back if the object is still there
-                                                If(motor_coll)
-                                                {
-                                                    failed := true;
-                                                    Motor_Controller_Drive_L <= Motor_Controller_Driven_L * (-1);
-                                                    Motor_Controller_Drive_R <= Motor_Controller_Driven_R * (-1);
-                                                    Motor_Controller_Drive_Speed <= Back_Speed;
-                                                    NewFunction driveRoute (Motor_Controller_RST_Drive, Motor_Controller_Finished);
-                                                }
-                                            }
-                                            --if drove past the object, go back to initial x_offset
-                                            If(NOT failed)
-                                            {
-                                                --Turn in other direction to correct x_offset
-                                                NewFunction Turn_Right_Check (Left_Not_Clear, Turn_Length, Turn_Speed, Motor_Controller_Drive_L, Motor_Controller_Drive_R, Motor_Controller_Drive_Speed, Motor_Controller_RST_Drive, Motor_Controller_Finished);
-                                                
-                                                --Drive back to start + check distance
-                                                Motor_Controller_Drive_L <= x_offset;
-                                                Motor_Controller_Drive_R <= x_offset;
-                                                Motor_Controller_Drive_Speed <= Back_Speed;
-                                                NewFunction startRoute (Motor_Controller_RST_Drive, Motor_Controller_Finished);
-                                                While(Motor_Controller_Finished = '0' AND Route_Error = '0')
-                                                {
-                                                    If(motor_coll)
-                                                    {
-                                                        Route_Error <= '1';
-                                                        Motor_Controller_Drive_L <= 0;
-                                                        Motor_Controller_Drive_R <= 0;
-                                                    }
-                                                }
-                                                --Turn in initial position
-                                                NewFunction Turn_Left_Check (Left_Not_Clear, Turn_Length, Turn_Speed, Motor_Controller_Drive_L, Motor_Controller_Drive_R, Motor_Controller_Drive_Speed, Motor_Controller_RST_Drive, Motor_Controller_Finished);
-                                            }
-                                            Else
-                                            {
-                                                --Turn back
-                                                NewFunction Turn_Left_Check (Left_Not_Clear, Turn_Length, Turn_Speed, Motor_Controller_Drive_L, Motor_Controller_Drive_R, Motor_Controller_Drive_Speed, Motor_Controller_RST_Drive, Motor_Controller_Finished);
-                                            }
-                                        }
-                                        Else
-                                        {
-                                            clear_before := true;
-                                            failed := true;
-                                        }
-                                    }
-                                    Else
-                                    {
-                                        clear_before := false;
-                                        failed := true;
-                                    }
-
-                                    --Check if could drive route
-                                    If(NOT failed)
-                                    {
-                                        Route_Clear := true;
                                     }
                                 }
                             }
-                        }
-                        Else
-                        {
-                            --Turn left
-                            NewFunction Turn_Left  (Turn_Length, Turn_Speed, Motor_Controller_Drive_L, Motor_Controller_Drive_R, Motor_Controller_Drive_Speed, Motor_Controller_RST_Drive, Motor_Controller_Finished);
-                            VARIABLE Route_Clear    : BOOLEAN := false;
-                            SIGNAL Left_Not_Clear   : BOOLEAN := false;
-                            Left_Not_Clear <= false;
-                            Route_Clear    := false;
-                            --Drive til route clear
-                            While(NOT Route_Clear)
+                            --Check if the robot can drive the rest of the route
+                            If(Route_Error = '0')
                             {
-                                Motor_Controller_Drive_L <= Check_Distance;
-                                Motor_Controller_Drive_R <= Check_Distance;
-                                Motor_Controller_Drive_Speed <= Back_Speed;
-                                NewFunction startRoute (Motor_Controller_RST_Drive, Motor_Controller_Finished);
-                                While(Motor_Controller_Finished = '0' AND Route_Error = '0')
+                                x_offset := x_offset + Check_Distance;
+                                State    <= 6;
+                                VARIABLE failed : BOOLEAN := false;
+                                failed   := false;
+                                
+                                If(NOT Side_Distances)
                                 {
-                                    --Check if left route is not clear
-                                    If(motor_coll)
+                                    NewFunction Turn_Right_Check (Left_Not_Clear, Turn_Length, Turn_Speed, Motor_Controller_Drive_L, Motor_Controller_Drive_R, Motor_Controller_Drive_Speed, Motor_Controller_RST_Drive, Motor_Controller_Finished);
+                                }
+
+                                --Checks if there is enought space to go past the object
+                                If((Distance_F*10 > l_left AND NOT Side_Distances) OR (((Left_Not_Clear AND Distance_L*10 > l_left) OR (NOT Left_Not_Clear AND Distance_R*10 > l_left)) AND Side_Distances))
+                                {
+                                    --If yes, it still drives one time further to the side, so the robot has enought space on the side
+                                    If(clear_before)
                                     {
-                                        Left_Not_Clear <= true;
-                                        x_offset       := x_offset + Motor_Controller_Driven_R - Back_Length;
-                                        --Drive Back
-                                        NewFunction Drive_Back (Back_Length, Back_Speed, Motor_Controller_Drive_L, Motor_Controller_Drive_R, Motor_Controller_Drive_Speed, Motor_Controller_RST_Drive, Motor_Controller_Finished);
-                                        --Turn right 180°
-                                        NewFunction Turn_Right  (Turn_Length*2, Turn_Speed, Motor_Controller_Drive_L, Motor_Controller_Drive_R, Motor_Controller_Drive_Speed, Motor_Controller_RST_Drive, Motor_Controller_Finished);
-                                        --Drive back to start + check distance
-                                        Motor_Controller_Drive_L <= x_offset + Check_Distance;
-                                        Motor_Controller_Drive_R <= x_offset + Check_Distance;
-                                        Motor_Controller_Drive_Speed <= Back_Speed;
-                                        NewFunction startRoute (Motor_Controller_RST_Drive, Motor_Controller_Finished);
-                                        x_offset := Check_Distance;
-                                        While(Motor_Controller_Finished = '0' AND Route_Error = '0')
+                                        If(Side_Distances)
                                         {
+                                            NewFunction Turn_Right_Check (Left_Not_Clear, Turn_Length, Turn_Speed, Motor_Controller_Drive_L, Motor_Controller_Drive_R, Motor_Controller_Drive_Speed, Motor_Controller_RST_Drive, Motor_Controller_Finished);
+                                        }
+                                        
+                                        State <= 7;
+                                        
+                                        --Drive left over route
+                                        clear_before := false;
+                                        Motor_Controller_Drive_L <= l_left;
+                                        Motor_Controller_Drive_R <= r_left;
+                                        Motor_Controller_Drive_Speed <= Route_Speed(i);
+                                        NewFunction startRoute (Motor_Controller_RST_Drive, Motor_Controller_Finished);
+                                        While(Motor_Controller_Finished = '0')
+                                        {
+                                            --Drive back if the object is still there
                                             If(motor_coll)
                                             {
-                                                Route_Error <= '1';
-                                                Motor_Controller_Drive_L <= 0;
-                                                Motor_Controller_Drive_R <= 0;
+                                                State <= 8;
+                                                failed := true;
+                                                Motor_Controller_Drive_L <= Motor_Controller_Driven_L * (-1);
+                                                Motor_Controller_Drive_R <= Motor_Controller_Driven_R * (-1);
+                                                Motor_Controller_Drive_Speed <= Back_Speed;
+                                                NewFunction driveRoute (Motor_Controller_RST_Drive, Motor_Controller_Finished);
                                             }
                                         }
-                                    }
-                                }
-                                --Check if the robot can drive the rest of the route
-                                If(Route_Error = '0')
-                                {
-                                    x_offset := x_offset + Check_Distance;
-                                    
-                                    NewFunction Turn_Right_Check (Left_Not_Clear, Turn_Length, Turn_Speed, Motor_Controller_Drive_L, Motor_Controller_Drive_R, Motor_Controller_Drive_Speed, Motor_Controller_RST_Drive, Motor_Controller_Finished);
-                                    
-                                    VARIABLE clear_before : BOOLEAN := false;
-                                    --Checks if there is enought space to go past the object
-                                    If(Distance_F*10 > l_left)
-                                    {
-                                        --If yes, it still drives one time further to the side, so the robot has enought space on the side
-                                        If(clear_before)
+                                        --if drove past the object, go back to initial x_offset
+                                        If(NOT failed)
                                         {
-                                            --Drive left over route
-                                            failed := false;
-                                            clear_before := false;
-                                            Motor_Controller_Drive_L <= l_left;
-                                            Motor_Controller_Drive_R <= r_left;
-                                            Motor_Controller_Drive_Speed <= Route_Speed(i);
+                                            State <= 9;
+                                            
+                                            --Turn in other direction to correct x_offset
+                                            NewFunction Turn_Right_Check (Left_Not_Clear, Turn_Length, Turn_Speed, Motor_Controller_Drive_L, Motor_Controller_Drive_R, Motor_Controller_Drive_Speed, Motor_Controller_RST_Drive, Motor_Controller_Finished);
+                                            
+                                            --Drive back to start + check distance
+                                            Motor_Controller_Drive_L <= x_offset;
+                                            Motor_Controller_Drive_R <= x_offset;
+                                            Motor_Controller_Drive_Speed <= Back_Speed;
                                             NewFunction startRoute (Motor_Controller_RST_Drive, Motor_Controller_Finished);
-                                            While(Motor_Controller_Finished = '0')
+                                            While(Motor_Controller_Finished = '0' AND Route_Error = '0')
                                             {
-                                                --Drive back if the object is still there
                                                 If(motor_coll)
                                                 {
-                                                    VARIABLE failed : BOOLEAN := false;
+                                                    State <= 10;
                                                     failed := true;
-                                                    Motor_Controller_Drive_L <= Motor_Controller_Driven_L * (-1);
-                                                    Motor_Controller_Drive_R <= Motor_Controller_Driven_R * (-1);
-                                                    Motor_Controller_Drive_Speed <= Back_Speed;
-                                                    NewFunction driveRoute (Motor_Controller_RST_Drive, Motor_Controller_Finished);
+                                                    Route_Error <= '1';
+                                                    Motor_Controller_Drive_L <= 0;
+                                                    Motor_Controller_Drive_R <= 0;
                                                 }
                                             }
-                                            --if drove past the object, go back to initial x_offset
-                                            If(NOT failed)
+                                            If(Route_Error = '0')
                                             {
-                                                --Turn in other direction to correct x_offset
-                                                NewFunction Turn_Right_Check (Left_Not_Clear, Turn_Length, Turn_Speed, Motor_Controller_Drive_L, Motor_Controller_Drive_R, Motor_Controller_Drive_Speed, Motor_Controller_RST_Drive, Motor_Controller_Finished);
-                                                
-                                                --Drive back to start + check distance
-                                                Motor_Controller_Drive_L <= x_offset;
-                                                Motor_Controller_Drive_R <= x_offset;
-                                                Motor_Controller_Drive_Speed <= Back_Speed;
-                                                NewFunction startRoute (Motor_Controller_RST_Drive, Motor_Controller_Finished);
-                                                While(Motor_Controller_Finished = '0' AND Route_Error = '0')
-                                                {
-                                                    If(motor_coll)
-                                                    {
-                                                        Route_Error <= '1';
-                                                        Motor_Controller_Drive_L <= 0;
-                                                        Motor_Controller_Drive_R <= 0;
-                                                    }
-                                                }
+                                                State <= 11;
                                                 --Turn in initial position
                                                 NewFunction Turn_Left_Check (Left_Not_Clear, Turn_Length, Turn_Speed, Motor_Controller_Drive_L, Motor_Controller_Drive_R, Motor_Controller_Drive_Speed, Motor_Controller_RST_Drive, Motor_Controller_Finished);
                                             }
                                         }
-                                        Else
+                                        Elsif(Side_Distances)
                                         {
-                                            clear_before := true;
-                                            failed := true;
+                                            --Turn back
+                                            NewFunction Turn_Left_Check (Left_Not_Clear, Turn_Length, Turn_Speed, Motor_Controller_Drive_L, Motor_Controller_Drive_R, Motor_Controller_Drive_Speed, Motor_Controller_RST_Drive, Motor_Controller_Finished);
                                         }
                                     }
                                     Else
                                     {
-                                        clear_before := false;
+                                        clear_before := true;
                                         failed := true;
                                     }
+                                }
+                                Else
+                                {
+                                    clear_before := false;
+                                    failed := true;
+                                }
 
-                                    --Check if could drive route
-                                    If(failed)
+                                --Check if could drive route
+                                If(failed)
+                                {
+                                    State <= 12;
+                                    If(NOT Side_Distances)
                                     {
                                         --Turn back
                                         NewFunction Turn_Left_Check (Left_Not_Clear, Turn_Length, Turn_Speed, Motor_Controller_Drive_L, Motor_Controller_Drive_R, Motor_Controller_Drive_Speed, Motor_Controller_RST_Drive, Motor_Controller_Finished);
                                     }
-                                    Else
-                                    {
-                                        Route_Clear := true;
-                                    }
+                                }
+                                Else
+                                {
+                                    State <= 13;
+                                    Route_Clear := true;
                                 }
                             }
                         }
                     }
                 }
             }
+            State <= 12;
             Route_Finished <= '1';
             While(Route_Start = '1') {} --wait while Start is '1'
         }

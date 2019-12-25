@@ -111,6 +111,7 @@ Component Motor_Controller
         Brake_Length        : NATURAL := 1;          --100 = 10cm braking at the end
         Accel_Speed         : NATURAL := 1;          --100 = increases speed by 100 while acceleration
         Brake_Speed         : NATURAL := 1;          --100 = decreases speed by 100 while braking
+        Max_Turn_Time       : NATURAL := 2000;       --2000 = If wheel needs longer than 2000ms to turn 360°, it doesn't tries to brake or accelerate
     );
     Reset           : IN  STD_LOGIC := '0';
     
@@ -147,7 +148,7 @@ Component Motor_Controller
 {
     AttributeDeclaration
     {
-        CONSTANT Max_Time : NATURAL := 1000000;
+        CONSTANT Max_Time : NATURAL := Max_Turn_Time*10000/(Holes_In_Disk*Gear_Ratio);
         
         SIGNAL Motor_Left_PWM       : STD_LOGIC := '0';
         SIGNAL Motor_Left_Speed     : STD_LOGIC_VECTOR(Bits_Resolution-1 DOWNTO 0) := (others => '0');
@@ -292,13 +293,20 @@ Component Motor_Controller
         }
         Else
         {
-            If(Length_Left > abs(Drive_L)-Brake_Length)
+            If(Holes_In_Disk*Gear_Ratio*Time_Left < Max_Turn_Time*1000)
             {
-                Accel_Brake_L <= (Brake_Length-(abs(Drive_L)-Length_Left))*(Brake_Speed/Brake_Length);
-            }
-            ElsIf(Length_Left < Accel_Length)
-            {
-                Accel_Brake_L <= (Accel_Length-Length_Left)*(Accel_Speed/Accel_Length);
+                If(Length_Left > abs(Drive_L)-Brake_Length)
+                {
+                    Accel_Brake_L <= (Brake_Length-(abs(Drive_L)-Length_Left))*(Brake_Speed/Brake_Length);
+                }
+                ElsIf(Length_Left < Accel_Length)
+                {
+                    Accel_Brake_L <= (Accel_Length-Length_Left)*(Accel_Speed/Accel_Length);
+                }
+                Else
+                {
+                    Accel_Brake_L <= 0;
+                }
             }
             Else
             {
@@ -315,13 +323,20 @@ Component Motor_Controller
         }
         Else
         {
-            If(Length_Right > abs(Drive_R)-Brake_Length)
+            If(Holes_In_Disk*Gear_Ratio*Time_Right < Max_Turn_Time*1000)
             {
-                Accel_Brake_R <= (Brake_Length-(abs(Drive_R)-Length_Right))*(Brake_Speed/Brake_Length);
-            }
-            ElsIf(Length_Right < Accel_Length)
-            {
-                Accel_Brake_R <= (Accel_Length-Length_Right)*(Accel_Speed/Accel_Length);
+                If(Length_Right > abs(Drive_R)-Brake_Length)
+                {
+                    Accel_Brake_R <= (Brake_Length-(abs(Drive_R)-Length_Right))*(Brake_Speed/Brake_Length);
+                }
+                ElsIf(Length_Right < Accel_Length)
+                {
+                    Accel_Brake_R <= (Accel_Length-Length_Right)*(Accel_Speed/Accel_Length);
+                }
+                Else
+                {
+                    Accel_Brake_R <= 0;
+                }
             }
             Else
             {
@@ -433,7 +448,7 @@ Component Motor_Controller
             }
             
             --Outputs error if start time over, a motor doesn't turn and the motor isn't ready with the route
-            If(Error_Out = '0' AND start_count = Error_Delay*(CLK_Frequency/1000))
+            If(Error_Out = '0' AND start_count = Error_Delay*(CLK_Frequency/1000) AND Accel_Brake_L = 0 AND Accel_Brake_R = 0)
             {
                 problem_side := 0;
                 If(Time_Right = Max_Time AND abs(Drive_R) > Length_Right)
