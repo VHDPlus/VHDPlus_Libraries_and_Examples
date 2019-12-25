@@ -3,25 +3,6 @@
   <Header>Camera_Example</Header>
   <fileWatcherIgnore />
   <Items xsi:type="ProjectFolder">
-    <Header>Generated</Header>
-    <fileWatcherIgnore />
-    <Items xsi:type="ProjectFile">
-      <Header>Camera_Capture.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>Camera_Controller.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>Camera_Example.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>I2C_Master_Interface.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>PWM_Generator.vhd</Header>
-    </Items>
-  </Items>
-  <Items xsi:type="ProjectFolder">
     <Header>Libraries</Header>
     <fileWatcherIgnore />
     <Items xsi:type="ProjectFolder">

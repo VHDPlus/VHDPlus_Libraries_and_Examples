@@ -1,0 +1,10 @@
+Package String_Type_Package
+{
+    TYPE String_Type IS RECORD
+    Length   : NATURAL range 0 to 256;
+    Write    : STD_LOGIC;
+    Address  : NATURAL range 0 to 255;
+    Data_OUT : STD_LOGIC_VECTOR (7 downto 0);
+    Data_IN  : STD_LOGIC_VECTOR (7 downto 0);
+    END RECORD String_Type;
+}
