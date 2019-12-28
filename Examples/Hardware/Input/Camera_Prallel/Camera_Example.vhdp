@@ -44,10 +44,6 @@ Main
     VGA_B       : OUT    STD_LOGIC_VECTOR (3 downto 0);
     VGA_HS      : OUT    STD_LOGIC;
     VGA_VS      : OUT    STD_LOGIC;
-    
-    LED         : OUT    STD_LOGIC_VECTOR (7 downto 0);
-    
-    BTN         : IN     STD_LOGIC;
 )
 {
     ------------Convert the VGA input data into pixel value and position data------------

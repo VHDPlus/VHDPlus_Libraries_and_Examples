@@ -1,139 +1,321 @@
 Component Camera_CSI_Interface
 (
-    c_lane  : IN STD_LOGIC_VECTOR(1 downto 0);
-    d_lane1 : IN STD_LOGIC_VECTOR(1 downto 0);
-    d_lane2 : IN STD_LOGIC_VECTOR(1 downto 0);
+    Generic
+    (
+        CLK_Frequency : NATURAL := 12000000;
+    );
     
-    pixelData : OUT STD_LOGIC_VECTOR (23 downto 0);
-    newPixel  : OUT STD_LOGIC := '0';
-    newLine   : OUT STD_LOGIC := '0';
+    Reset     : IN STD_LOGIC := '0';
+    
+    iMIPI_CLK : IN STD_LOGIC;
+    iMIPI_D   : IN STD_LOGIC_VECTOR(1 downto 0);
+    bMIPI_GP  : INOUT STD_LOGIC_VECTOR(1 downto 0);
+    
+    bMIPI_SCL : INOUT STD_LOGIC;
+    bMIPI_SDA : INOUT STD_LOGIC;
+    
+    PixelData : OUT STD_LOGIC_VECTOR (23 downto 0);
+    Column    : BUFFER NATURAL range 0 to 639 := 0;
+    Row       : BUFFER NATURAL range 0 to 479 := 0;
 )
 {
     Connections
     {
-        c_lane,
-        d_lane1,
-        d_lane2,
+        iMIPI_CLK,
+        iMIPI_D,
+        bMIPI_GP,
+        bMIPI_SCL,
+        bMIPI_SDA,
     }
     
-    SIGNAL bitCLK : STD_LOGIC;
-    bitCLK <= c_lane(1);
-    
-    SIGNAL data_o1  : STD_LOGIC_VECTOR (7 downto 0);
-    SIGNAL new_b1   : STD_LOGIC;
-    SIGNAL state1   : INTEGER          range 0 to 15;
-    NewComponent CSI_Data_Deserializer
-    (
-        d_lane  => d_lane1,
-        bit_clk => bitCLK,
-        data_o  => data_o1,
-        new_b   => new_b1,
-        state   => state1,
-    );
-    
-    SIGNAL data_o2  : STD_LOGIC_VECTOR (7 downto 0);
-    SIGNAL new_b2   : STD_LOGIC;
-    SIGNAL state2   : INTEGER          range 0 to 15;
-    NewComponent CSI_Data_Deserializer
-    (
-        d_lane  => d_lane2,
-        bit_clk => bitCLK,
-        data_o  => data_o2,
-        new_b   => new_b2,
-        state   => state2,
-    );
-    
-    SIGNAL dataID    : STD_LOGIC_VECTOR (7 downto 0);
-    SIGNAL wordCount : STD_LOGIC_VECTOR (15 downto 0);
-    SIGNAL ErrCorr   : STD_LOGIC_VECTOR (7 downto 0);
-    SIGNAL checksum  : STD_LOGIC_VECTOR (15 downto 0);
-    
-    Process ()
+    AttributeDeclaration
     {
-        If(rising_edge(bitCLK))
+        SIGNAL oMIPI_DATA       : STD_LOGIC_VECTOR (23 downto 0);
+        SIGNAL oMIPI_START      : STD_LOGIC;
+        SIGNAL oMIPI_DATA_VALID : STD_LOGIC;
+        
+        VHDL
         {
-            VARIABLE b_reg1 : STD_LOGIC;
-            VARIABLE b_reg2 : STD_LOGIC;
+            COMPONENT MIPI_RX IS
+            PORT (
+                iMIPI_D          : IN STD_LOGIC_VECTOR (1 downto 0);
+                iMIPI_CLK        : IN STD_LOGIC;
+                
+                oMIPI_DATA       : OUT STD_LOGIC_VECTOR (23 downto 0);
+                oMIPI_START      : OUT STD_LOGIC;
+                oMIPI_DATA_VALID : OUT STD_LOGIC
+
+            );
+            END COMPONENT;
+        }
+    }
+    
+    VHDL
+    {
+        RX1 : MIPI_RX PORT MAP(
+            iMIPI_D          => iMIPI_D,
+            iMIPI_CLK        => iMIPI_CLK,
             
-            VARIABLE byteCount : INTEGER := 0;
-            VARIABLE bitCount  : INTEGER range 0 to 2 := 0;
-            
-            If(byteCount mod 2 = 0)
+            oMIPI_DATA       => oMIPI_DATA,
+            oMIPI_START      => oMIPI_START,
+            oMIPI_DATA_VALID => oMIPI_DATA_VALID
+        );
+    }
+    
+    PixelData <= oMIPI_DATA;
+    
+    Process Cam_RX ()
+    {
+        If(rising_edge(oMIPI_DATA_VALID))
+        {
+            If(oMIPI_START = '1')
             {
-                If(b_reg1 /= new_b1)
-                {
-                    If(byteCount = 0)
-                    {
-                        dataID <= data_o1;
-                        newLine <= '1';
-                    }
-                    Elsif(byteCount = 2)
-                    {
-                        wordCount(15 downto 8) <= data_o1;
-                    }
-                    Elsif(byteCount < TO_INTEGER(SIGNED(wordCount))+3)
-                    {
-                        pixelData((bitCount+1)*8-1 downto bitCount*8) <= data_o1;
-                        If(bitCount < 2)
-                        {
-                            bitCount := bitCount + 1;
-                            newPixel <= '0';
-                        }
-                        Else
-                        {
-                            bitCount := 0;
-                            newPixel <= '1';
-                        }
-                    }
-                    Else
-                    {
-                        checksum(7 downto 0) <= data_o1;
-                    }
-                    byteCount := byteCount + 1;
-                }
-                b_reg1 := new_b1;
+                Column <= 0;
+                Row    <= 0;
             }
             Else
             {
-                If(b_reg2 /= new_b2)
+                If(Column < 639)
                 {
-                    If(byteCount = 1)
-                    {
-                        wordCount(7 downto 0) <= data_o2;
-                        newLine <= '0';
-                    }
-                    Elsif(byteCount = 3)
-                    {
-                        ErrCorr <= data_o2;
-                    }
-                    Elsif(byteCount < TO_INTEGER(SIGNED(wordCount))+3)
-                    {
-                        pixelData((bitCount+1)*8-1 downto bitCount*8) <= data_o2;
-                        If(bitCount < 2)
-                        {
-                            bitCount := bitCount + 1;
-                            newPixel <= '0';
-                        }
-                        Else
-                        {
-                            bitCount := 0;
-                            newPixel <= '1';
-                        }
-                    }
-                    Else
-                    {
-                        checksum(15 downto 8) <= data_o2;
-                    }
-                    byteCount := byteCount + 1;
+                    Column <= Column + 1;
                 }
-                b_reg2 := new_b2;
-            }
-            
-            If(state1 = 0 AND state2 = 0)
-            {
-                byteCount := 0;
-                bitCount := 0;
+                Else
+                {
+                    If(Row < 479)
+                    {
+                        Row    <= Row + 1;
+                        Column <= 0;
+                    }
+                }
             }
         }
     }
+    
+    bMIPI_GP(0) <= '1';
+    
+    Process Cam_Init
+    (
+        VARIABLE state  : NATURAL range 0 to 7 := 7;
+        VARIABLE count  : NATURAL range 0 to CLK_Frequency/1000 := 0;
+        VARIABLE repeat : NATURAL range 0 to 1 := 0;
+    )
+    {
+        If(Reset = '1')
+        {
+            address <= (others => '0');
+            state := 7;
+            count := 0;
+            I2C_Master_Interface_Enable <= '0';
+        }
+        Else
+        {
+            If(state = 0)
+            {
+                I2C_Master_Interface_Address <= "0110110";
+                I2C_Master_Interface_RW      <= '0';
+                I2C_Master_Interface_Data_Wr <= sreg(23 downto 16);
+                I2C_Master_Interface_Enable  <= '1';
+                state := 1;
+            }
+            Elsif(state = 1)
+            {
+                If(I2C_Master_Interface_Busy = '1')
+                {
+                    I2C_Master_Interface_Data_Wr <= sreg(15 downto 8);
+                    state := 2;
+                }
+            }
+            Elsif(state = 2)
+            {
+                If(I2C_Master_Interface_Busy = '0')
+                {
+                    state := 3;
+                }
+            }
+            Elsif(state = 3)
+            {
+                If(I2C_Master_Interface_Busy = '1')
+                {
+                    I2C_Master_Interface_Data_Wr <= sreg(7 downto 0);
+                    state := 4;
+                }
+            }
+            Elsif(state = 4)
+            {
+                If(I2C_Master_Interface_Busy = '0')
+                {
+                    I2C_Master_Interface_Enable  <= '0';
+                    state := 5;
+                }
+            }
+            Elsif(state = 5)
+            {
+                If(I2C_Master_Interface_Busy = '1')
+                {
+                    state := 6;
+                }
+            }
+            Elsif(state = 6)
+            {
+                If(I2C_Master_Interface_Busy = '0')
+                {
+                    If(address /= x"5F")
+                    {
+                        address <= STD_LOGIC_VECTOR(UNSIGNED(address)+1);
+                        state   := 7;
+                    }
+                    Elsif(repeat < 1)
+                    {
+                        address <= (others => '0');
+                        state   := 7;
+                        repeat  := repeat + 1;
+                    }
+                }
+            }
+            Else
+            {
+                If(count < CLK_Frequency/1000)
+                {
+                    count := count + 1;
+                }
+                Else
+                {
+                    count := 0;
+                    state := 0;
+                }
+            }
+        }
+    }
+    
+    SIGNAL address : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    SIGNAL sreg    : STD_LOGIC_VECTOR(23 downto 0) := x"000000";
+    
+    Process Cam_Init_Register ()
+    {
+        Case(address)
+        {
+            When(x"00"){ sreg <=  x"010000"; } --Standby
+            When(x"01"){ sreg <=  x"010301"; }
+            When(x"02"){ sreg <=  x"303408"; }
+            When(x"03"){ sreg <=  x"303541"; }
+            When(x"04"){ sreg <=  x"303646"; }
+            When(x"05"){ sreg <=  x"303c11"; }
+            When(x"06"){ sreg <=  x"3106f5"; }
+            When(x"07"){ sreg <=  x"382107"; }
+            When(x"08"){ sreg <=  x"382041"; }
+            When(x"09"){ sreg <=  x"3827ec"; }
+            When(x"0A"){ sreg <=  x"370c0f"; }
+            When(x"0B"){ sreg <=  x"361259"; }
+            When(x"0C"){ sreg <=  x"361800"; }
+            When(x"0D"){ sreg <=  x"500006"; }
+            When(x"0E"){ sreg <=  x"500100"; }
+            When(x"0F"){ sreg <=  x"500240"; }
+            When(x"10"){ sreg <=  x"500308"; }
+            When(x"11"){ sreg <=  x"5a0008"; }
+            When(x"12"){ sreg <=  x"300000"; }
+            When(x"13"){ sreg <=  x"300100"; }
+            When(x"14"){ sreg <=  x"300200"; }
+            When(x"15"){ sreg <=  x"301608"; }
+            When(x"16"){ sreg <=  x"3017e0"; }
+            When(x"17"){ sreg <=  x"301844"; }
+            When(x"18"){ sreg <=  x"301cf8"; }
+            When(x"19"){ sreg <=  x"301df0"; }
+            When(x"1A"){ sreg <=  x"3a1800"; }
+            When(x"1B"){ sreg <=  x"3a19f8"; }
+            When(x"1C"){ sreg <=  x"3c0180"; }
+            When(x"1D"){ sreg <=  x"3b070c"; }
+            When(x"1E"){ sreg <=  x"380c07"; }
+            When(x"1F"){ sreg <=  x"380d68"; }
+            When(x"20"){ sreg <=  x"380e03"; }
+            When(x"21"){ sreg <=  x"380fd8"; }
+            When(x"22"){ sreg <=  x"381431"; }
+            When(x"23"){ sreg <=  x"381531"; }
+            When(x"24"){ sreg <=  x"370864"; }
+            When(x"25"){ sreg <=  x"370952"; }
+            When(x"26"){ sreg <=  x"380802"; }
+            When(x"27"){ sreg <=  x"380980"; }
+            When(x"28"){ sreg <=  x"380a01"; }
+            When(x"29"){ sreg <=  x"380be0"; }
+            When(x"2A"){ sreg <=  x"380000"; }
+            When(x"2B"){ sreg <=  x"380100"; }
+            When(x"2C"){ sreg <=  x"380200"; }
+            When(x"2D"){ sreg <=  x"380300"; }
+            When(x"2E"){ sreg <=  x"38040a"; }
+            When(x"2F"){ sreg <=  x"38053f"; }
+            When(x"30"){ sreg <=  x"380607"; }
+            When(x"31"){ sreg <=  x"3807a1"; }
+            When(x"32"){ sreg <=  x"381108"; }
+            When(x"33"){ sreg <=  x"381302"; }
+            When(x"34"){ sreg <=  x"36302e"; }
+            When(x"35"){ sreg <=  x"3632e2"; }
+            When(x"36"){ sreg <=  x"363323"; }
+            When(x"37"){ sreg <=  x"363444"; }
+            When(x"38"){ sreg <=  x"363606"; }
+            When(x"39"){ sreg <=  x"362064"; }
+            When(x"3A"){ sreg <=  x"3621e0"; }
+            When(x"3B"){ sreg <=  x"360037"; }
+            When(x"3C"){ sreg <=  x"3704a0"; }
+            When(x"3D"){ sreg <=  x"37035a"; }
+            When(x"3E"){ sreg <=  x"371578"; }
+            When(x"3F"){ sreg <=  x"371701"; }
+            When(x"40"){ sreg <=  x"373102"; }
+            When(x"41"){ sreg <=  x"370b60"; }
+            When(x"42"){ sreg <=  x"37051a"; }
+            When(x"43"){ sreg <=  x"3f0502"; }
+            When(x"44"){ sreg <=  x"3f0610"; }
+            When(x"45"){ sreg <=  x"3f010a"; }
+            When(x"46"){ sreg <=  x"3a0801"; }
+            When(x"47"){ sreg <=  x"3a0927"; }
+            When(x"48"){ sreg <=  x"3a0a00"; }
+            When(x"49"){ sreg <=  x"3a0bf6"; }
+            When(x"4A"){ sreg <=  x"3a0d04"; }
+            When(x"4B"){ sreg <=  x"3a0e03"; }
+            When(x"4C"){ sreg <=  x"3a0f58"; }
+            When(x"4D"){ sreg <=  x"3a1050"; }
+            When(x"4E"){ sreg <=  x"3a1b58"; }
+            When(x"4F"){ sreg <=  x"3a1e50"; }
+            When(x"50"){ sreg <=  x"3a1160"; }
+            When(x"51"){ sreg <=  x"3a1f28"; }
+            When(x"52"){ sreg <=  x"400102"; }
+            When(x"53"){ sreg <=  x"400402"; }
+            When(x"54"){ sreg <=  x"400009"; }
+            When(x"55"){ sreg <=  x"483724"; }
+            When(x"56"){ sreg <=  x"40506e"; }
+            When(x"57"){ sreg <=  x"40518f"; }
+            When(x"58"){ sreg <=  x"503d00"; }
+            When(x"59"){ sreg <=  x"010001"; }
+            When(x"5A"){ sreg <=  x"010001"; }
+            When(x"5B"){ sreg <=  x"480004"; }
+            When(x"5C"){ sreg <=  x"420200"; }
+            When(x"5D"){ sreg <=  x"300D00"; }
+            When(x"5E"){ sreg <=  x"420200"; }
+            When(x"5F"){ sreg <=  x"300D00"; }
+            When(others){sreg <=  x"FFFFFF"; }
+        }
+    }
+    
+    SIGNAL I2C_Master_Interface_Enable        : STD_LOGIC := '0';
+    SIGNAL I2C_Master_Interface_Address       : STD_LOGIC_VECTOR (6 DOWNTO 0) := (others => '0');
+    SIGNAL I2C_Master_Interface_RW            : STD_LOGIC := '0';
+    SIGNAL I2C_Master_Interface_Data_Wr       : STD_LOGIC_VECTOR (7 DOWNTO 0) := (others => '0');
+    SIGNAL I2C_Master_Interface_Busy          : STD_LOGIC;
+    SIGNAL I2C_Master_Interface_Data_RD       : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL I2C_Master_Interface_Ack_Error     : STD_LOGIC;
+    
+    NewComponent I2C_Master_Interface
+    (
+        CLK_Frequency => CLK_Frequency,
+        Bus_CLK       => 400000,
+        
+        Reset         => Reset,
+        Enable        => I2C_Master_Interface_Enable,
+        Address       => I2C_Master_Interface_Address,  --42 write 43 read
+        RW            => I2C_Master_Interface_RW,
+        Data_Wr       => I2C_Master_Interface_Data_Wr,
+        Busy          => I2C_Master_Interface_Busy,
+        Data_RD       => I2C_Master_Interface_Data_RD,
+        Ack_Error     => I2C_Master_Interface_Ack_Error,
+        SDA           => bMIPI_SDA,
+        SCL           => bMIPI_SCL,
+    );
 }
