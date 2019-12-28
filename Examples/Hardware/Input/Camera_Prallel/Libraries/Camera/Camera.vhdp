@@ -283,7 +283,7 @@ Component Camera_Controller
                     If(address /= x"3C")
                     {
                         address <= STD_LOGIC_VECTOR(UNSIGNED(address)+1);
-                        state   := 4;
+                        state   := 5;
                     }
                 }
             }
