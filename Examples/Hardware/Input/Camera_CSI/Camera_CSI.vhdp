@@ -5,16 +5,16 @@ Component Camera_CSI_Interface
         CLK_Frequency : NATURAL := 12000000;
     );
     
-    Reset     : IN STD_LOGIC := '0';
+    Reset     : IN STD_LOGIC := '0';                --Initialized on falling edge (or on startup if Reset = '0')
     
-    iMIPI_CLK : IN STD_LOGIC;
-    iMIPI_D   : IN STD_LOGIC_VECTOR(1 downto 0);
-    bMIPI_GP  : INOUT STD_LOGIC_VECTOR(1 downto 0);
+    iMIPI_CLK : IN STD_LOGIC;                       --Clk Lane (p) 
+    iMIPI_D   : IN STD_LOGIC_VECTOR(1 downto 0);    --(0) = Lane 1 (p) / (1) = Lane 2 (p)
+    bMIPI_GP  : INOUT STD_LOGIC_VECTOR(1 downto 0); --(0) = ENABLE
     
     bMIPI_SCL : INOUT STD_LOGIC;
     bMIPI_SDA : INOUT STD_LOGIC;
     
-    PixelData : OUT STD_LOGIC_VECTOR (23 downto 0);
+    PixelData : OUT STD_LOGIC_VECTOR (23 downto 0); --(23 downto 16) Red (15 downto 8) Green (7 downto 0) Blue
     Column    : BUFFER NATURAL range 0 to 639 := 0;
     Row       : BUFFER NATURAL range 0 to 479 := 0;
 )
@@ -62,8 +62,10 @@ Component Camera_CSI_Interface
         );
     }
     
+    --Output current data
     PixelData <= oMIPI_DATA;
     
+    --Keep track of current row and column
     Process Cam_RX ()
     {
         If(rising_edge(oMIPI_DATA_VALID))
@@ -91,13 +93,14 @@ Component Camera_CSI_Interface
         }
     }
     
+    --Set enable to '1'
     bMIPI_GP(0) <= '1';
     
+    --Send initial data on startup
     Process Cam_Init
     (
         VARIABLE state  : NATURAL range 0 to 7 := 7;
         VARIABLE count  : NATURAL range 0 to CLK_Frequency/1000 := 0;
-        VARIABLE repeat : NATURAL range 0 to 1 := 0;
     )
     {
         If(Reset = '1')
@@ -164,12 +167,6 @@ Component Camera_CSI_Interface
                         address <= STD_LOGIC_VECTOR(UNSIGNED(address)+1);
                         state   := 7;
                     }
-                    Elsif(repeat < 1)
-                    {
-                        address <= (others => '0');
-                        state   := 7;
-                        repeat  := repeat + 1;
-                    }
                 }
             }
             Else
@@ -190,6 +187,7 @@ Component Camera_CSI_Interface
     SIGNAL address : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
     SIGNAL sreg    : STD_LOGIC_VECTOR(23 downto 0) := x"000000";
     
+    --Initial data to send
     Process Cam_Init_Register ()
     {
         Case(address)
