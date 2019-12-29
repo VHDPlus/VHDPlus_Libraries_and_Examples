@@ -17,13 +17,13 @@ set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 set_global_assignment -name LAST_QUARTUS_VERSION "18.1.0 Lite Edition"
 set_global_assignment -name VERILOG_FILE MIPI_RX.v
-#set_instance_assignment -name FAST_INPUT_REGISTER ON -to iMIPI_D*
-set_instance_assignment -name IO_STANDARD LVDS -to iMIPI_D[0]
-set_instance_assignment -name IO_STANDARD LVDS -to iMIPI_D[1]
-set_instance_assignment -name IO_STANDARD LVDS -to iMIPI_CLK
-set_location_assignment PIN_L1 -to "iMIPI_D[0](n)"
-set_location_assignment PIN_J1 -to "iMIPI_D[1](n)"
-set_location_assignment PIN_M1 -to "iMIPI_CLK(n)"
+#set_instance_assignment -name FAST_INPUT_REGISTER ON -to Camera_Data_Lane*
+set_instance_assignment -name IO_STANDARD LVDS -to Camera_Data_Lane[0]
+set_instance_assignment -name IO_STANDARD LVDS -to Camera_Data_Lane[1]
+set_instance_assignment -name IO_STANDARD LVDS -to Camera_CLK_Lane
+set_location_assignment PIN_L1 -to "Camera_Data_Lane[0](n)"
+set_location_assignment PIN_J1 -to "Camera_Data_Lane[1](n)"
+set_location_assignment PIN_M1 -to "Camera_CLK_Lane(n)"
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
@@ -31,15 +31,13 @@ set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_
 set_global_assignment -name INTERNAL_FLASH_UPDATE_MODE "SINGLE IMAGE WITH ERAM"
 set_global_assignment -name NUM_PARALLEL_PROCESSORS 8
 set_global_assignment -name VHDL_FILE Generated/Camera_CSI_Example.vhd
-set_global_assignment -name VHDL_FILE Generated/Camera_CSI_Interface.vhd
-set_global_assignment -name VHDL_FILE Generated/CSI_Data_Deserializer.vhd
+set_global_assignment -name VHDL_FILE Generated/CSI_Camera.vhd
 set_global_assignment -name VHDL_FILE Generated/I2C_Master_Interface.vhd
 set_global_assignment -name QSYS_FILE Libraries/ISSP.qsys
 set_location_assignment PIN_E2 -to CLK
-set_location_assignment PIN_L2 -to iMIPI_D[0]
-set_location_assignment PIN_J2 -to iMIPI_D[1]
-set_location_assignment PIN_M2 -to iMIPI_CLK
-set_location_assignment PIN_P2 -to bMIPI_SDA
-set_location_assignment PIN_P1 -to bMIPI_SCL
-set_location_assignment PIN_M7 -to bMIPI_GP[0]
-set_location_assignment PIN_P9 -to bMIPI_GP[1]
+set_location_assignment PIN_L2 -to Camera_Data_Lane[0]
+set_location_assignment PIN_J2 -to Camera_Data_Lane[1]
+set_location_assignment PIN_M2 -to Camera_CLK_Lane
+set_location_assignment PIN_P2 -to Camera_SDA
+set_location_assignment PIN_P1 -to Camera_SCL
+set_location_assignment PIN_M7 -to Camera_Enable

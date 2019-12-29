@@ -1,29 +1,34 @@
 Main
 (
-    iMIPI_CLK     : IN STD_LOGIC;
-    iMIPI_D       : IN STD_LOGIC_VECTOR (1 downto 0);
-    bMIPI_GP      : INOUT STD_LOGIC_VECTOR (1 downto 0);
-    bMIPI_SCL     : INOUT STD_LOGIC;
-    bMIPI_SDA     : INOUT STD_LOGIC;
-    
+    Camera_CLK_Lane      : IN STD_LOGIC;
+    Camera_Data_Lane     : IN STD_LOGIC_VECTOR (1 downto 0);
+    Camera_Enable        : OUT STD_LOGIC;
+    Camera_SCL           : INOUT STD_LOGIC;
+    Camera_SDA           : INOUT STD_LOGIC;
 )
 {
-    SIGNAL Camera_CSI_Interface_PixelData     : STD_LOGIC_VECTOR (23 downto 0);
-    SIGNAL Camera_CSI_Interface_Column        : NATURAL          range 0 to 639;
-    SIGNAL Camera_CSI_Interface_Row           : NATURAL          range 0 to 479;
-    NewComponent Camera_CSI_Interface
+    Camera_Enable <= '1';
+    
+    SIGNAL Camera_Pixel_R       : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Camera_Pixel_G       : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Camera_Pixel_B       : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Camera_Column        : NATURAL          range 0 to 639;
+    SIGNAL Camera_Row           : NATURAL          range 0 to 479;
+    NewComponent CSI_Camera
     (
         CLK_Frequency => 48000000,
         
         Reset         => '0',
-        iMIPI_CLK     => iMIPI_CLK,
-        iMIPI_D       => iMIPI_D,
-        bMIPI_GP      => bMIPI_GP,
-        bMIPI_SCL     => bMIPI_SCL,
-        bMIPI_SDA     => bMIPI_SDA,
-        PixelData     => Camera_CSI_Interface_PixelData,
-        Column        => Camera_CSI_Interface_Column,
-        Row           => Camera_CSI_Interface_Row,
+        CLK_Lane      => Camera_CLK_Lane,
+        Data_Lane     => Camera_Data_Lane,
+        SCL           => Camera_SCL,
+        SDA           => Camera_SDA,
+        
+        Pixel_R       => Camera_Pixel_R,
+        Pixel_G       => Camera_Pixel_G,
+        Pixel_B       => Camera_Pixel_B,
+        Column        => Camera_Column,
+        Row           => Camera_Row,
     );
     
     SIGNAL ISSP_source : std_logic_vector (7 downto 0);
@@ -33,12 +38,12 @@ Main
         source => ISSP_source,
         probe  => ISSP_probe,
     );
-    
+
     Process ()
     {
-        If(Camera_CSI_Interface_Column = 320 AND Camera_CSI_Interface_Row = 240)
+        If(Camera_Column = 320 AND Camera_Row = 240)
         {
-            ISSP_probe(23 downto 0) <= Camera_CSI_Interface_PixelData;
+            ISSP_probe(23 downto 0) <= Camera_Pixel_R & Camera_Pixel_G & Camera_Pixel_B;
         }
     }
 }

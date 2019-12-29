@@ -1,4 +1,57 @@
-Component Camera_CSI_Interface
+/*
+    Name: Camera CSI RX
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 29.12.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important:   -Motor_Controller.vhdp, Motor_Encoder.vhdp and PWM.vhdp have to be added to your project
+                 -Two dc motors with encoders (and an ultrasonic sensor for full functionality) are necessary for this component
+    
+    Description: -This component is build to drive an exact route and surround objects on the route
+                 -The motors correct their speed in order to drive straight
+                 -You can set the distances and speeds of the route parts and start driving
+    
+    Insertion:   -Right click on the Motor folder and PWM.vhdp -> Add to active project
+                 -Add NewComponent of Motor_Route_Drive into your code
+                 -Check if the default values fit your application and correct them (more information about their function next to the declaration or hover with your cursor over the parameters in your code)
+                  -> Turn_Length, Back_Length, Clear_Area_Width and Check_Distance have to be set depending on your robot
+                 -Set Holes_In_Disk, Gear_Ratio and Wheel_Circumference to the values of your motor to get all distance values in mm.
+                 -Right click Motor_Route_Drive next to NewComponent and create the required signals
+    
+    Function:    1. Set the route lengths, speeds and the number of route steps (Set Route_Steps to the maximum amount of steps)
+                    Motor_Route_Drive_Route_L      <= (700,  200, -320, 500, 0, 0, 0, 0, 0, 0);  --700mm + 200mm forward, turn left and 500mm forward
+                    Motor_Route_Drive_Route_R      <= (700,  200,  320, 500, 0, 0, 0, 0, 0, 0);
+                    Motor_Route_Drive_Route_Speed  <= (255,  200,  255, 255, 0, 0, 0, 0, 0, 0);
+                    Motor_Route_Drive_Route_Length <= 4; --Drive all 4 steps
+                 2. Start driving
+                    Motor_Route_Drive_Route_Start  <= '1';
+                    While(Motor_Route_Drive_Route_Finished = '1') {}
+                    Motor_Route_Drive_Route_Start  <= '0';
+                 3. Wait until route finished
+                    While(Motor_Route_Drive_Route_Finished = '0') {}
+                    
+    Example:     Route_Example
+ */
+
+Component CSI_Camera
 (
     Generic
     (
@@ -7,95 +60,28 @@ Component Camera_CSI_Interface
     
     Reset     : IN STD_LOGIC := '0';                --Initialized on falling edge (or on startup if Reset = '0')
     
-    iMIPI_CLK : IN STD_LOGIC;                       --Clk Lane (p) 
-    iMIPI_D   : IN STD_LOGIC_VECTOR(1 downto 0);    --(0) = Lane 1 (p) / (1) = Lane 2 (p)
-    bMIPI_GP  : INOUT STD_LOGIC_VECTOR(1 downto 0); --(0) = ENABLE
+    CLK_Lane  : IN STD_LOGIC;                       --Clk Lane (p)
+    Data_Lane : IN STD_LOGIC_VECTOR(1 downto 0);    --(0) = Lane 1 (p) / (1) = Lane 2 (p)
     
-    bMIPI_SCL : INOUT STD_LOGIC;
-    bMIPI_SDA : INOUT STD_LOGIC;
+    SCL       : INOUT STD_LOGIC;
+    SDA       : INOUT STD_LOGIC;
     
-    PixelData : OUT STD_LOGIC_VECTOR (23 downto 0); --(23 downto 16) Red (15 downto 8) Green (7 downto 0) Blue
+    Pixel_R   : OUT STD_LOGIC_VECTOR (7 downto 0);
+    Pixel_G   : OUT STD_LOGIC_VECTOR (7 downto 0);
+    Pixel_B   : OUT STD_LOGIC_VECTOR (7 downto 0);
     Column    : BUFFER NATURAL range 0 to 639 := 0;
     Row       : BUFFER NATURAL range 0 to 479 := 0;
 )
 {
     Connections
     {
-        iMIPI_CLK,
-        iMIPI_D,
+        CLK_Lane,
+        Data_Lane,
         bMIPI_GP,
         bMIPI_SCL,
         bMIPI_SDA,
     }
-    
-    AttributeDeclaration
-    {
-        SIGNAL oMIPI_DATA       : STD_LOGIC_VECTOR (23 downto 0);
-        SIGNAL oMIPI_START      : STD_LOGIC;
-        SIGNAL oMIPI_DATA_VALID : STD_LOGIC;
-        
-        VHDL
-        {
-            COMPONENT MIPI_RX IS
-            PORT (
-                iMIPI_D          : IN STD_LOGIC_VECTOR (1 downto 0);
-                iMIPI_CLK        : IN STD_LOGIC;
-                
-                oMIPI_DATA       : OUT STD_LOGIC_VECTOR (23 downto 0);
-                oMIPI_START      : OUT STD_LOGIC;
-                oMIPI_DATA_VALID : OUT STD_LOGIC
 
-            );
-            END COMPONENT;
-        }
-    }
-    
-    VHDL
-    {
-        RX1 : MIPI_RX PORT MAP(
-            iMIPI_D          => iMIPI_D,
-            iMIPI_CLK        => iMIPI_CLK,
-            
-            oMIPI_DATA       => oMIPI_DATA,
-            oMIPI_START      => oMIPI_START,
-            oMIPI_DATA_VALID => oMIPI_DATA_VALID
-        );
-    }
-    
-    --Output current data
-    PixelData <= oMIPI_DATA;
-    
-    --Keep track of current row and column
-    Process Cam_RX ()
-    {
-        If(rising_edge(oMIPI_DATA_VALID))
-        {
-            If(oMIPI_START = '1')
-            {
-                Column <= 0;
-                Row    <= 0;
-            }
-            Else
-            {
-                If(Column < 639)
-                {
-                    Column <= Column + 1;
-                }
-                Else
-                {
-                    If(Row < 479)
-                    {
-                        Row    <= Row + 1;
-                        Column <= 0;
-                    }
-                }
-            }
-        }
-    }
-    
-    --Set enable to '1'
-    bMIPI_GP(0) <= '1';
-    
     --Send initial data on startup
     Process Cam_Init
     (
@@ -313,7 +299,258 @@ Component Camera_CSI_Interface
         Busy          => I2C_Master_Interface_Busy,
         Data_RD       => I2C_Master_Interface_Data_RD,
         Ack_Error     => I2C_Master_Interface_Ack_Error,
-        SDA           => bMIPI_SDA,
-        SCL           => bMIPI_SCL,
+        SDA           => SDA,
+        SCL           => SCL,
     );
+    
+    --Output current data
+    Pixel_R  <= STD_LOGIC_VECTOR(Pixel1.R(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.R(Convert_Type));
+    Pixel_G  <= STD_LOGIC_VECTOR(Pixel1.G(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.G(Convert_Type));
+    Pixel_B  <= STD_LOGIC_VECTOR(Pixel1.B(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.B(Convert_Type));
+    SIGNAL New_Pixel      : STD_LOGIC;
+    New_Pixel <= '0' when Start_Reg(1) = '1' else First_New_Pixel(0) OR Second_New_Pixel;
+
+    --Keep track of current row and column
+    Process Cam_RX ()
+    {
+        If(rising_edge(New_Pixel))
+        {
+            If(Start_Reg(0) = '1')
+            {
+                Column <= 0;
+                Row    <= 0;
+            }
+            Else
+            {
+                If(Column < 639)
+                {
+                    Column <= Column + 1;
+                }
+                Else
+                {
+                    If(Row < 479)
+                    {
+                        Row    <= Row + 1;
+                        Column <= 0;
+                    }
+                }
+            }
+        }
+    }
+
+    SIGNAL Data_H          : STD_LOGIC_VECTOR(1 downto 0) := (others => '0');
+    SIGNAL Data_L          : STD_LOGIC_VECTOR(1 downto 0) := (others => '0');
+    
+    NewComponent ALTDDIO_IN
+    (
+        intended_device_family => "unused",
+        width                  => 2,
+        
+        datain                 => Data_Lane,
+        inclock                => CLK_Lane,
+        dataout_h              => Data_H,
+        dataout_l              => Data_L,
+    );
+    
+    SIGNAL RAM_Addr          : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
+    SIGNAL RAM_Data          : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+    SIGNAL RAM_Data_Out      : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+    SIGNAL Received_Byte     : STD_LOGIC := '0';
+    SIGNAL Combine_Bytes     : STD_LOGIC := '0';
+    
+    NewComponent ALTSYNCRAM
+    (
+        address_reg_b                      => "CLOCK0",
+        clock_enable_input_a               => "BYPASS",
+        clock_enable_input_b               => "BYPASS",
+        clock_enable_output_b              => "BYPASS",
+        intended_device_family             => "unused",
+        numwords_a                         => 1024,
+        numwords_b                         => 1024,
+        operation_mode                     => "DUAL_PORT",
+        width_a                            => 32,
+        width_b                            => 32,
+        width_byteena_a                    => 1,
+        widthad_a                          => 10,
+        widthad_b                          => 10,
+
+        address_a                          => RAM_Addr(9 downto 0),
+        address_b                          => RAM_Addr(9 downto 0),
+        clock0                             => CLK_Lane,
+        data_a                             => (RAM_Data(15 downto 0) & Second_Byte_Reg(7 downto 0) & First_Byte_Reg(7 downto 0)),
+        q_b                                => RAM_Data_Out,
+        wren_a                             => (Received_Byte AND Combine_Bytes),
+    );
+    
+    RAM_Data <= (others => '0') when Start_Reg(1) = '1' else RAM_Data_Out;
+
+    TYPE Pixel_Value_type IS ARRAY (1 downto 0) OF UNSIGNED(7 downto 0);
+    TYPE Pixel_RGB_type IS RECORD
+    R : Pixel_Value_type;
+    G : Pixel_Value_type;
+    B : Pixel_Value_type;
+    END RECORD Pixel_RGB_type;
+    SIGNAL Pixel1 : Pixel_RGB_type := (others => (others => (others => '0')));
+    SIGNAL Pixel2 : Pixel_RGB_type := (others => (others => (others => '0')));
+    
+    Process ()
+    {
+        If(rising_edge(CLK_Lane))
+        {
+            SIGNAL Byte_Start_Phase : BOOLEAN := false;
+            --Save received bits-------------------------------
+            SIGNAL First_Byte_Reg, Second_Byte_Reg : STD_LOGIC_VECTOR(11 downto 0) := (others => '0');
+            VARIABLE First_Byte_Data, Second_Byte_Data : STD_LOGIC_VECTOR(7 downto 0);
+            If(Byte_Start_Phase)
+            {
+                First_Byte_Reg <= "000" & Data_H(0) & Data_L(0) & First_Byte_Reg(8 downto 2);
+                Second_Byte_Reg <= "000" & Data_H(1) & Data_L(1) & Second_Byte_Reg(8 downto 2);
+            }
+            Else
+            {
+                First_Byte_Reg <= "00" & Data_H(0) & Data_L(0) & First_Byte_Reg(9 downto 2);
+                Second_Byte_Reg <= "00" & Data_H(1) & Data_L(1) & Second_Byte_Reg(9 downto 2);
+            }
+            First_Byte_Data  := First_Byte_Reg(7 downto 0);
+            Second_Byte_Data := Second_Byte_Reg(7 downto 0);
+            ---------------------------------------------------
+
+            --Count preamble zeros-----------------------------
+            SIGNAL Zero_Count          : NATURAL range 0 to 4 := 0;
+            If(First_Byte_Reg(1 downto 0) = "00" AND Second_Byte_Reg(1 downto 0) = "00")
+            {
+                If(Zero_Count < 4)
+                {
+                    Zero_Count <= Zero_Count + 1;
+                }
+            }
+            Else
+            {
+                Zero_Count <= 0;
+            }
+            ---------------------------------------------------
+            
+            --Keep track of bits and bytes---------------------
+            SIGNAL Bit_Count         : NATURAL range 0 to 2 := 0;
+            Bit_Count <= Bit_Count + 1;
+            
+            SIGNAL Byte_Count        : NATURAL range 0 to 2 := 0;
+            Received_Byte    <= '0';
+            -- find header -> first byte
+            If(First_Byte_Data = "10111000" AND Second_Byte_Data = "10111000" AND Zero_Count = 4 AND Combine_Bytes = '0')
+            {
+                Bit_Count  <= 0;
+                Byte_Count <= 1;
+            }
+            -- check for header at opposite phase
+            Elsif(First_Byte_Data = "10111000" AND Second_Byte_Data = "10111000" AND Zero_Count = 4 AND Combine_Bytes = '0')
+            {
+                Bit_Count  <= 0;
+                Byte_Count <= 1;
+
+                Byte_Start_Phase <= NOT Byte_Start_Phase;
+                If(Byte_Start_Phase)
+                {
+                    First_Byte_Reg  <= "00" & Data_H(0) & Data_L(0) & First_Byte_Reg(8 downto 1);
+                    Second_Byte_Reg <= "00" & Data_H(1) & Data_L(1) & Second_Byte_Reg(8 downto 1);
+                }
+                Else
+                {
+                    First_Byte_Reg  <= "000" & Data_H(0) & Data_L(0) & First_Byte_Reg(9 downto 3);
+                    Second_Byte_Reg <= "000" & Data_H(1) & Data_L(1) & Second_Byte_Reg(9 downto 3);
+                }
+            }
+            -- check for full byte
+            Elsif(Bit_Count = 2)
+            {
+                Received_Byte <= '1';
+            }
+            ---------------------------------------------------
+            
+            --Create New Pixel Impuls--------------------------
+            SIGNAL First_New_Pixel  : STD_LOGIC_VECTOR(1 downto 0) := (others => '0');
+            SIGNAL Second_New_Pixel : STD_LOGIC := '0';
+            Second_New_Pixel <= First_New_Pixel(1) AND NOT Start_Reg(0);
+            First_New_Pixel  <= First_New_Pixel(0) & '0';
+            ---------------------------------------------------
+            
+            --Process Bytes------------------------------------
+            If(Received_Byte = '1')
+            {
+                -- Check for packet type with first byte of header
+                If(Byte_Count = 1)
+                {
+                    Byte_Count <= 2;
+                    --0x00 is VSync
+                    If(First_Byte_Data = x"00")
+                    {
+                        SIGNAL Start_Reg   : UNSIGNED(1 downto 0) := (others => '0');
+                        Start_Reg          <= "01"; --Start of frame
+                        First_New_Pixel(0) <= '1';
+                        Convert_Type       <= 0;
+                    }
+                    --0x2A = new data
+                    Elsif(First_Byte_Data = x"2A")
+                    {
+                        Combine_Bytes     <= '1';
+                        RAM_Addr(7 downto 0) <= Second_Byte_Data(7 downto 0);
+                    }
+                }
+                --Set full RAM address with second byte
+                Elsif(Byte_Count = 2)
+                {
+                    Byte_Count   <= 0;
+                    Start_Reg    <= Start_Reg(0) & '0'; --save that last byte was vsync
+                    If(Combine_Bytes = '1')
+                    {
+                        RAM_Addr(15 downto 0) <= STD_LOGIC_VECTOR(UNSIGNED(First_Byte_Data & RAM_Addr(7 downto 0))-2);
+                    }
+                    Last_Bytes_Buf  <= (others => '0');
+                }
+                Elsif(Combine_Bytes = '1')
+                {
+                    SIGNAL Last_Bytes_Buf   : UNSIGNED(47 downto 0) := (others => '0');
+                    Last_Bytes_Buf <= UNSIGNED(RAM_Data & Second_Byte_Data & First_Byte_Data); --Save RAM_Data and Last_Bytes for next operation
+
+                    --Convert bayer matrix to RGB
+                    SIGNAL Convert_Type    : NATURAL range 0 to 1;
+                    If(Convert_Type = 1)
+                    {
+                        Pixel1.R(1) <= resize(shift_right(('0' & Last_Bytes_Buf(47 downto 40)) + ('0' & Last_Bytes_Buf(15 downto 8)), 1), 8);
+                        Pixel1.G(1) <= resize(shift_right(('0' & Last_Bytes_Buf(31 downto 24) & "00") + UNSIGNED("000" & First_Byte_Data) + ("000" & Last_Bytes_Buf(7 downto 0)) + ("000" & Last_Bytes_Buf(39 downto 32)) + UNSIGNED("000" & RAM_Data(23 downto 16)), 3), 8);
+                        Pixel1.B(1) <= resize(shift_right(('0' & Last_Bytes_Buf(23 downto 16)) + ('0' & Last_Bytes_Buf(7 downto 0)), 1), 8);
+
+                        Pixel2.R(1) <= resize(shift_right(("00" & Last_Bytes_Buf(47 downto 40)) + UNSIGNED("00" & RAM_Data(31 downto 24)) + ("00" & Last_Bytes_Buf(15 downto 8)) + UNSIGNED("00" & Second_Byte_Data), 2), 8);
+                        Pixel2.G(1) <= resize(shift_right(("00" & Last_Bytes_Buf(31 downto 24)) + UNSIGNED("00" & RAM_Data(15 downto 8)) + UNSIGNED("00" & RAM_Data(23 downto 16)) + UNSIGNED("00" & First_Byte_Data), 2), 8);
+                        Pixel2.B(1) <= UNSIGNED(RAM_Data(7 downto 0));
+                    }
+                    Else
+                    {
+                        Pixel1.R(0) <= Last_Bytes_Buf(31 downto 24);
+                        Pixel1.G(0) <= resize(shift_right(("00" & Last_Bytes_Buf(47 downto 40)) + UNSIGNED("00" & RAM_Data(7 downto 0)) + ("00" & Last_Bytes_Buf(15 downto 8)) + ("00" & Last_Bytes_Buf(23 downto 16)), 2), 8);
+                        Pixel1.B(0) <= resize(shift_right(("00" & Last_Bytes_Buf(39 downto 32)) + UNSIGNED("00" & RAM_Data(23 downto 16)) + ("00" & Last_Bytes_Buf(7 downto 0)) + UNSIGNED("00" & First_Byte_Data), 2), 8);
+
+                        Pixel2.R(0) <= resize(shift_right(('0' & Last_Bytes_Buf(31 downto 24)) + UNSIGNED('0' & RAM_Data(15 downto 8)), 1), 8);
+                        Pixel2.G(0) <= resize(shift_right(UNSIGNED('0' & RAM_Data(7 downto 0) & "00") + UNSIGNED("000" & Second_Byte_Data) + ("000" & Last_Bytes_Buf(15 downto 8)) + ("000" & Last_Bytes_Buf(47 downto 40)) + UNSIGNED("000" & RAM_Data(31 downto 24)), 3), 8);
+                        Pixel2.B(0) <= resize(shift_right(UNSIGNED('0' & RAM_Data(23 downto 16)) + UNSIGNED('0' & First_Byte_Data), 1), 8);
+                    }
+                    -- finished one pixel
+                    First_New_Pixel(0) <= '1';
+                    -- Check for packet end
+                    If(RAM_Addr = x"0000")
+                    {
+                        -- get ready for next
+                        Combine_Bytes <= '0';
+                        Convert_Type  <= Convert_Type + 1;
+                    }
+                    Else
+                    {
+                        -- Go to next address
+                        RAM_Addr <= STD_LOGIC_VECTOR(UNSIGNED(RAM_Addr)-2);
+                    }
+                }
+            }
+            ---------------------------------------------------
+        }
+    }
 }

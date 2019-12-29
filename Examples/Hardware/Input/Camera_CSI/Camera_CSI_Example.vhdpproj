@@ -16,12 +16,15 @@
     </Items>
   </Items>
   <Items xsi:type="ProjectFileVHDP">
+    <Header>ALTDDIO_IN.qsys.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>ALTSYNCRAM.qsys.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
     <Header>Camera_CSI.vhdp</Header>
   </Items>
   <Items xsi:type="ProjectFileVHDP">
     <Header>Camera_CSI_Example.vhdp</Header>
-  </Items>
-  <Items xsi:type="ProjectFile">
-    <Header>MIPI_RX.v</Header>
   </Items>
 </ProjectRoot>
