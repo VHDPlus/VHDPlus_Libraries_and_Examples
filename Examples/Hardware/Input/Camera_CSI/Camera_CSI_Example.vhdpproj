@@ -22,9 +22,9 @@
     <Header>ALTSYNCRAM.qsys.vhdp</Header>
   </Items>
   <Items xsi:type="ProjectFileVHDP">
-    <Header>Camera_CSI.vhdp</Header>
+    <Header>Camera_CSI_Example.vhdp</Header>
   </Items>
   <Items xsi:type="ProjectFileVHDP">
-    <Header>Camera_CSI_Example.vhdp</Header>
+    <Header>CSI_Camera.vhdp</Header>
   </Items>
 </ProjectRoot>

@@ -1,5 +1,5 @@
 /*
-    Name: Camera CSI RX
+    Name: Camera CSI
     Rev: 1.0
     Creator: Leon Beier
     Date: 29.12.2019
@@ -22,33 +22,25 @@
     AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
     WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
     
-    Important:   -Motor_Controller.vhdp, Motor_Encoder.vhdp and PWM.vhdp have to be added to your project
-                 -Two dc motors with encoders (and an ultrasonic sensor for full functionality) are necessary for this component
+    Important:   -The Enable pin (11) has to be set to '1' manually
+                 -CLK_Lane and Data_Lane are differential I/Os. Connect positive pins with the signals.
+                 -To add the negative pins, add this for each pin to your qsf file in the project folder,
+                  replace <Signal_Name> with the actual name and replace <N_Pin> with the corresponding negativ pin:
+                    set_instance_assignment -name IO_STANDARD LVDS -to <Signal_Name>
+                    set_location_assignment PIN_<N_Pin> -to "<Signal_Name>(n)"
     
-    Description: -This component is build to drive an exact route and surround objects on the route
-                 -The motors correct their speed in order to drive straight
-                 -You can set the distances and speeds of the route parts and start driving
+    Description: -This component initializies a Raspberry Pi Camera with an I2C interface and
+                  outputs the received camera data.
     
-    Insertion:   -Right click on the Motor folder and PWM.vhdp -> Add to active project
-                 -Add NewComponent of Motor_Route_Drive into your code
-                 -Check if the default values fit your application and correct them (more information about their function next to the declaration or hover with your cursor over the parameters in your code)
-                  -> Turn_Length, Back_Length, Clear_Area_Width and Check_Distance have to be set depending on your robot
-                 -Set Holes_In_Disk, Gear_Ratio and Wheel_Circumference to the values of your motor to get all distance values in mm.
-                 -Right click Motor_Route_Drive next to NewComponent and create the required signals
+    Insertion:   -Right click on the CSI_Camera folder and the I2C library -> Add to active project
+                 -Add NewComponent of CSI_Camera into your code
+                 -Set CLK_Frequency to the frequency of your external oszillator
+                 -Right click CSI_Camera next to NewComponent and create the required signals
     
-    Function:    1. Set the route lengths, speeds and the number of route steps (Set Route_Steps to the maximum amount of steps)
-                    Motor_Route_Drive_Route_L      <= (700,  200, -320, 500, 0, 0, 0, 0, 0, 0);  --700mm + 200mm forward, turn left and 500mm forward
-                    Motor_Route_Drive_Route_R      <= (700,  200,  320, 500, 0, 0, 0, 0, 0, 0);
-                    Motor_Route_Drive_Route_Speed  <= (255,  200,  255, 255, 0, 0, 0, 0, 0, 0);
-                    Motor_Route_Drive_Route_Length <= 4; --Drive all 4 steps
-                 2. Start driving
-                    Motor_Route_Drive_Route_Start  <= '1';
-                    While(Motor_Route_Drive_Route_Finished = '1') {}
-                    Motor_Route_Drive_Route_Start  <= '0';
-                 3. Wait until route finished
-                    While(Motor_Route_Drive_Route_Finished = '0') {}
+    Function:    1. Wait until Column changes
+                 2. Read the pixel value at the current Row and Column (The image is 640x480)
                     
-    Example:     Route_Example
+    Example:     Camera_CSI_Example
  */
 
 Component CSI_Camera
@@ -77,9 +69,8 @@ Component CSI_Camera
     {
         CLK_Lane,
         Data_Lane,
-        bMIPI_GP,
-        bMIPI_SCL,
-        bMIPI_SDA,
+        SCL,
+        SDA,
     }
 
     --Send initial data on startup

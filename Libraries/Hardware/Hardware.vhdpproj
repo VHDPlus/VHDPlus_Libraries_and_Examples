@@ -18,6 +18,19 @@
         <Header>ADC_QSYS.qsys.vhdp</Header>
       </Items>
     </Items>
+	<Items xsi:type="ProjectFolder">
+      <Header>CSI_Camera</Header>
+      <fileWatcherIgnore />
+      <Items xsi:type="ProjectFileVHDP">
+        <Header>CSI_Camera.vhdp</Header>
+      </Items>
+      <Items xsi:type="ProjectFile">
+        <Header>ALTDDIO_IN.qsys.vhdp</Header>
+      </Items>
+      <Items xsi:type="ProjectFileVHDP">
+        <Header>ALTSYNCRAM.qsys.vhdp</Header>
+      </Items>
+    </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>Encoder.vhdp</Header>
     </Items>
@@ -56,7 +69,7 @@
       <Items xsi:type="ProjectFileVHDP">
         <Header>Motor_Encoder.vhdp</Header>
       </Items>
-	  <Items xsi:type="ProjectFileVHDP">
+      <Items xsi:type="ProjectFileVHDP">
         <Header>Motor_Route_Drive.vhdp</Header>
       </Items>
     </Items>
