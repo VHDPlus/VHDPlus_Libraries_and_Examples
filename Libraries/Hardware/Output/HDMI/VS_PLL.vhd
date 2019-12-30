@@ -4,7 +4,7 @@
 -- MODULE: altpll 
 
 -- ============================================================
--- File Name: PLL.vhd
+-- File Name: VS_PLL.vhd
 -- Megafunction Name(s):
 -- 			altpll
 --
@@ -39,17 +39,17 @@ USE ieee.std_logic_1164.all;
 LIBRARY altera_mf;
 USE altera_mf.all;
 
-ENTITY PLL IS
+ENTITY VS_PLL IS
 	PORT
 	(
 		inclk0		: IN STD_LOGIC  := '0';
 		c0		: OUT STD_LOGIC ;
 		c1		: OUT STD_LOGIC 
 	);
-END PLL;
+END VS_PLL;
 
 
-ARCHITECTURE SYN OF pll IS
+ARCHITECTURE SYN OF vs_pll IS
 
 	SIGNAL sub_wire0	: STD_LOGIC ;
 	SIGNAL sub_wire1	: STD_LOGIC_VECTOR (1 DOWNTO 0);
@@ -151,8 +151,8 @@ BEGIN
 		clk1_phase_shift => "0",
 		compensate_clock => "CLK0",
 		inclk0_input_frequency => 20833,
-		intended_device_family => "MAX 10",
-		lpm_hint => "CBX_MODULE_PREFIX=PLL",
+		intended_device_family => "Cyclone 10 LP",
+		lpm_hint => "CBX_MODULE_PREFIX=VS_PLL",
 		lpm_type => "altpll",
 		operation_mode => "NORMAL",
 		pll_type => "AUTO",
@@ -246,14 +246,14 @@ END SYN;
 -- Retrieval info: PRIVATE: INCLK1_FREQ_EDIT_CHANGED STRING "1"
 -- Retrieval info: PRIVATE: INCLK1_FREQ_UNIT_CHANGED STRING "1"
 -- Retrieval info: PRIVATE: INCLK1_FREQ_UNIT_COMBO STRING "MHz"
--- Retrieval info: PRIVATE: INTENDED_DEVICE_FAMILY STRING "MAX 10"
+-- Retrieval info: PRIVATE: INTENDED_DEVICE_FAMILY STRING "Cyclone 10 LP"
 -- Retrieval info: PRIVATE: INT_FEEDBACK__MODE_RADIO STRING "1"
 -- Retrieval info: PRIVATE: LOCKED_OUTPUT_CHECK STRING "0"
 -- Retrieval info: PRIVATE: LONG_SCAN_RADIO STRING "1"
 -- Retrieval info: PRIVATE: LVDS_MODE_DATA_RATE STRING "Not Available"
 -- Retrieval info: PRIVATE: LVDS_MODE_DATA_RATE_DIRTY NUMERIC "0"
 -- Retrieval info: PRIVATE: LVDS_PHASE_SHIFT_UNIT0 STRING "deg"
--- Retrieval info: PRIVATE: LVDS_PHASE_SHIFT_UNIT1 STRING "ps"
+-- Retrieval info: PRIVATE: LVDS_PHASE_SHIFT_UNIT1 STRING "deg"
 -- Retrieval info: PRIVATE: MIG_DEVICE_SPEED_GRADE STRING "Any"
 -- Retrieval info: PRIVATE: MIRROR_CLK0 STRING "0"
 -- Retrieval info: PRIVATE: MIRROR_CLK1 STRING "0"
@@ -272,7 +272,7 @@ END SYN;
 -- Retrieval info: PRIVATE: PHASE_SHIFT1 STRING "0.00000000"
 -- Retrieval info: PRIVATE: PHASE_SHIFT_STEP_ENABLED_CHECK STRING "0"
 -- Retrieval info: PRIVATE: PHASE_SHIFT_UNIT0 STRING "deg"
--- Retrieval info: PRIVATE: PHASE_SHIFT_UNIT1 STRING "ps"
+-- Retrieval info: PRIVATE: PHASE_SHIFT_UNIT1 STRING "deg"
 -- Retrieval info: PRIVATE: PLL_ADVANCED_PARAM_CHECK STRING "0"
 -- Retrieval info: PRIVATE: PLL_ARESET_CHECK STRING "0"
 -- Retrieval info: PRIVATE: PLL_AUTOPLL_CHECK NUMERIC "1"
@@ -283,7 +283,7 @@ END SYN;
 -- Retrieval info: PRIVATE: PLL_PFDENA_CHECK STRING "0"
 -- Retrieval info: PRIVATE: PLL_TARGET_HARCOPY_CHECK NUMERIC "0"
 -- Retrieval info: PRIVATE: PRIMARY_CLK_COMBO STRING "inclk0"
--- Retrieval info: PRIVATE: RECONFIG_FILE STRING "PLL.mif"
+-- Retrieval info: PRIVATE: RECONFIG_FILE STRING "VS_PLL.mif"
 -- Retrieval info: PRIVATE: SACN_INPUTS_CHECK STRING "0"
 -- Retrieval info: PRIVATE: SCAN_FEATURE_ENABLED STRING "1"
 -- Retrieval info: PRIVATE: SELF_RESET_LOCK_LOSS STRING "0"
@@ -296,9 +296,6 @@ END SYN;
 -- Retrieval info: PRIVATE: SRC_SYNCH_COMP_RADIO STRING "0"
 -- Retrieval info: PRIVATE: STICKY_CLK0 STRING "1"
 -- Retrieval info: PRIVATE: STICKY_CLK1 STRING "1"
--- Retrieval info: PRIVATE: STICKY_CLK2 STRING "0"
--- Retrieval info: PRIVATE: STICKY_CLK3 STRING "0"
--- Retrieval info: PRIVATE: STICKY_CLK4 STRING "0"
 -- Retrieval info: PRIVATE: SWITCHOVER_COUNT_EDIT NUMERIC "1"
 -- Retrieval info: PRIVATE: SWITCHOVER_FEATURE_ENABLED STRING "1"
 -- Retrieval info: PRIVATE: SYNTH_WRAPPER_GEN_POSTFIX STRING "0"
@@ -320,7 +317,7 @@ END SYN;
 -- Retrieval info: CONSTANT: CLK1_PHASE_SHIFT STRING "0"
 -- Retrieval info: CONSTANT: COMPENSATE_CLOCK STRING "CLK0"
 -- Retrieval info: CONSTANT: INCLK0_INPUT_FREQUENCY NUMERIC "20833"
--- Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "MAX 10"
+-- Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone 10 LP"
 -- Retrieval info: CONSTANT: LPM_TYPE STRING "altpll"
 -- Retrieval info: CONSTANT: OPERATION_MODE STRING "NORMAL"
 -- Retrieval info: CONSTANT: PLL_TYPE STRING "AUTO"
@@ -375,11 +372,11 @@ END SYN;
 -- Retrieval info: CONNECT: @inclk 0 0 1 0 inclk0 0 0 0 0
 -- Retrieval info: CONNECT: c0 0 0 0 0 @clk 0 0 1 0
 -- Retrieval info: CONNECT: c1 0 0 0 0 @clk 0 0 1 1
--- Retrieval info: GEN_FILE: TYPE_NORMAL PLL.vhd TRUE
--- Retrieval info: GEN_FILE: TYPE_NORMAL PLL.ppf TRUE
--- Retrieval info: GEN_FILE: TYPE_NORMAL PLL.inc FALSE
--- Retrieval info: GEN_FILE: TYPE_NORMAL PLL.cmp FALSE
--- Retrieval info: GEN_FILE: TYPE_NORMAL PLL.bsf FALSE
--- Retrieval info: GEN_FILE: TYPE_NORMAL PLL_inst.vhd FALSE
+-- Retrieval info: GEN_FILE: TYPE_NORMAL VS_PLL.vhd TRUE
+-- Retrieval info: GEN_FILE: TYPE_NORMAL VS_PLL.ppf TRUE
+-- Retrieval info: GEN_FILE: TYPE_NORMAL VS_PLL.inc FALSE
+-- Retrieval info: GEN_FILE: TYPE_NORMAL VS_PLL.cmp FALSE
+-- Retrieval info: GEN_FILE: TYPE_NORMAL VS_PLL.bsf FALSE
+-- Retrieval info: GEN_FILE: TYPE_NORMAL VS_PLL_inst.vhd FALSE
 -- Retrieval info: LIB_FILE: altera_mf
 -- Retrieval info: CBX_MODULE_PREFIX: ON

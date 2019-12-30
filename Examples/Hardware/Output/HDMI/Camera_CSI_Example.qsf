@@ -16,7 +16,6 @@ set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 set_global_assignment -name LAST_QUARTUS_VERSION "18.1.0 Lite Edition"
-set_global_assignment -name VERILOG_FILE MIPI_RX.v
 #set_instance_assignment -name FAST_INPUT_REGISTER ON -to Camera_Data_Lane*
 set_location_assignment PIN_L1 -to "Camera_Data_Lane[0](n)"
 set_location_assignment PIN_J1 -to "Camera_Data_Lane[1](n)"
@@ -40,10 +39,12 @@ set_global_assignment -name VHDL_FILE Generated/Camera_Capture.vhd
 set_global_assignment -name VHDL_FILE Generated/Camera_CSI_Example.vhd
 set_global_assignment -name VHDL_FILE Generated/CRT_Controller.vhd
 set_global_assignment -name VHDL_FILE Generated/CSI_Camera.vhd
+set_global_assignment -name VHDL_FILE Generated/HDMI_Out.vhd
 set_global_assignment -name VHDL_FILE Generated/I2C_Master_Interface.vhd
-set_global_assignment -name QSYS_FILE Libraries/ISSP.qsys
-set_global_assignment -name QIP_FILE Libraries/PLL.qip
-set_global_assignment -name VHDL_FILE Libraries/PLL.vhd
+set_global_assignment -name VERILOG_FILE HDMI/DVI_OUT.v
+set_global_assignment -name VERILOG_FILE HDMI/TMDS_ENCODE.v
+set_global_assignment -name QIP_FILE HDMI/VS_PLL.qip
+set_global_assignment -name VHDL_FILE HDMI/VS_PLL.vhd
 set_location_assignment PIN_E2 -to CLK
 set_location_assignment PIN_L2 -to Camera_Data_Lane[0]
 set_location_assignment PIN_J2 -to Camera_Data_Lane[1]

@@ -3,28 +3,47 @@
   <Header>Camera_CSI_Example</Header>
   <fileWatcherIgnore />
   <Items xsi:type="ProjectFolder">
-    <Header>Libraries</Header>
+    <Header>Camera</Header>
     <fileWatcherIgnore />
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>ALTDDIO_IN.qsys.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>ALTSYNCRAM.qsys.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Camera_Capure.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>CSI_Camera.vhdp</Header>
+    </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>I2C.vhdp</Header>
     </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>ISSP.qsys</Header>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Header>HDMI</Header>
+    <fileWatcherIgnore />
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>CRT_Controller.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Header>ISSP.qsys.vhdp</Header>
+      <Header>HDMI_Out.vhdp</Header>
     </Items>
-  </Items>
-  <Items xsi:type="ProjectFileVHDP">
-    <Header>ALTDDIO_IN.qsys.vhdp</Header>
-  </Items>
-  <Items xsi:type="ProjectFileVHDP">
-    <Header>ALTSYNCRAM.qsys.vhdp</Header>
+    <Items xsi:type="ProjectFile">
+      <Header>DVI_OUT.v</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>TMDS_ENCODE.v</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>VS_PLL.qip</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>VS_PLL.vhd</Header>
+    </Items>
   </Items>
   <Items xsi:type="ProjectFileVHDP">
     <Header>Camera_CSI_Example.vhdp</Header>
-  </Items>
-  <Items xsi:type="ProjectFileVHDP">
-    <Header>CSI_Camera.vhdp</Header>
   </Items>
 </ProjectRoot>
