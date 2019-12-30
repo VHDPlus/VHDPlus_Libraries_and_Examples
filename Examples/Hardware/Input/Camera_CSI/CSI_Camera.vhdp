@@ -63,6 +63,7 @@ Component CSI_Camera
     Pixel_B   : OUT STD_LOGIC_VECTOR (7 downto 0);
     Column    : BUFFER NATURAL range 0 to 639 := 0;
     Row       : BUFFER NATURAL range 0 to 479 := 0;
+    New_Pixel : BUFFER STD_LOGIC;
 )
 {
     Connections
@@ -298,7 +299,6 @@ Component CSI_Camera
     Pixel_R  <= STD_LOGIC_VECTOR(Pixel1.R(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.R(Convert_Type));
     Pixel_G  <= STD_LOGIC_VECTOR(Pixel1.G(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.G(Convert_Type));
     Pixel_B  <= STD_LOGIC_VECTOR(Pixel1.B(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.B(Convert_Type));
-    SIGNAL New_Pixel      : STD_LOGIC;
     New_Pixel <= '0' when Start_Reg(1) = '1' else First_New_Pixel(0) OR Second_New_Pixel;
 
     --Keep track of current row and column

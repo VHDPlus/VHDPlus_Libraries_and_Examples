@@ -1,0 +1,86 @@
+/*
+    Name: Dual-Port RAM
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 30.12.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy of 
+	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+	HDL Code without restriction, including without limitation the rights to use, 
+	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+	subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+	Description: This component allows save data in the internal block memory
+	
+    Insertion:   -Right click on Dual-Port_RAM.vhdp -> Add to project
+			     -Add NewComponent of Dual_Port_RAM in your code
+				 -Set Bits to the number of bits for one data block
+			     -Set Width to the number of data blocks you need
+			     -Right click the name Dual_Port_RAM next to NewComponent and create the needed signals 
+	
+    Function:    Read:  -Set Write to '0'
+					    -Set Address to the position of the data to read
+					    -Wait one cycle and read the data with Data_OUT (Step{... <= Data_OUT;})
+						
+			     Write: -Set Address to the position for the data to save
+				        -Set Data_IN to the data to save
+						-Set Write to '1'
+						-Wait one cycle to reset Write to '0' (Step{Write <= '0';})
+*/
+
+Component Dual_Port_RAM
+(
+	Generic
+	(
+		bits    : NATURAL := 8;     --Number of bits in one block
+		width	: NATURAL := 256;	--Number of blocks to save
+	);
+	write_a   : in  std_logic := '1';   			--'1' to write in RAM (don't forget to reset to prevent overwriting)
+	write_b   : in  std_logic := '1';
+	address_a : in  natural range 0 to width-1;
+	address_b : in  natural range 0 to width-1;
+	dataIn_a  : in  std_logic_vector(bits-1 downto 0); --Data that is written into the RAM when write is '1'
+	dataIn_b  : in  std_logic_vector(bits-1 downto 0);
+	dataOut_a : out std_logic_vector(bits-1 downto 0);  --Data at given address
+	dataOut_b : out std_logic_vector(bits-1 downto 0);
+)
+{
+	AttributeDeclaration
+	{
+		--creates array of range and type that can be changed
+		type ram_type is array (width-1 downto 0) of std_logic_vector (bits-1 downto 0);   
+  		signal RAM : ram_type;  
+	}
+	
+	Process()
+	{
+		if(write_a = '1')
+		{
+			RAM(address_a) <= dataIn_a;
+		}
+	}
+	
+	dataOut_a <= RAM(address_a);
+	
+	Process()
+	{
+		if(write_b = '1')
+		{
+			RAM(address_b) <= dataIn_b;
+		}
+	}
+	
+	dataOut_b <= RAM(address_b);
+}
