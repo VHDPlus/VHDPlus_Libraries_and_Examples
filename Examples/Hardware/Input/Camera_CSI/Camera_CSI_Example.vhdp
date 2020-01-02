@@ -25,17 +25,33 @@
     Description: This example takes video data from a camera and outputs it via HDMI
  */
 
+/*
+ IMPORTANT:
+ Camera_Capture_SDRAM CLK INPUT HAVE TO BE CONNECTED WITH A 100MHz CLK (with an PLL)
+ */
+
 Main
 (
-    Camera_CLK_Lane      : IN STD_LOGIC;
-    Camera_Data_Lane     : IN STD_LOGIC_VECTOR (1 downto 0);
-    Camera_Enable        : OUT STD_LOGIC;
+    Camera_CLK_Lane      : IN    STD_LOGIC;
+    Camera_Data_Lane     : IN    STD_LOGIC_VECTOR (1 downto 0);
+    Camera_Enable        : OUT   STD_LOGIC;
     Camera_SCL           : INOUT STD_LOGIC;
     Camera_SDA           : INOUT STD_LOGIC;
     
-    oHDMI_TX             : OUT STD_LOGIC_VECTOR(2 downto 0);
-    oHDMI_CLK            : OUT STD_LOGIC;
-    iHDMI_HPD            : IN  STD_LOGIC;
+    oSDRAM_ADDR          : OUT   STD_LOGIC_VECTOR(11 downto 0);
+    oSDRAM_BA            : OUT   STD_LOGIC_VECTOR(1 downto 0);
+    bSDRAM_DQ            : INOUT STD_LOGIC_VECTOR(15 downto 0);
+    oSDRAM_DQM           : OUT   STD_LOGIC_VECTOR(1 downto 0);
+    oSDRAM_CASn          : OUT   STD_LOGIC;
+    oSDRAM_CKE           : OUT   STD_LOGIC;
+    oSDRAM_CSn           : OUT   STD_LOGIC;
+    oSDRAM_RASn          : OUT   STD_LOGIC;
+    oSDRAM_WEn           : OUT   STD_LOGIC;
+    oSDRAM_CLK           : OUT   STD_LOGIC;
+    
+    oHDMI_TX             : OUT   STD_LOGIC_VECTOR(2 downto 0);
+    oHDMI_CLK            : OUT   STD_LOGIC;
+    iHDMI_HPD            : IN    STD_LOGIC;
 )
 {
     Camera_Enable <= '1';
@@ -46,6 +62,7 @@ Main
     SIGNAL Camera_Pixel_B       : STD_LOGIC_VECTOR (7 downto 0);
     SIGNAL Camera_Column        : NATURAL          range 0 to 639;
     SIGNAL Camera_Row           : NATURAL          range 0 to 479;
+    SIGNAL Camera_New_Pixel     : STD_LOGIC;
     NewComponent CSI_Camera
     (
         CLK_Frequency => 48000000,
@@ -61,14 +78,21 @@ Main
         Pixel_B       => Camera_Pixel_B,
         Column        => Camera_Column,
         Row           => Camera_Row,
+        New_Pixel     => Camera_New_Pixel,
     );
     
     --Save images in RAM
     SIGNAL Camera_Capture_Read_Column : NATURAL          range 0 to 639;
     SIGNAL Camera_Capture_Read_Row    : NATURAL          range 0 to 479;
     SIGNAL Camera_Capture_Read_Data   : STD_LOGIC_VECTOR (23 downto 0);
+    SIGNAL Camera_Capture_SDRAM_Read_Ena      : STD_LOGIC;
+    
+    /*
     NewComponent Camera_Capture
     (
+        Compression => 3,
+        Width       => 4,
+        
         Column      => Camera_Column,
         Row         => Camera_Row,
         Pixel_R     => Camera_Pixel_R,
@@ -78,13 +102,41 @@ Main
         Read_Row    => Camera_Capture_Read_Row,
         Read_Data   => Camera_Capture_Read_Data,
     );
-    
+     */
+
+    NewComponent Camera_Capture_SDRAM
+    (
+        New_Pixel   => Camera_New_Pixel,
+        Column      => Camera_Column,
+        Row         => Camera_Row,
+        Pixel_R     => Camera_Pixel_R,
+        Pixel_G     => Camera_Pixel_G,
+        Pixel_B     => Camera_Pixel_B,
+        
+        SDRAM_ADDR  => oSDRAM_ADDR,
+        SDRAM_BA    => oSDRAM_BA,
+        SDRAM_DQ    => bSDRAM_DQ,
+        SDRAM_DQM   => oSDRAM_DQM,
+        SDRAM_CASn  => oSDRAM_CASn,
+        SDRAM_CKE   => oSDRAM_CKE,
+        SDRAM_CSn   => oSDRAM_CSn,
+        SDRAM_RASn  => oSDRAM_RASn,
+        SDRAM_WEn   => oSDRAM_WEn,
+        SDRAM_CLK   => oSDRAM_CLK,
+        
+        Read_Column => Camera_Capture_Read_Column,
+        Read_Row    => Camera_Capture_Read_Row,
+        Read_Data   => Camera_Capture_Read_Data,
+        Read_Ena    => Camera_Capture_SDRAM_Read_Ena,
+    );
+
     --Read images from RAM to create video stream
     NewComponent CRT_Controller
     (
         Read_Column => Camera_Capture_Read_Column,
         Read_Row    => Camera_Capture_Read_Row,
         Read_Data   => Camera_Capture_Read_Data,
+        Read_Ena    => Camera_Capture_SDRAM_Read_Ena,
         VS_PCLK     => HDMI_Out_VS_PCLK,
         VS_SCLK     => HDMI_Out_VS_SCLK,
         VS_R        => HDMI_Out_VS_R,

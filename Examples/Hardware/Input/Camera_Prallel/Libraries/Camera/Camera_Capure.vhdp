@@ -44,6 +44,13 @@
     Example:   Camera_Example
 */
 
+/*
+WARNING!
+THE CAMERA CAPTURE FILE IS NOT WORKING!
+Try the Camer_Capture from CSI_Camera library 
+Feel free to test and improve it
+*/
+
 Component Camera_Capture
 (
     New_Pixel   : IN     STD_LOGIC := '0';  --change state -> new pixel

@@ -31,15 +31,16 @@ Component Camera_Capture
     (
         Compression : NATURAL := 3;  --640/Complression Columns and 480/Compression Rows are saved
         Width       : NATURAL := 4;  --number of bits for R,G and B
-        Brightness  : NATURAL := 0;  --Shifts left input by this amout of bits
     );
 
+    --Camera data
     Column      : IN     NATURAL range 0 to 639 := 0;
     Row         : IN     NATURAL range 0 to 479 := 0;
     Pixel_R     : IN     STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
     Pixel_G     : IN     STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
     Pixel_B     : IN     STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
-    
+
+    --RAM Output interface
     Read_Column : IN     NATURAL range 0 to 639 := 0;
     Read_Row    : IN     NATURAL range 0 to 479 := 0;
     Read_Data   : OUT    STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
@@ -114,7 +115,7 @@ Component Camera_Capture
                     skip_col := 0;
                     If(skip_row = 0)
                     {
-                        RAM_Data_In <= Pixel_R(7-Brightness downto 8-Width-Brightness) & Pixel_G(7-Brightness downto 8-Width-Brightness) & Pixel_B(7-Brightness downto 8-Width-Brightness);
+                        RAM_Data_In <= Pixel_R(7 downto 8-Width) & Pixel_G(7 downto 8-Width) & Pixel_B(7 downto 8-Width);
                         RAM_Addr_Row <= Row/Compression;
                         RAM_Addr_Col <= Column/Compression;
                         RAM_Write <= '1';

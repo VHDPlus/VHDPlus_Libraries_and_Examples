@@ -5,11 +5,24 @@
   <Items xsi:type="ProjectFolder">
     <Header>Camera</Header>
     <fileWatcherIgnore />
+    <Items xsi:type="ProjectFolder">
+      <Header>Simulation</Header>
+      <fileWatcherIgnore />
+      <Items xsi:type="ProjectFileGHDP">
+        <Header>Capture_Sim.ghdp</Header>
+      </Items>
+      <Items xsi:type="ProjectFile">
+        <Header>SDRAM_sdram_controller_0_test_component.vhd</Header>
+      </Items>
+    </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>ALTDDIO_IN.qsys.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>ALTSYNCRAM.qsys.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Camera_Capture_SDRAM.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>Camera_Capure.vhdp</Header>
@@ -20,7 +33,20 @@
     <Items xsi:type="ProjectFileVHDP">
       <Header>I2C.vhdp</Header>
     </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>PLL.qip</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>PLL.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>SDRAM.qsys</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>SDRAM.qsys.vhdp</Header>
+    </Items>
   </Items>
+  
   <Items xsi:type="ProjectFolder">
     <Header>HDMI</Header>
     <fileWatcherIgnore />

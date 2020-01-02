@@ -1,0 +1,207 @@
+Component Camera_Capture_SDRAM_tb()
+{
+    SIGNAL finished : STD_LOGIC:= '0';
+    CONSTANT period_time : TIME := 10000 ps;
+
+    Process Sim_finished()
+    {
+        wait for 100 ms;
+        finished <= '1';
+        wait;
+    }
+
+    NewComponent Camera_Capture_SDRAM
+    (
+        Burst_Length => 256,
+        New_Pixel => New_Pixel,
+        Column => Column,
+        Row => Row,
+        Pixel_R => Pixel_R,
+        Pixel_G => Pixel_G,
+        Pixel_B => Pixel_B,
+        SDRAM_ADDR => SDRAM_ADDR,
+        SDRAM_BA => SDRAM_BA,
+        SDRAM_DQ => SDRAM_DQ,
+        SDRAM_DQM => SDRAM_DQM,
+        SDRAM_CASn => SDRAM_CASn,
+        SDRAM_CKE => SDRAM_CKE,
+        SDRAM_CSn => SDRAM_CSn,
+        SDRAM_RASn => SDRAM_RASn,
+        SDRAM_WEn => SDRAM_WEn,
+        SDRAM_CLK => SDRAM_CLK,
+        Read_Column => Read_Column,
+        Read_Row => Read_Row,
+        Read_Data => Read_Data,
+        Read_Ena => Read_Ena,
+        CLK => CLK,
+    );
+    
+    NewComponent SDRAM_sdram_controller_0_test_component 
+    (
+        clk      => SDRAM_CLK,
+        zs_addr  => SDRAM_ADDR,
+        zs_ba    => SDRAM_BA,
+        zs_cas_n => SDRAM_CASn,
+        zs_cke   => SDRAM_CKE,
+        zs_cs_n  => SDRAM_CSn,
+        zs_dqm   => SDRAM_DQM,
+        zs_ras_n => SDRAM_RASn,
+        zs_we_n  => SDRAM_WEn,
+        zs_dq    => SDRAM_DQ,
+    );
+
+    SIGNAL New_Pixel : STD_LOGIC  := '0';
+    SIGNAL Column : NATURAL range 0 to 639 := 0;
+    SIGNAL Row : NATURAL range 0 to 479 := 0;
+    SIGNAL Pixel_R : STD_LOGIC_VECTOR (7 downto 0) := (others => '0');
+    SIGNAL Pixel_G : STD_LOGIC_VECTOR (7 downto 0) := (others => '0');
+    SIGNAL Pixel_B : STD_LOGIC_VECTOR (7 downto 0) := (others => '0');
+    SIGNAL SDRAM_ADDR : STD_LOGIC_VECTOR (11 downto 0);
+    SIGNAL SDRAM_BA : STD_LOGIC_VECTOR (1 downto 0);
+    SIGNAL SDRAM_DQ : STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
+    SIGNAL SDRAM_DQM : STD_LOGIC_VECTOR (1 downto 0);
+    SIGNAL SDRAM_CASn : STD_LOGIC ;
+    SIGNAL SDRAM_CKE : STD_LOGIC ;
+    SIGNAL SDRAM_CSn : STD_LOGIC ;
+    SIGNAL SDRAM_RASn : STD_LOGIC ;
+    SIGNAL SDRAM_WEn : STD_LOGIC ;
+    SIGNAL SDRAM_CLK : STD_LOGIC ;
+    SIGNAL Read_Column : NATURAL range 0 to 639 := 0;
+    SIGNAL Read_Row : NATURAL range 0 to 479 := 0;
+    SIGNAL Read_Data : STD_LOGIC_VECTOR (23 downto 0) := (others => '0');
+    SIGNAL Read_Ena : STD_LOGIC  := '0';
+    SIGNAL CLK : STD_LOGIC := '0';
+
+
+    Process Sim_New_Pixel()
+    {
+        While(finished /= '1')
+        {
+            New_Pixel <= '0';
+            wait for 3 * period_time;
+            New_Pixel <= '1';
+            wait for 1 * period_time;
+            
+        }
+        wait;
+    }
+
+    Process Sim_Column()
+    {
+        While(finished /= '1')
+        {
+            For(i IN 0 to 639)
+            {
+                Column <= i;
+                wait for 4 * period_time;
+            }
+        }
+        wait;
+    }
+
+    Process Sim_Row()
+    {
+        While(finished /= '1')
+        {
+            For(i IN 0 to 479)
+            {
+                Row <= i;
+                wait for 2560 * period_time;
+            }
+        }
+        wait;
+    }
+
+    Process Sim_Pixel_R()
+    {
+        While(finished /= '1')
+        {
+            For(i IN 0 to 255)
+            {
+                Pixel_R <= STD_LOGIC_VECTOR(TO_UNSIGNED(i, 8));
+                wait for 4 * period_time;
+            }
+        }
+        wait;
+    }
+
+    Process Sim_Pixel_G()
+    {
+        While(finished /= '1')
+        {
+            For(i IN 255 downto 0)
+            {
+                Pixel_G <= STD_LOGIC_VECTOR(TO_UNSIGNED(i, 8));
+                wait for 4 * period_time;
+            }
+        }
+        wait;
+    }
+
+    Process Sim_Pixel_B()
+    {
+        While(finished /= '1')
+        {
+            For(i IN 0 to 255)
+            {
+                Pixel_B <= STD_LOGIC_VECTOR(TO_UNSIGNED(i, 8));
+                wait for 4 * period_time;
+            }
+        }
+        wait;
+    }
+
+    Process Sim_Read_Column()
+    {
+        While(finished /= '1')
+        {
+            wait for 500 * period_time;
+            For(i IN 0 to 639)
+            {
+                Read_Column <= i;
+                wait for 4 * period_time;
+            }
+        }
+        wait;
+    }
+
+    Process Sim_Read_Row()
+    {
+        While(finished /= '1')
+        {
+            wait for 500 * period_time;
+            For(i IN 0 to 479)
+            {
+                Read_Row <= i;
+                wait for 3060 * period_time;
+            }
+        }
+        wait;
+    }
+
+    Process Sim_Read_Ena()
+    {
+        While(finished /= '1')
+        {
+            Read_Ena <= '0';
+            wait for 2 * period_time;
+            Read_Ena <= '1';
+            wait for 1  * period_time;
+            Read_Ena <= '0';
+            wait for 1 * period_time;
+        }
+        wait;
+    }
+
+    Process Sim_CLK()
+    {
+        While(finished /= '1')
+        {
+            CLK <= '0';
+            wait for period_time/2;
+            CLK <= '1';
+            wait for period_time/2;
+        }
+        wait;
+    }
+}
