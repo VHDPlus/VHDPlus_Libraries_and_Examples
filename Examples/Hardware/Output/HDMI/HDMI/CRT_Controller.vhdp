@@ -31,7 +31,6 @@ Component CRT_Controller
     Read_Column : OUT    NATURAL range 0 to 639 := 0;
     Read_Row    : OUT    NATURAL range 0 to 479 := 0;
     Read_Data   : IN     STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
-    Read_Ena    : OUT    STD_LOGIC := '0';
 
     --Video stream output
     VS_PCLK    : OUT    STD_LOGIC;
@@ -65,9 +64,6 @@ Component CRT_Controller
     CONSTANT syncV   : NATURAL := 490; --start of vertical sync
     CONSTANT porchVB : NATURAL := 492; --start of vertical back porch
     CONSTANT maxV    : NATURAL := 525; --total rows
-    
-    --Pixel CLK = Request next pixel
-    Read_Ena <= PLL_c0;
     
     Process ()
     {

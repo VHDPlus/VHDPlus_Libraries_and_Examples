@@ -25,10 +25,10 @@
 
 /*
 WARNING!
-THE CAMERA CAPTURE FILE IS NOT WORKING!
-Try the Camer_Capture from CSI_Camera library 
+This Example is not finished! 
 Feel free to test and improve it
 */
+
 Main
 (
     SIOC        : OUT    STD_LOGIC;
