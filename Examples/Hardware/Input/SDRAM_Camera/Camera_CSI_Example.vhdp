@@ -1,0 +1,175 @@
+/*
+    Name: CRT Controller
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 06.06.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Description: This example takes video data from a camera and outputs it via HDMI
+ */
+
+/*
+ IMPORTANT:
+ Camera_Capture_SDRAM CLK INPUT HAVE TO BE CONNECTED WITH A 100MHz CLK (with an PLL)
+ */
+
+Main
+(
+    Camera_CLK_Lane      : IN    STD_LOGIC;
+    Camera_Data_Lane     : IN    STD_LOGIC_VECTOR (1 downto 0);
+    Camera_Enable        : OUT   STD_LOGIC;
+    Camera_SCL           : INOUT STD_LOGIC;
+    Camera_SDA           : INOUT STD_LOGIC;
+    
+    oSDRAM_ADDR          : OUT   STD_LOGIC_VECTOR(11 downto 0);
+    oSDRAM_BA            : OUT   STD_LOGIC_VECTOR(1 downto 0);
+    bSDRAM_DQ            : INOUT STD_LOGIC_VECTOR(15 downto 0);
+    oSDRAM_DQM           : OUT   STD_LOGIC_VECTOR(1 downto 0);
+    oSDRAM_CASn          : OUT   STD_LOGIC;
+    oSDRAM_CKE           : OUT   STD_LOGIC;
+    oSDRAM_CSn           : OUT   STD_LOGIC;
+    oSDRAM_RASn          : OUT   STD_LOGIC;
+    oSDRAM_WEn           : OUT   STD_LOGIC;
+    oSDRAM_CLK           : OUT   STD_LOGIC;
+    
+    oHDMI_TX             : OUT   STD_LOGIC_VECTOR(2 downto 0);
+    oHDMI_CLK            : OUT   STD_LOGIC;
+    iHDMI_HPD            : IN    STD_LOGIC;
+)
+{
+    Camera_Enable <= '1';
+
+    --Receive CSI Data
+    SIGNAL Camera_Pixel_R       : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Camera_Pixel_G       : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Camera_Pixel_B       : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Camera_Column        : NATURAL          range 0 to 639;
+    SIGNAL Camera_Row           : NATURAL          range 0 to 479;
+    SIGNAL Camera_New_Pixel     : STD_LOGIC;
+    NewComponent CSI_Camera
+    (
+        CLK_Frequency => 48000000,
+        
+        Reset         => '0',
+        CLK_Lane      => Camera_CLK_Lane,
+        Data_Lane     => Camera_Data_Lane,
+        SCL           => Camera_SCL,
+        SDA           => Camera_SDA,
+        
+        Pixel_R       => Camera_Pixel_R,
+        Pixel_G       => Camera_Pixel_G,
+        Pixel_B       => Camera_Pixel_B,
+        Column        => Camera_Column,
+        Row           => Camera_Row,
+        New_Pixel     => Camera_New_Pixel,
+    );
+    
+    --Save images in RAM
+    SIGNAL Camera_Capture_Read_Column : NATURAL          range 0 to 639;
+    SIGNAL Camera_Capture_Read_Row    : NATURAL          range 0 to 479;
+    SIGNAL Camera_Capture_Read_Data   : STD_LOGIC_VECTOR (23 downto 0);
+    SIGNAL Camera_Capture_SDRAM_Read_Ena      : STD_LOGIC;
+
+    /*
+    NewComponent Camera_Capture
+    (
+        Compression => 3,
+        Width       => 4,
+        
+        Column      => Camera_Column,
+        Row         => Camera_Row,
+        Pixel_R     => Camera_Pixel_R,
+        Pixel_G     => Camera_Pixel_G,
+        Pixel_B     => Camera_Pixel_B,
+        Read_Column => Camera_Capture_Read_Column,
+        Read_Row    => Camera_Capture_Read_Row,
+        Read_Data   => Camera_Capture_Read_Data,
+    );
+    */
+
+    NewComponent Camera_Capture_SDRAM
+    (
+        New_Pixel   => Camera_New_Pixel,
+        Column      => Camera_Column,
+        Row         => Camera_Row,
+        Pixel_R     => Camera_Pixel_R,
+        Pixel_G     => Camera_Pixel_G,
+        Pixel_B     => Camera_Pixel_B,
+        
+        SDRAM_ADDR  => oSDRAM_ADDR,
+        SDRAM_BA    => oSDRAM_BA,
+        SDRAM_DQ    => bSDRAM_DQ,
+        SDRAM_DQM   => oSDRAM_DQM,
+        SDRAM_CASn  => oSDRAM_CASn,
+        SDRAM_CKE   => oSDRAM_CKE,
+        SDRAM_CSn   => oSDRAM_CSn,
+        SDRAM_RASn  => oSDRAM_RASn,
+        SDRAM_WEn   => oSDRAM_WEn,
+        SDRAM_CLK   => oSDRAM_CLK,
+        
+        Read_Column => Camera_Capture_Read_Column,
+        Read_Row    => Camera_Capture_Read_Row,
+        Read_Data   => Camera_Capture_Read_Data,
+        Read_Ena    => Camera_Capture_SDRAM_Read_Ena,
+    );
+
+    --Read images from RAM to create video stream
+    NewComponent CRT_Controller
+    (
+        Read_Column => Camera_Capture_Read_Column,
+        Read_Row    => Camera_Capture_Read_Row,
+        Read_Data   => Camera_Capture_Read_Data,
+        Read_Ena    => Camera_Capture_SDRAM_Read_Ena,
+        VS_PCLK     => HDMI_Out_VS_PCLK,
+        VS_SCLK     => HDMI_Out_VS_SCLK,
+        VS_R        => HDMI_Out_VS_R,
+        VS_G        => HDMI_Out_VS_G,
+        VS_B        => HDMI_Out_VS_B,
+        VS_HS       => HDMI_Out_VS_HS,
+        VS_VS       => HDMI_Out_VS_VS,
+        VS_DE       => HDMI_Out_VS_DE,
+    );
+
+    --Output video stream with hdmi interface
+    SIGNAL HDMI_Out_VS_PCLK   : STD_LOGIC;
+    SIGNAL HDMI_Out_VS_SCLK   : STD_LOGIC;
+    SIGNAL HDMI_Out_VS_R      : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL HDMI_Out_VS_G      : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL HDMI_Out_VS_B      : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL HDMI_Out_VS_HS     : STD_LOGIC;
+    SIGNAL HDMI_Out_VS_VS     : STD_LOGIC;
+    SIGNAL HDMI_Out_VS_DE     : STD_LOGIC;
+    
+    NewComponent HDMI_Out
+    (
+        VS_PCLK    => HDMI_Out_VS_PCLK,
+        VS_SCLK    => HDMI_Out_VS_SCLK,
+        VS_R       => HDMI_Out_VS_R,
+        VS_G       => HDMI_Out_VS_G,
+        VS_B       => HDMI_Out_VS_B,
+        VS_HS      => HDMI_Out_VS_HS,
+        VS_VS      => HDMI_Out_VS_VS,
+        VS_DE      => HDMI_Out_VS_DE,
+        oHDMI_DATA => oHDMI_TX,
+        oHDMI_CLK  => oHDMI_CLK,
+        iHDMI_HPD  => iHDMI_HPD,
+    );
+    
+}

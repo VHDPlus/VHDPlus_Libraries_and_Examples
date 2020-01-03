@@ -1,0 +1,606 @@
+/*
+    Name: Camera Capture SDRAM
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 30.12.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Description: This component takes video data (pixel + column/row) and saves it in the RAM. The data can be accessed parallely
+ */
+
+Component Camera_Capture_SDRAM
+(
+    Generic
+    (
+        Burst_Length : NATURAL := 8;
+    );
+    
+    --Camera data
+    New_Pixel   : IN    STD_LOGIC := '0';
+    Column      : IN    NATURAL range 0 to 639 := 0;
+    Row         : IN    NATURAL range 0 to 479 := 0;
+    Pixel_R     : IN    STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    Pixel_G     : IN    STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    Pixel_B     : IN    STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    
+    --SDRAM interface
+    SDRAM_ADDR  : OUT   STD_LOGIC_VECTOR(11 downto 0);
+    SDRAM_BA    : OUT   STD_LOGIC_VECTOR(1 downto 0);
+    SDRAM_DQ    : INOUT STD_LOGIC_VECTOR(15 downto 0);
+    SDRAM_DQM   : OUT   STD_LOGIC_VECTOR(1 downto 0);
+    SDRAM_CASn  : OUT   STD_LOGIC;
+    SDRAM_CKE   : OUT   STD_LOGIC;
+    SDRAM_CSn   : OUT   STD_LOGIC;
+    SDRAM_RASn  : OUT   STD_LOGIC;
+    SDRAM_WEn   : OUT   STD_LOGIC;
+    SDRAM_CLK   : OUT   STD_LOGIC;
+
+    --RAM Output interface
+    Read_Column : IN     NATURAL range 0 to 639 := 0;
+    Read_Row    : IN     NATURAL range 0 to 479 := 0;
+    Read_Data   : BUFFER STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
+    Read_Ena    : IN     STD_LOGIC := '0';
+)
+{
+    
+    SDRAM_CLK <= RAM_CLK;
+    
+    SIGNAL RAM_CLK : STD_LOGIC;
+    SIGNAL CTL_CLK : STD_LOGIC;
+    
+    /*
+    NewComponent PLL
+    (
+        inclk0 => CLK,
+        c0     => CTL_CLK,
+        c1     => RAM_CLK,
+    );
+    */
+    
+    CTL_CLK <= CLK;
+    RAM_CLK <= NOT CLK;
+    
+    CONSTANT pixel_number : NATURAL := (Burst_Length*2)/3;
+    
+    --Mit RAM:
+    --1. Bei rising edge von New_Pixel Daten in save_buf schrieben
+    --2. Wenn save_buf voll ist, copy_save_buf auf true
+    --3. New_Pixel Data wird wieder von Vorne beschrieben und bei jeder rising edge von CTL_CLK wird in save_ram_buf kopiert
+    
+    --Saves always 8x16 bit at once -> first writes 5 pixels in buffer
+    TYPE burst_data_type IS ARRAY (0 to Burst_Length-1) OF STD_LOGIC_VECTOR(15 downto 0);
+    SIGNAL save_buf      : burst_data_type := (others => (others => '0'));
+    SIGNAL save_ram_buf  : burst_data_type := (others => (others => '0'));
+    SIGNAL start_save    : BOOLEAN := false;
+    SIGNAL Save_RAM_Addr : NATURAL range 0 to (640*480)/pixel_number := 0;
+    
+    SIGNAL save_pixel_reg   : NATURAL range 0 to pixel_number-1 := 0;
+    
+    SIGNAL save_buf_raddr : NATURAL range 0 to Burst_Length-1 := 0;
+    SIGNAL save_buf_waddr : NATURAL range 0 to Burst_Length-1 := 0;
+    SIGNAL save_buf_wr    : BOOLEAN := false;
+    SIGNAL save_buf_rdata : STD_LOGIC_VECTOR(15 downto 0);
+    SIGNAL save_buf_wdata : STD_LOGIC_VECTOR(15 downto 0);
+    
+    Process ()
+    {
+        If(rising_edge(CTL_CLK))
+        {
+            If(save_buf_wr)
+            {
+                save_buf(save_buf_waddr) <= save_buf_wdata;
+            }
+        }
+    }
+    
+    save_buf_rdata <= save_buf(save_buf_raddr);
+    
+    SIGNAL save_ram_buf_raddr : NATURAL range 0 to Burst_Length-1 := 0;
+    SIGNAL save_ram_buf_waddr : NATURAL range 0 to Burst_Length-1 := 0;
+    SIGNAL save_ram_buf_wr    : BOOLEAN := false;
+    SIGNAL save_ram_buf_rdata : STD_LOGIC_VECTOR(15 downto 0);
+    SIGNAL save_ram_buf_wdata : STD_LOGIC_VECTOR(15 downto 0);
+    
+    Process ()
+    {
+        If(rising_edge(CTL_CLK))
+        {
+            If(save_ram_buf_wr)
+            {
+                save_ram_buf(save_ram_buf_waddr) <= save_ram_buf_wdata;
+            }
+        }
+    }
+    
+    save_ram_buf_rdata <= save_ram_buf(save_ram_buf_raddr);
+    
+    --Save Process--------------------------------------------
+    Process Save_Process ()
+    {
+        If(falling_edge(CTL_CLK))
+        {
+            VARIABLE New_Pixel_Reg : STD_LOGIC := '0';
+            --Save last pixel data
+            If(New_Pixel = '1' AND New_Pixel_Reg = '0')
+            {
+                VARIABLE save_pixel   : NATURAL range 0 to pixel_number-1 := 0;
+                VARIABLE Request_Addr : NATURAL range 0 to (640*480)/pixel_number;
+                Request_Addr := (Row*640+Column)/pixel_number;
+                save_pixel   := (Row*640+Column)-Request_Addr*pixel_number;
+                
+                If(save_pixel = 0)
+                {
+                    VARIABLE copy_buffer : BOOLEAN := false;
+                    copy_buffer     := true;
+                    start_save      <= true;
+                    save_buf_raddr  <= 0;
+                    If(Request_Addr > 0)
+                    {
+                        Save_RAM_Addr <= Request_Addr-1;
+                    }
+                    Else
+                    {
+                        Save_RAM_Addr <= (640*480)/pixel_number-1;
+                    }
+                }
+
+                VARIABLE write_save_buf  : BOOLEAN := false;
+                VARIABLE data_save_buf1  : STD_LOGIC_VECTOR(23 downto 0);
+                VARIABLE data_save_buf   : STD_LOGIC_VECTOR(47 downto 0);
+
+                If(TO_UNSIGNED(save_pixel, 10)(0) = '0')
+                {
+                    save_buf_waddr  <= (save_pixel*3)/2;
+                    data_save_buf1  := Pixel_R & Pixel_G & Pixel_B;
+                }
+                Else
+                {
+                    data_save_buf  := Pixel_R & Pixel_G & Pixel_B & data_save_buf1;
+                    VARIABLE write_count : NATURAL range 0 to 2 := 0;
+                    write_count    := 0;
+                    write_save_buf := true;
+                }
+            }
+            Else
+            {
+                start_save    <= false;
+            }
+            save_pixel_reg <= save_pixel;
+            New_Pixel_Reg := New_Pixel;
+            
+            If(write_save_buf)
+            {
+                save_buf_wr    <= true;
+                save_buf_wdata <= data_save_buf(16*write_count+15 downto 16*write_count);
+                If(write_count > 0 AND save_buf_waddr < Burst_Length-1)
+                {
+                    save_buf_waddr <= save_buf_waddr + 1;
+                }
+                If(write_count < 2)
+                {
+                    write_count    := write_count + 1;
+                    
+                }
+                Else
+                {
+                    write_save_buf := false;
+                }
+            }
+            Else
+            {
+                save_buf_wr    <= false;
+            }
+            
+            If(copy_buffer)
+            {
+                save_ram_buf_wr <= true;
+                save_ram_buf_waddr <= save_buf_raddr;
+                save_ram_buf_wdata <= save_buf_rdata;
+                
+                If(save_buf_raddr < Burst_Length-1)
+                {
+                    save_buf_raddr <= save_buf_raddr + 1;
+                }
+                Else
+                {
+                    copy_buffer := false;
+                }
+            }
+            Else
+            {
+                save_buf_raddr  <= 0;
+                save_ram_buf_wr <= false;
+            }
+            SIGNAL copy_buffer_reg : BOOLEAN;
+            copy_buffer_reg <= copy_buffer;
+        }
+    }
+    ----------------------------------------------------------
+
+    SIGNAL Read_Addr      : NATURAL range 0 to (640*480)/pixel_number := 0;
+    SIGNAL Read_RAM_Addr  : NATURAL range 0 to (640*480)/pixel_number := 0;
+    SIGNAL read_buf     : burst_data_type := (others => (others => '0'));
+    SIGNAL read_ram_buf : burst_data_type := (others => (others => '0'));
+    SIGNAL start_read   : BOOLEAN := false;
+    
+    SIGNAL read_buf_raddr : NATURAL range 0 to Burst_Length-1 := 0;
+    SIGNAL read_buf_waddr : NATURAL range 0 to Burst_Length-1 := 0;
+    SIGNAL read_buf_wr    : BOOLEAN := false;
+    SIGNAL read_buf_rdata : STD_LOGIC_VECTOR(15 downto 0);
+    SIGNAL read_buf_wdata : STD_LOGIC_VECTOR(15 downto 0);
+    
+    Process ()
+    {
+        If(rising_edge(CTL_CLK))
+        {
+            If(read_buf_wr)
+            {
+                read_buf(read_buf_waddr) <= read_buf_wdata;
+            }
+        }
+    }
+    
+    read_buf_rdata <= read_buf(read_buf_raddr);
+    
+    SIGNAL read_ram_buf_raddr : NATURAL range 0 to Burst_Length-1 := 0;
+    SIGNAL read_ram_buf_waddr : NATURAL range 0 to Burst_Length-1 := 0;
+    SIGNAL read_ram_buf_wr    : BOOLEAN := false;
+    SIGNAL read_ram_buf_rdata : STD_LOGIC_VECTOR(15 downto 0);
+    SIGNAL read_ram_buf_wdata : STD_LOGIC_VECTOR(15 downto 0);
+    
+    Process ()
+    {
+        If(rising_edge(CTL_CLK))
+        {
+            If(read_ram_buf_wr)
+            {
+                read_ram_buf(read_ram_buf_waddr) <= read_ram_buf_wdata;
+            }
+        }
+    }
+    
+    read_ram_buf_rdata <= read_ram_buf(read_ram_buf_raddr);
+    
+    --Read Process--------------------------------------------
+    Process Read_Process ()
+    {
+        If(falling_edge(CTL_CLK))
+        {
+            VARIABLE Read_Ena_Reg : STD_LOGIC := '0';
+            
+            --Save that data should be read
+            If(Read_Ena = '1' AND Read_Ena_Reg = '0')
+            {
+                VARIABLE read_pixel : NATURAL range 0 to pixel_number-1;
+                VARIABLE Request_Addr : NATURAL range 0 to (640*480)/pixel_number;
+                Request_Addr := (Read_Row*640+Read_Column)/pixel_number;
+                If(Request_Addr /= Read_Addr)
+                {
+                    read_pixel := 0;
+                    Read_Addr    <= Request_Addr;
+                    If(Request_Addr < (640*480)/pixel_number-1)
+                    {
+                        Read_RAM_Addr <= Request_Addr + 1;
+                    }
+                    Else
+                    {
+                        Read_RAM_Addr <= 0;
+                    }
+                    VARIABLE copy_buffer : BOOLEAN := false;
+                    read_ram_buf_raddr <= 0;
+                    copy_buffer        := true;
+                    start_read         <= true;
+                }
+                Else
+                {
+                    read_pixel := Read_Row*640+Read_Column - Read_Addr*pixel_number;
+                }
+
+                SIGNAL read_pixel_reg : NATURAL;
+                read_pixel_reg <= read_pixel;
+                
+                read_buf_raddr <= (read_pixel*3)/2;
+                
+                VARIABLE read_read_buf : BOOLEAN := false;
+                VARIABLE read_count : NATURAL range 0 to 2 := 0;
+                read_count    := 0;
+                read_read_buf := true;
+            }
+            Else
+            {
+                start_read <= false;
+            }
+            Read_Ena_Reg := Read_Ena;
+            
+            If(read_read_buf)
+            {
+                VARIABLE buf_reg : STD_LOGIC_VECTOR(15 downto 0);
+                buf_reg := read_buf_rdata;
+                
+                If(read_count > 0)
+                {
+                    If(read_count = 1)
+                    {
+                        Read_Data(15 downto 0) <= buf_reg;
+                        read_buf_raddr  <= read_buf_raddr + 1;
+                    }
+                    Else
+                    {
+                        If(TO_UNSIGNED(read_pixel, 10)(0) = '0')
+                        {
+                            Read_Data <= buf_reg(7 downto 0) & Read_Data(15 downto 0);
+                        }
+                        Else
+                        {
+                            Read_Data <= buf_reg & Read_Data(15 downto 8);
+                        }
+                    }
+                }
+
+                If(read_count < 2)
+                {
+                    read_count      := read_count + 1;
+                }
+                Else
+                {
+                    read_read_buf := false;
+                }
+            }
+            Else
+            {
+                Read_Data_R <= Read_Data(23 downto 16);
+                Read_Data_G <= Read_Data(15 downto 8);
+                Read_Data_B <= Read_Data(7 downto 0);
+            }
+            
+            If(copy_buffer)
+            {
+                If(read_ram_buf_raddr < Burst_Length-1)
+                {
+                    read_buf_wr    <= true;
+                    read_buf_waddr <= read_ram_buf_raddr;
+                    read_buf_wdata <= read_ram_buf_rdata;
+                    read_ram_buf_raddr <= read_ram_buf_raddr + 1;
+                }
+                Else
+                {
+                    read_buf_wr <= false;
+                    copy_buffer := false;
+                    read_ram_buf_raddr <= 0;
+                }
+            }
+        }
+    }
+    
+    SIGNAL Read_Data_R : STD_LOGIC_VECTOR(7 downto 0);
+    SIGNAL Read_Data_G : STD_LOGIC_VECTOR(7 downto 0);
+    SIGNAL Read_Data_B : STD_LOGIC_VECTOR(7 downto 0);
+    
+    ----------------------------------------------------------
+
+    --SDRAM Controller Interface------------------------------
+
+    SIGNAL ISSP_source : std_logic_vector (7 downto 0) := (others => '0');
+    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0);
+    NewComponent ISSP
+    (
+        source => ISSP_source,
+        probe  => ISSP_probe,
+    );
+    
+    SIGNAL RAM_Step : NATURAL range 0 to Burst_Length := 0;
+
+    Process SDRAM_Controller_Interface ()
+    {
+        If(rising_edge(CTL_CLK))
+        {
+            If(SDRAM_Reset = '0')
+            {
+                SDRAM_Reset <= '1';
+            }
+            
+            VARIABLE read_wait : BOOLEAN := false;
+            VARIABLE start_read_reg : BOOLEAN := false;
+            If(start_read AND NOT start_read_reg)
+            {
+                read_wait := true;
+            }
+            start_read_reg := start_read;
+            
+            VARIABLE save_wait : BOOLEAN := false;
+            VARIABLE start_save_reg : BOOLEAN := false;
+            If(start_save AND NOT start_save_reg)
+            {
+                save_wait := true;
+            }
+            start_save_reg := start_save;
+            
+            VARIABLE RAM_Busy : BOOLEAN := false;
+            VARIABLE RAM_Wr   : BOOLEAN := false;
+            If(NOT RAM_Busy)
+            {
+                If(save_wait AND ISSP_source(0) = '0')
+                {
+                    save_wait      := false;
+                    RAM_Wr         := true;
+                    RAM_Busy       := true;
+                    save_ram_buf_raddr <= 0;
+                    RAM_Step       <= 0;
+                    ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(ram_count, 32));
+                    ram_count := 0;
+                }
+                Elsif(read_wait AND ISSP_source(1) = '0')
+                {
+                    read_wait      := false;
+                    RAM_Wr         := false;
+                    RAM_Busy       := true;
+                    RAM_Step       <= 0;
+                    wait_delay := 2;
+                    ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(ram_count, 32));
+                    ram_count := 0;
+                }
+                Else
+                {
+                    VARIABLE ram_count : NATURAL := 0;
+                    ram_count := ram_count + 1;
+                }
+                read_ram_buf_wr <= false;
+            }
+            Else
+            {
+                If(RAM_Wr)
+                {
+                    If(SDRAM_waitrequest /= '1' OR RAM_Step = 0)
+                    {
+                        If(RAM_Step < Burst_Length)
+                        {
+                            SDRAM_write_n      <= '0';
+                            SDRAM_writedata    <= save_ram_buf_rdata;
+                            SDRAM_address      <= STD_LOGIC_VECTOR(TO_UNSIGNED(Save_RAM_Addr*Burst_Length+RAM_Step, SDRAM_address'LENGTH));
+                            If(RAM_Step < Burst_Length-1)
+                            {
+                                save_ram_buf_raddr <= RAM_Step + 1;
+                            }
+                            RAM_Step           <= RAM_Step + 1;
+                        }
+                        Else
+                        {
+                            SDRAM_write_n   <= '1';
+                            RAM_Busy        := false;
+                        }
+                    }
+                }
+                Else
+                {
+                    If(RAM_Step = 0)
+                    {
+                        SDRAM_read_n    <= '0';
+                        SDRAM_address   <= STD_LOGIC_VECTOR(TO_UNSIGNED(Read_RAM_Addr*Burst_Length+RAM_Step, SDRAM_address'LENGTH));
+                        RAM_Step        <= RAM_Step + 1;
+                        Receive_Count   := 0;
+                    }
+                    Elsif(SDRAM_waitrequest /= '1' OR wait_delay < 3 OR SDRAM_readdatavalid = '1')
+                    {
+                        If(RAM_Step < Burst_Length AND SDRAM_waitrequest /= '1')
+                        {
+                            SDRAM_address   <= STD_LOGIC_VECTOR(TO_UNSIGNED(Read_RAM_Addr*Burst_Length+RAM_Step, SDRAM_address'LENGTH));
+                            RAM_Step        <= RAM_Step + 1;
+                        }
+                        
+                        If(SDRAM_readdatavalid = '1')
+                        {
+                            VARIABLE Receive_Count : NATURAL range 0 to Burst_Length := 0;
+                            read_ram_buf_wr     <= true;
+                            read_ram_buf_waddr  <= Receive_Count;
+                            read_ram_buf_wdata  <= data_reg;
+                            Receive_Count       := Receive_Count + 1;
+                            If(Receive_Count = Burst_Length)
+                            {
+                                SDRAM_read_n    <= '1';
+                                RAM_Busy        := false;
+                            }
+                        }
+                        
+                        VARIABLE wait_delay : NATURAL range 0 to 3 := 0;
+                        If(SDRAM_waitrequest = '1' AND wait_delay < 3)
+                        {
+                            wait_delay := wait_delay + 1;
+                        }
+                        Else
+                        {
+                            wait_delay := 0;
+                        }
+                    }
+                    VARIABLE data_reg : STD_LOGIC_VECTOR(15 downto 0);
+                    data_reg := SDRAM_readdata;
+                }
+            }
+        }
+    }
+    
+    
+    ----------------------------------------------------------
+    
+    SIGNAL SDRAM_address        : std_logic_vector (21 downto 0) := (others => '0');
+    SIGNAL SDRAM_writedata      : std_logic_vector (15 downto 0) := (others => '0');
+    SIGNAL SDRAM_read_n         : std_logic := '1';
+    SIGNAL SDRAM_write_n        : std_logic := '1';
+    SIGNAL SDRAM_readdata       : std_logic_vector (15 downto 0) := (others => '0');
+    SIGNAL SDRAM_readdatavalid  : std_logic;
+    SIGNAL SDRAM_waitrequest    : std_logic;
+    
+    SIGNAL SDRAM_Reset          : STD_LOGIC := '0';
+    NewComponent SDRAM
+    (
+        clk_in_clk       => CTL_CLK,
+        reset_reset_n    => SDRAM_Reset,
+        s1_address       => SDRAM_address,
+        s1_byteenable_n  => "00",   --"00" to write to both bytes of the 16 bytes
+        s1_chipselect    => '1',    --'1' to enable SDRAM
+        s1_writedata     => SDRAM_writedata,
+        s1_read_n        => SDRAM_read_n,
+        s1_write_n       => SDRAM_write_n,
+        s1_readdata      => SDRAM_readdata,
+        s1_readdatavalid => SDRAM_readdatavalid,
+        s1_waitrequest   => SDRAM_waitrequest,
+        sdram_addr       => SDRAM_ADDR,
+        sdram_ba         => SDRAM_BA,
+        sdram_cas_n      => SDRAM_CASn,
+        sdram_cke        => SDRAM_CKE,
+        sdram_cs_n       => SDRAM_CSn,
+        sdram_dq         => SDRAM_DQ,
+        sdram_dqm        => SDRAM_DQM,
+        sdram_ras_n      => SDRAM_RASn,
+        sdram_we_n       => SDRAM_WEn,
+    );
+    
+   /*
+    NewComponent sdr_sdram 
+    (
+        SHORT_INITIALIZATION  => false,
+        USE_AUTOMATIC_REFRESH => true,
+        BURST_LENGTH          => 8,
+        SDRAM                 => ,
+        CS_WIDTH              => ,
+        CS_LOW_BIT            => ,
+        BA_LOW_BIT            => ,
+        ROW_LOW_BIT           => ,
+        COL_LOW_BIT           => ,
+    
+        rst                   => 
+        clk                   => 
+        pll_locked            => 
+        ocpSlave              => 
+        ocpMaster             => 
+        sdram_CKE             => 
+        sdram_RAS_n           => 
+        sdram_CAS_n           => 
+        sdram_WE_n            => 
+        sdram_CS_n            => 
+        sdram_BA              => 
+        sdram_SA              => 
+        sdram_DQ              => 
+        sdram_DQM             => 
+    );
+    */
+   /*
+   
+   */
+}

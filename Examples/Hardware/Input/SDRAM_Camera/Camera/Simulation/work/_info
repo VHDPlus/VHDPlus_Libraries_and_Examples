@@ -1,0 +1,479 @@
+m255
+K4
+z2
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+dC:/intelFPGA/18.1
+valtera_reset_controller
+Z0 !s110 1578036563
+!i10b 1
+!s100 z[H_hRO9gO=:^2E3_jWH03
+IIPcnn[AB_TQUUkUQ03M0]1
+Z1 VDg1SIo80bB@j0V0VzS_@n1
+Z2 dC:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation
+Z3 w1577997686
+8C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/altera_reset_controller.v
+FC:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/altera_reset_controller.v
+L0 42
+Z4 OV;L;10.5b;63
+r1
+!s85 0
+31
+Z5 !s108 1578036563.000000
+!s107 C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/altera_reset_controller.v|
+!s90 -reportprogress|300|-work|work|-stats=none|C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/altera_reset_controller.v|
+!i113 1
+Z6 o-work work
+Z7 tCvgOpt 0
+valtera_reset_synchronizer
+R0
+!i10b 1
+!s100 oWLYmSO[EOX[G0PgQhZ2=0
+IALiNzW9WXBLel8e1Fozc<2
+R1
+R2
+R3
+8C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/altera_reset_synchronizer.v
+FC:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/altera_reset_synchronizer.v
+L0 24
+R4
+r1
+!s85 0
+31
+R5
+!s107 C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/altera_reset_synchronizer.v|
+!s90 -reportprogress|300|-work|work|-stats=none|C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/altera_reset_synchronizer.v|
+!i113 1
+R6
+R7
+Ecamera_capture_sdram
+Z8 w1578036113
+Z9 DPx4 ieee 11 numeric_std 0 22 :ASDNFgHXf_ih3J@9F3Ze1
+Z10 DPx3 std 6 textio 0 22 zE1`LPoLg^DX3Oz^4Fj1K3
+Z11 DPx4 ieee 14 std_logic_1164 0 22 eNV`TJ_GofJTzYa?f<@Oe1
+R2
+Z12 8C:\Users\LeonB\Documents\VHDPlus\Projects\Tutorials\Camera_CSI\Generated\Camera_Capture_SDRAM.vhd
+Z13 FC:\Users\LeonB\Documents\VHDPlus\Projects\Tutorials\Camera_CSI\Generated\Camera_Capture_SDRAM.vhd
+l0
+L7
+V4TdS@Tk?W[lg3J@DOaW840
+!s100 @UPCc`:QT851UF9I61@C23
+Z14 OV;C;10.5b;63
+32
+Z15 !s110 1578036562
+!i10b 1
+Z16 !s108 1578036562.000000
+Z17 !s90 -reportprogress|300|-work|work|-2002|-explicit|-stats=none|C:\Users\LeonB\Documents\VHDPlus\Projects\Tutorials\Camera_CSI\Generated\Camera_Capture_SDRAM.vhd|
+Z18 !s107 C:\Users\LeonB\Documents\VHDPlus\Projects\Tutorials\Camera_CSI\Generated\Camera_Capture_SDRAM.vhd|
+!i113 1
+Z19 o-work work -2002 -explicit
+Z20 tExplicit 1 CvgOpt 0
+Abehavioral
+R9
+R10
+R11
+DEx4 work 20 camera_capture_sdram 0 22 4TdS@Tk?W[lg3J@DOaW840
+l125
+L38
+V;zf5B8AFQ1;0HFLUhe:kO1
+!s100 Ci[EgmHZ^CH7YQT@==f4;3
+R14
+32
+R15
+!i10b 1
+R16
+R17
+R18
+!i113 1
+R19
+R20
+Ecamera_capture_sdram_tb
+Z21 w1578036507
+R9
+R10
+R11
+R2
+Z22 8C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Generated/Capture_Sim.vhd
+Z23 FC:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Generated/Capture_Sim.vhd
+l0
+L7
+VKDNi@7z1V_oCgN2<@FP4Q1
+!s100 ?HQT83gB=N45K6KLQ@kLj1
+R14
+32
+R15
+!i10b 1
+R16
+Z24 !s90 -reportprogress|300|-work|work|-2002|-explicit|-stats=none|C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Generated/Capture_Sim.vhd|
+Z25 !s107 C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Generated/Capture_Sim.vhd|
+!i113 1
+R19
+R20
+Abehavioral
+R9
+R10
+R11
+DEx4 work 23 camera_capture_sdram_tb 0 22 KDNi@7z1V_oCgN2<@FP4Q1
+l84
+L10
+VfbY[I89kWg3IE1MG3JaGY1
+!s100 ;fBFHlF7RH:^54;Pz06<52
+R14
+32
+R15
+!i10b 1
+R16
+R24
+R25
+!i113 1
+R19
+R20
+Esdram
+Z26 w1577997685
+R9
+R10
+R11
+R2
+Z27 8C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/SDRAM.vhd
+Z28 FC:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/SDRAM.vhd
+l0
+L9
+V1=3z29Yf3OZ8oV8;B2jDZ1
+!s100 cHJAfbWJUMAMziS5QA;o52
+R14
+32
+R0
+!i10b 1
+R5
+Z29 !s90 -reportprogress|300|-work|work|-2002|-explicit|-stats=none|C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/SDRAM.vhd|
+Z30 !s107 C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/SDRAM.vhd|
+!i113 1
+R19
+R20
+Artl
+R9
+R10
+R11
+DEx4 work 5 sdram 0 22 1=3z29Yf3OZ8oV8;B2jDZ1
+l130
+L34
+VDl=F[`?lJ_hZg7UBin=@E1
+!s100 U:ZH@EEe2@dJRDjiGLzDA0
+R14
+32
+R0
+!i10b 1
+R5
+R29
+R30
+!i113 1
+R19
+R20
+Psdram_config
+w1577999577
+R2
+8C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/sdram_config.vhd
+FC:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/sdram_config.vhd
+l0
+L5
+Vl_8IkQ9hL82XGb8^:0?Z01
+!s100 =a41B3F_5SZBZ7[2aPH2:0
+R14
+32
+b1
+!s110 1578036564
+!i10b 1
+R5
+!s90 -reportprogress|300|-work|work|-2002|-explicit|-stats=none|C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/sdram_config.vhd|
+!s107 C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/sdram_config.vhd|
+!i113 1
+R19
+R20
+vSDRAM_sdram_controller_0
+R0
+!i10b 1
+!s100 INg>:LnG[B`gl2F@ZUTMU0
+I]>zbO]bBM5`bFm1OU<61c0
+R1
+R2
+R3
+Z31 8C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/SDRAM_sdram_controller_0.v
+Z32 FC:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/SDRAM_sdram_controller_0.v
+L0 159
+R4
+r1
+!s85 0
+31
+R5
+Z33 !s107 C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/SDRAM_sdram_controller_0.v|
+Z34 !s90 -reportprogress|300|-work|work|-stats=none|C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/SDRAM_sdram_controller_0.v|
+!i113 1
+R6
+R7
+n@s@d@r@a@m_sdram_controller_0
+Esdram_sdram_controller_0
+Z35 w1577965337
+Z36 DPx9 altera_mf 20 altera_mf_components 0 22 gV:l9C^?PSb6]b5V?_jR@3
+Z37 DPx4 ieee 15 std_logic_arith 0 22 [G314=:2zXJ`VORJe1J@Z1
+Z38 DPx4 ieee 18 std_logic_unsigned 0 22 ;eZjO2D4ZDz<]0>8AL<ne1
+R9
+R10
+R11
+Z39 DPx6 altera 25 altera_europa_support_lib 0 22 C0c:iN^HNdl8^07`ST5U^3
+R2
+Z40 8C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/simulation/submodules/SDRAM_sdram_controller_0.vhd
+Z41 FC:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/simulation/submodules/SDRAM_sdram_controller_0.vhd
+l0
+L167
+VF7^`?kWSV2zl]V_]h98^C0
+!s100 =`7Oak_2bCL0gG@YK^NI62
+R14
+32
+Z42 !s110 1577965760
+!i10b 1
+Z43 !s108 1577965760.000000
+Z44 !s90 -reportprogress|300|-work|work|-2002|-explicit|-stats=none|C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/simulation/submodules/SDRAM_sdram_controller_0.vhd|
+Z45 !s107 C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/simulation/submodules/SDRAM_sdram_controller_0.vhd|
+!i113 1
+R19
+R20
+Aeuropa
+R36
+R37
+R38
+R9
+R10
+R11
+R39
+DEx4 work 24 sdram_sdram_controller_0 0 22 F7^`?kWSV2zl]V_]h98^C0
+l279
+L196
+V`5RhmdBYz1<FEVCcUPH?92
+!s100 CRGzMazc:Z8nW:6fFWYHe2
+R14
+32
+R42
+!i10b 1
+R43
+R44
+R45
+!i113 1
+R19
+R20
+vSDRAM_sdram_controller_0_input_efifo_module
+R0
+!i10b 1
+!s100 R06NDXz8MgKX=]9i`bHcM2
+IAR`9<LiPj0g`dO<?mgmmR0
+R1
+R2
+R3
+R31
+R32
+Z46 L0 21
+R4
+r1
+!s85 0
+31
+R5
+R33
+R34
+!i113 1
+R6
+R7
+n@s@d@r@a@m_sdram_controller_0_input_efifo_module
+Esdram_sdram_controller_0_input_efifo_module
+R35
+R36
+R37
+R38
+R9
+R10
+R11
+R39
+R2
+R40
+R41
+l0
+L29
+V8fCfT9PWi70fYXXQF=<V72
+!s100 a5;_34^P99gNQi41>1:FI0
+R14
+32
+R42
+!i10b 1
+R43
+R44
+R45
+!i113 1
+R19
+R20
+Aeuropa
+R36
+R37
+R38
+R9
+R10
+R11
+R39
+DEx4 work 43 sdram_sdram_controller_0_input_efifo_module 0 22 8fCfT9PWi70fYXXQF=<V72
+l58
+L48
+VS0TdBkGjzPVg<>_1@EYe=3
+!s100 114QK71OD_`^J05=FM1Df0
+R14
+32
+R42
+!i10b 1
+R43
+R44
+R45
+!i113 1
+R19
+R20
+Esdram_sdram_controller_0_test_component
+Z47 w1577984276
+R36
+R37
+R38
+R9
+R10
+R11
+R39
+R2
+Z48 8C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/SDRAM_sdram_controller_0_test_component.vhd
+Z49 FC:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/SDRAM_sdram_controller_0_test_component.vhd
+l0
+L29
+VLA[Id0Q::Hzki>8^clM9_2
+!s100 2hAGUgIIiceb8]V5bY<W10
+R14
+32
+R0
+!i10b 1
+R5
+Z50 !s90 -reportprogress|300|-work|work|-2002|-explicit|-stats=none|C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/SDRAM_sdram_controller_0_test_component.vhd|
+Z51 !s107 C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/SDRAM_sdram_controller_0_test_component.vhd|
+!i113 1
+R19
+R20
+Aeuropa
+R36
+R37
+R38
+R9
+R10
+R11
+R39
+DEx4 work 39 sdram_sdram_controller_0_test_component 0 22 LA[Id0Q::Hzki>8^clM9_2
+l99
+L48
+VD^02@z1>jA:JinCg`lb<W1
+!s100 `TLQ1<1_I[^BS=cZcndj80
+R14
+32
+R0
+!i10b 1
+R5
+R50
+R51
+!i113 1
+R19
+R20
+vSDRAM_sdram_controller_0_test_component
+Z52 !s110 1577965965
+!i10b 1
+!s100 VGEBfDTb@onjgMoG@=T>T1
+I=DN6Rf`00RO62YIGSzKHX2
+R1
+R2
+Z53 w1577965341
+Z54 8C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/SDRAM_sdram_controller_0_test_component.v
+Z55 FC:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/SDRAM_sdram_controller_0_test_component.v
+L0 114
+R4
+r1
+!s85 0
+31
+Z56 !s108 1577965965.000000
+Z57 !s107 C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/SDRAM_sdram_controller_0_test_component.v|
+Z58 !s90 -reportprogress|300|-work|work|-stats=none|C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/SDRAM_sdram_controller_0_test_component.v|
+!i113 1
+R6
+R7
+n@s@d@r@a@m_sdram_controller_0_test_component
+Esdram_sdram_controller_0_test_component_ram_module
+R47
+R36
+R37
+R38
+R9
+R10
+R11
+R39
+R2
+R48
+R49
+l0
+L218
+VBTlXM`]I@^o9hdk@];cA@1
+!s100 OmcnkzgIWQ8j>Hn?;PNS?3
+R14
+32
+R0
+!i10b 1
+R5
+R50
+R51
+!i113 1
+R19
+R20
+Aeuropa
+R36
+R37
+R38
+R9
+R10
+R11
+R39
+DEx4 work 50 sdram_sdram_controller_0_test_component_ram_module 0 22 BTlXM`]I@^o9hdk@];cA@1
+l318
+L234
+VODb5]YE<iIB0Te0NO@dIc0
+!s100 ZEBYia0@hniEXkiE[O3bW3
+R14
+32
+R0
+!i10b 1
+R5
+R50
+R51
+!i113 1
+R19
+R20
+vSDRAM_sdram_controller_0_test_component_ram_module
+R52
+!i10b 1
+!s100 SLfHhTNQDS4l?izj`XoMC1
+Id1limAYHh1Mb=a?YY<=>Q1
+R1
+R2
+R53
+R54
+R55
+R46
+R4
+r1
+!s85 0
+31
+R56
+R57
+R58
+!i113 1
+R6
+R7
+n@s@d@r@a@m_sdram_controller_0_test_component_ram_module

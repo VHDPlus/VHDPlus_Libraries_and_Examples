@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<simPackage>
+ <file
+   path="simulation/submodules/altera_reset_controller.v"
+   type="VERILOG"
+   library="rst_controller" />
+ <file
+   path="simulation/submodules/altera_reset_synchronizer.v"
+   type="VERILOG"
+   library="rst_controller" />
+ <file
+   path="simulation/submodules/altera_reset_controller.sdc"
+   type="SDC"
+   library="rst_controller" />
+ <file
+   path="simulation/submodules/SDRAM_sdram_controller_0.vhd"
+   type="VHDL"
+   library="sdram_controller_0" />
+ <file
+   path="simulation/submodules/SDRAM_sdram_controller_0_test_component.vhd"
+   type="VHDL"
+   library="sdram_controller_0" />
+ <file path="simulation/SDRAM.vhd" type="VHDL" />
+ <topLevel name="SDRAM" />
+ <deviceFamily name="max10" />
+</simPackage>

@@ -1,0 +1,23 @@
+# system info SDRAM on 2020.01.02.21:41:22
+system_info:
+name,value
+DEVICE,10M08SAU169C8G
+DEVICE_FAMILY,MAX 10
+GENERATION_ID,1577997680
+#
+#
+# Files generated for SDRAM on 2020.01.02.21:41:22
+files:
+filepath,kind,attributes,module,is_top
+simulation/SDRAM.vhd,VHDL,,SDRAM,true
+simulation/submodules/SDRAM_sdram_controller_0.vhd,VHDL,,SDRAM_sdram_controller_0,false
+simulation/submodules/SDRAM_sdram_controller_0_test_component.vhd,VHDL,,SDRAM_sdram_controller_0,false
+simulation/submodules/altera_reset_controller.v,VERILOG,,altera_reset_controller,false
+simulation/submodules/altera_reset_synchronizer.v,VERILOG,,altera_reset_controller,false
+simulation/submodules/altera_reset_controller.sdc,SDC,,altera_reset_controller,false
+#
+# Map from instance-path to kind of module
+instances:
+instancePath,module
+SDRAM.sdram_controller_0,SDRAM_sdram_controller_0
+SDRAM.rst_controller,altera_reset_controller

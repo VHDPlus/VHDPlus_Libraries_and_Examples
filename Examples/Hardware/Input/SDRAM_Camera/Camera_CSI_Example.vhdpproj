@@ -1,0 +1,109 @@
+<?xml version="1.0"?>
+<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Header>Camera_CSI_Example</Header>
+  <fileWatcherIgnore />
+  <Items xsi:type="ProjectFolder">
+    <Header>Camera</Header>
+    <fileWatcherIgnore />
+    <Items xsi:type="ProjectFolder">
+      <Header>Simulation</Header>
+      <fileWatcherIgnore />
+      <Items xsi:type="ProjectFileGHDP">
+        <Header>Capture_Sim.ghdp</Header>
+      </Items>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>ALTDDIO_IN.qsys.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>ALTSYNCRAM.qsys.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Camera_Capture_SDRAM.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Camera_Capure.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>CSI_Camera.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>I2C.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>SDRAM.qsys.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>PLL.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>sdr_dram.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>SDRAM.qsys</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>PLL.qip</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Header>Generated</Header>
+    <fileWatcherIgnore />
+    <Items xsi:type="ProjectFile">
+      <Header>Camera_Capture.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>Camera_Capture_SDRAM.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>Camera_CSI_Example.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>CRT_Controller.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>CSI_Camera.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>HDMI_Out.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>I2C_Master_Interface.vhd</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Header>HDMI</Header>
+    <fileWatcherIgnore />
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>CRT_Controller.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>HDMI_Out.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>DVI_OUT.v</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>TMDS_ENCODE.v</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>VS_PLL.qip</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>VS_PLL.vhd</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Header>Libraries</Header>
+    <fileWatcherIgnore />
+    <Items xsi:type="ProjectFile">
+      <Header>ISSP.qsys</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>ISSP.qsys.vhdp</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>Camera_CSI_Example.vhdp</Header>
+  </Items>
+</ProjectRoot>
