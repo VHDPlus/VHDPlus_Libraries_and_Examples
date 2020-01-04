@@ -1,0 +1,216 @@
+/*
+    Name: CRT Controller
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 06.06.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Description: This component takes a VGA 24bit camera data and creates an video stream with 25MHz pixel clk
+ */
+
+/*
+ HDMI:
+ 8.187 MHz for 799x525 with current camera pll settings
+ -> 32MHz = max -> 23.4 MHz Pixel CLK max
+ */
+
+--2.460.000 CLK zyklen für Frame -> 8,5 / pixel 5,8 / col
+--2.499 zyklen für Column -> 3,9 / pixel 3,13 / col
+--1,.. zyklen für Pixel
+
+--|_640x1_|____1900 clear____|
+--|          480x2499        |
+--|
+
+Component CRT_Controller_RAM
+(
+    
+    --Camera interface (VGA 24bit)
+    New_Pixel   : IN    STD_LOGIC := '0'; --36.2 MHz
+    Column      : IN    NATURAL range 0 to 639 := 0;
+    Row         : IN    NATURAL range 0 to 479 := 0;
+    Pixel_R     : IN    STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    Pixel_G     : IN    STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    Pixel_B     : IN    STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+
+    --Video stream output
+    VS_PCLK    : OUT    STD_LOGIC;
+    VS_SCLK    : OUT    STD_LOGIC;
+    VS_R       : OUT    STD_LOGIC_VECTOR (7 downto 0);
+    VS_G       : OUT    STD_LOGIC_VECTOR (7 downto 0);
+    VS_B       : OUT    STD_LOGIC_VECTOR (7 downto 0);
+    VS_HS      : OUT    STD_LOGIC;
+    VS_VS      : OUT    STD_LOGIC;
+    VS_DE      : OUT    STD_LOGIC;
+)
+{
+    SIGNAL ISSP_source : std_logic_vector (7 downto 0);
+    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0);
+    NewComponent ISSP
+    (
+        source => ISSP_source,
+        probe  => ISSP_probe,
+    );
+    
+    VS_PCLK <= PLL_c0;
+    VS_SCLK <= PLL_c1;
+    
+    SIGNAL PLL_c0     : STD_LOGIC;
+    SIGNAL PLL_c1     : STD_LOGIC;
+    NewComponent VS_PLL
+    (
+        inclk0 => CLK,
+        c0     => PLL_c0, --25MHz
+        c1     => PLL_c1, --250MHz
+    );
+    
+    CONSTANT porchHF : NATURAL := 640; --start of horizntal front porch
+    CONSTANT syncH   : NATURAL := 656; --start of horizontal sync
+    CONSTANT porchHB : NATURAL := 752; --start of horizontal back porch
+    CONSTANT maxH    : NATURAL := 799; --total length of line
+    
+    CONSTANT porchVF : NATURAL := 480; --start of vertical front porch
+    CONSTANT syncV   : NATURAL := 490; --start of vertical sync
+    CONSTANT porchVB : NATURAL := 492; --start of vertical back porch
+    CONSTANT maxV    : NATURAL := 525; --total rows
+    
+    SIGNAL xCountReg : INTEGER range 0 to maxH := 0;
+    SIGNAL yCountReg : INTEGER range 0 to maxV := 0;
+    
+    TYPE Row_buf_type IS ARRAY (0 to 639) OF STD_LOGIC_VECTOR (23 downto 0);
+    SIGNAL Row_buf : Row_buf_type;
+    
+    --Pixel data comes in faster then controller reads them out
+    SIGNAL Save_Column : NATURAL range 0 to 639 := 0;
+    SIGNAL Save_Data   : STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
+    
+    --Controller reads pixel at column position
+    SIGNAL Read_Column : NATURAL range 0 to 639 := 0;
+    SIGNAL Read_Data   : STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
+    
+    Process ROW_Buf_Controller ()
+    {
+        Read_Data <= Row_buf(Read_Column);
+        Row_buf(Save_Column) <= Save_Data;
+    }
+    
+    Process ()
+    {
+        If(rising_edge(New_Pixel))
+        {
+            Save_Column <= Column;
+            Save_Data   <= Pixel_R & Pixel_G & Pixel_B;
+        }
+    }
+    
+    Process ()
+    {
+        If(rising_edge(PLL_c0))
+        {
+            VARIABLE xCount : INTEGER range 0 to maxH := 0;
+            VARIABLE yCount : INTEGER range 0 to maxV := 0;
+            
+            VARIABLE col_reg : INTEGER range 0 to 639 := 0;
+            VARIABLE row_reg : INTEGER range 0 to 479 := 0;
+            
+            If(xCount < maxH AND (Column /= 0 OR Column = col_reg)) --H Sync
+            {
+                xCount := xCount + 1;
+            }
+            Elsif(xCount > Column)
+            {
+                If(ISSP_source(1 downto 0) = "00")
+                {
+                    ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(xCount, 32));
+                }
+                xCount := 0;
+                If(yCount < maxV AND (Row /= 0 OR Row = row_reg)) --V Sync
+                {
+                    yCount := yCount + 1;
+                }
+                Elsif(yCount > Row)
+                {
+                    If(ISSP_source(1 downto 0) = "01")
+                    {
+                        ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(yCount, 32));
+                    }
+                    yCount := 0;
+                }
+                Else
+                {
+                    If(ISSP_source(1 downto 0) = "11")
+                    {
+                        ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(yCount, 32));
+                    }
+                }
+            }
+            Else
+            {
+                If(ISSP_source(1 downto 0) = "10")
+                {
+                    ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(xCount, 32));
+                }
+            }
+            
+            col_reg := Column;
+            row_reg := Row;
+            
+            --Enable '1' while in display area
+            If(xCount < porchHF AND yCount < porchVF)
+            {
+                VS_DE <= '1';
+                
+                --Set RAM address for next pixel
+                If(xCount < 639){ Read_Column <= (xCount+1); }
+                Else            { Read_Column <= 0; }
+
+                --Set pixel data
+                VS_R <= Read_Data(23 downto 16);
+                VS_G <= Read_Data(15 downto 8);
+                VS_B <= Read_Data(7 downto 0);
+            }
+            Else
+            {
+                VS_DE <= '0';
+                --Check for HS
+                If(xCount >= syncH AND xCount < porchHB)
+                {
+                    VS_HS <= '0';
+                }
+                Else
+                {
+                    VS_HS <= '1';
+                }
+                --Check for VS
+                If(yCount >= syncV AND yCount < porchVB)
+                {
+                    VS_VS <= '0';
+                }
+                Else
+                {
+                    VS_VS <= '1';
+                }
+            }
+            
+            xCountReg <= xCount;
+            yCountReg <= yCount;
+        }
+    }
+}

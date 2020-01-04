@@ -2,7 +2,7 @@ set_global_assignment -entity "SDRAM" -library "SDRAM" -name IP_TOOL_NAME "Qsys"
 set_global_assignment -entity "SDRAM" -library "SDRAM" -name IP_TOOL_VERSION "18.1"
 set_global_assignment -entity "SDRAM" -library "SDRAM" -name IP_TOOL_ENV "Qsys"
 set_global_assignment -library "SDRAM" -name SOPCINFO_FILE [file join $::quartus(qip_path) "../../SDRAM.sopcinfo"]
-set_global_assignment -entity "SDRAM" -library "SDRAM" -name SLD_INFO "QSYS_NAME SDRAM HAS_SOPCINFO 1 GENERATION_ID 1577997684"
+set_global_assignment -entity "SDRAM" -library "SDRAM" -name SLD_INFO "QSYS_NAME SDRAM HAS_SOPCINFO 1 GENERATION_ID 1578127337"
 set_global_assignment -library "SDRAM" -name MISC_FILE [file join $::quartus(qip_path) "../SDRAM.cmp"]
 set_global_assignment -library "SDRAM" -name SLD_FILE [file join $::quartus(qip_path) "SDRAM.debuginfo"]
 set_global_assignment -entity "SDRAM" -library "SDRAM" -name IP_TARGETED_DEVICE_FAMILY "MAX 10"
@@ -15,7 +15,7 @@ set_global_assignment -entity "SDRAM" -library "SDRAM" -name IP_COMPONENT_DISPLA
 set_global_assignment -entity "SDRAM" -library "SDRAM" -name IP_COMPONENT_REPORT_HIERARCHY "On"
 set_global_assignment -entity "SDRAM" -library "SDRAM" -name IP_COMPONENT_INTERNAL "Off"
 set_global_assignment -entity "SDRAM" -library "SDRAM" -name IP_COMPONENT_VERSION "MS4w"
-set_global_assignment -entity "SDRAM" -library "SDRAM" -name IP_COMPONENT_PARAMETER "QVVUT19HRU5FUkFUSU9OX0lE::MTU3Nzk5NzY4NA==::QXV0byBHRU5FUkFUSU9OX0lE"
+set_global_assignment -entity "SDRAM" -library "SDRAM" -name IP_COMPONENT_PARAMETER "QVVUT19HRU5FUkFUSU9OX0lE::MTU3ODEyNzMzNw==::QXV0byBHRU5FUkFUSU9OX0lE"
 set_global_assignment -entity "SDRAM" -library "SDRAM" -name IP_COMPONENT_PARAMETER "QVVUT19ERVZJQ0VfRkFNSUxZ::TUFYIDEw::QXV0byBERVZJQ0VfRkFNSUxZ"
 set_global_assignment -entity "SDRAM" -library "SDRAM" -name IP_COMPONENT_PARAMETER "QVVUT19ERVZJQ0U=::MTBNMDhTQVUxNjlDOEc=::QXV0byBERVZJQ0U="
 set_global_assignment -entity "SDRAM" -library "SDRAM" -name IP_COMPONENT_PARAMETER "QVVUT19ERVZJQ0VfU1BFRURHUkFERQ==::OA==::QXV0byBERVZJQ0VfU1BFRURHUkFERQ=="
@@ -74,19 +74,19 @@ set_global_assignment -entity "SDRAM_sdram_controller_0" -library "SDRAM" -name 
 set_global_assignment -entity "SDRAM_sdram_controller_0" -library "SDRAM" -name IP_COMPONENT_PARAMETER "bnVtYmVyT2ZCYW5rcw==::NA==::QmFua3M="
 set_global_assignment -entity "SDRAM_sdram_controller_0" -library "SDRAM" -name IP_COMPONENT_PARAMETER "bnVtYmVyT2ZDaGlwU2VsZWN0cw==::MQ==::Q2hpcCBzZWxlY3Q="
 set_global_assignment -entity "SDRAM_sdram_controller_0" -library "SDRAM" -name IP_COMPONENT_PARAMETER "cGluc1NoYXJlZFZpYVRyaVN0YXRl::ZmFsc2U=::Q29udHJvbGxlciBzaGFyZXMgZHEvZHFtL2FkZHIgSS9PIHBpbnM="
-set_global_assignment -entity "SDRAM_sdram_controller_0" -library "SDRAM" -name IP_COMPONENT_PARAMETER "cG93ZXJVcERlbGF5::MzAwLjA=::RGVsYXkgYWZ0ZXIgcG93ZXJ1cCwgYmVmb3JlIGluaXRpYWxpemF0aW9u"
-set_global_assignment -entity "SDRAM_sdram_controller_0" -library "SDRAM" -name IP_COMPONENT_PARAMETER "cmVmcmVzaFBlcmlvZA==::MTUuNg==::SXNzdWUgb25lIHJlZnJlc2ggY29tbWFuZCBldmVyeQ=="
+set_global_assignment -entity "SDRAM_sdram_controller_0" -library "SDRAM" -name IP_COMPONENT_PARAMETER "cG93ZXJVcERlbGF5::MjAwLjA=::RGVsYXkgYWZ0ZXIgcG93ZXJ1cCwgYmVmb3JlIGluaXRpYWxpemF0aW9u"
+set_global_assignment -entity "SDRAM_sdram_controller_0" -library "SDRAM" -name IP_COMPONENT_PARAMETER "cmVmcmVzaFBlcmlvZA==::MzEuMjU=::SXNzdWUgb25lIHJlZnJlc2ggY29tbWFuZCBldmVyeQ=="
 set_global_assignment -entity "SDRAM_sdram_controller_0" -library "SDRAM" -name IP_COMPONENT_PARAMETER "cm93V2lkdGg=::MTI=::Um93"
 set_global_assignment -entity "SDRAM_sdram_controller_0" -library "SDRAM" -name IP_COMPONENT_PARAMETER "VE1SRA==::Mw==::VE1SRA=="
 set_global_assignment -entity "SDRAM_sdram_controller_0" -library "SDRAM" -name IP_COMPONENT_PARAMETER "aW5pdE5PUERlbGF5::MC4w::aW5pdE5PUERlbGF5"
 set_global_assignment -entity "SDRAM_sdram_controller_0" -library "SDRAM" -name IP_COMPONENT_PARAMETER "cmVnaXN0ZXJEYXRhSW4=::dHJ1ZQ==::cmVnaXN0ZXJEYXRhSW4="
-set_global_assignment -entity "SDRAM_sdram_controller_0" -library "SDRAM" -name IP_COMPONENT_PARAMETER "Y2xvY2tSYXRl::NTAwMDAwMDA=::Y2xvY2tSYXRl"
+set_global_assignment -entity "SDRAM_sdram_controller_0" -library "SDRAM" -name IP_COMPONENT_PARAMETER "Y2xvY2tSYXRl::MjUwMDAwMDA=::Y2xvY2tSYXRl"
 set_global_assignment -entity "SDRAM_sdram_controller_0" -library "SDRAM" -name IP_COMPONENT_PARAMETER "Y29tcG9uZW50TmFtZQ==::U0RSQU1fc2RyYW1fY29udHJvbGxlcl8w::Y29tcG9uZW50TmFtZQ=="
 set_global_assignment -entity "SDRAM_sdram_controller_0" -library "SDRAM" -name IP_COMPONENT_PARAMETER "c2l6ZQ==::ODM4ODYwOA==::c2l6ZQ=="
 set_global_assignment -entity "SDRAM_sdram_controller_0" -library "SDRAM" -name IP_COMPONENT_PARAMETER "YWRkcmVzc1dpZHRo::MjI=::YWRkcmVzc1dpZHRo"
 set_global_assignment -entity "SDRAM_sdram_controller_0" -library "SDRAM" -name IP_COMPONENT_PARAMETER "YmFua1dpZHRo::Mg==::YmFua1dpZHRo"
 
-set_global_assignment -library "SDRAM" -name VHDL_FILE [file join $::quartus(qip_path) "SDRAM.vhd"]
+set_global_assignment -library "SDRAM" -name VERILOG_FILE [file join $::quartus(qip_path) "SDRAM.v"]
 set_global_assignment -library "SDRAM" -name VERILOG_FILE [file join $::quartus(qip_path) "submodules/altera_reset_controller.v"]
 set_global_assignment -library "SDRAM" -name VERILOG_FILE [file join $::quartus(qip_path) "submodules/altera_reset_synchronizer.v"]
 set_global_assignment -library "SDRAM" -name SDC_FILE [file join $::quartus(qip_path) "submodules/altera_reset_controller.sdc"]

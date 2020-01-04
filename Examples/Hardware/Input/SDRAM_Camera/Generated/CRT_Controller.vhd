@@ -2,10 +2,15 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.numeric_std.all; 
+use work.sdram_config.all;
+use work.sdram_controller_interface.all;
 
 
 ENTITY CRT_Controller IS
+  GENERIC (
+      image_size_div : NATURAL := 1
 
+  );
 PORT (
   CLK : IN STD_LOGIC;
   Read_Column : OUT    NATURAL range 0 to 639 := 0;
@@ -36,6 +41,8 @@ ARCHITECTURE BEHAVIORAL OF CRT_Controller IS
   CONSTANT syncV   : NATURAL := 490;
   CONSTANT porchVB : NATURAL := 492;
   CONSTANT maxV    : NATURAL := 525;
+  SIGNAL xCountReg : INTEGER range 0 to maxH := 0;
+  SIGNAL yCountReg : INTEGER range 0 to maxV := 0;
   COMPONENT VS_PLL IS
   
   PORT (
@@ -58,7 +65,9 @@ BEGIN
  
  
  
-  Read_Ena <= PLL_c0;
+
+
+  Read_Ena <= PLL_c0 when xCountReg < porchHF/image_size_div AND yCountReg < porchVF/image_size_div else '0';
   VS_PLL1 : VS_PLL  PORT MAP (
     inclk0 => CLK,
     c0     => PLL_c0, 
@@ -107,6 +116,8 @@ BEGIN
           VS_VS <= '1';
         END IF;
       END IF;
+      xCountReg <= xCount;
+      yCountReg <= yCount;
     END IF;
   END PROCESS;
   

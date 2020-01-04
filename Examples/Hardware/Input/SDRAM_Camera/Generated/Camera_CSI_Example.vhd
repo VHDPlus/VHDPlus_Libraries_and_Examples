@@ -2,30 +2,32 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.numeric_std.all; 
+use work.sdram_config.all;
+use work.sdram_controller_interface.all;
 
       
 ENTITY Camera_CSI_Example IS
 
 PORT (
   CLK : IN STD_LOGIC;
-  Camera_CLK_Lane      : IN    STD_LOGIC;
-  Camera_Data_Lane     : IN    STD_LOGIC_VECTOR (1 downto 0);
-  Camera_Enable        : OUT   STD_LOGIC;
-  Camera_SCL           : INOUT STD_LOGIC;
-  Camera_SDA           : INOUT STD_LOGIC;
-  oSDRAM_ADDR          : OUT   STD_LOGIC_VECTOR(11 downto 0);
-  oSDRAM_BA            : OUT   STD_LOGIC_VECTOR(1 downto 0);
-  bSDRAM_DQ            : INOUT STD_LOGIC_VECTOR(15 downto 0);
-  oSDRAM_DQM           : OUT   STD_LOGIC_VECTOR(1 downto 0);
-  oSDRAM_CASn          : OUT   STD_LOGIC;
-  oSDRAM_CKE           : OUT   STD_LOGIC;
-  oSDRAM_CSn           : OUT   STD_LOGIC;
-  oSDRAM_RASn          : OUT   STD_LOGIC;
-  oSDRAM_WEn           : OUT   STD_LOGIC;
-  oSDRAM_CLK           : OUT   STD_LOGIC;
-  oHDMI_TX             : OUT   STD_LOGIC_VECTOR(2 downto 0);
-  oHDMI_CLK            : OUT   STD_LOGIC;
-  iHDMI_HPD            : IN    STD_LOGIC
+  Camera_CLK_Lane      : IN     STD_LOGIC;
+  Camera_Data_Lane     : IN     STD_LOGIC_VECTOR (1 downto 0);
+  Camera_Enable        : OUT    STD_LOGIC;
+  Camera_SCL           : INOUT  STD_LOGIC;
+  Camera_SDA           : INOUT  STD_LOGIC;
+  oSDRAM_ADDR          : BUFFER STD_LOGIC_VECTOR(11 downto 0);
+  oSDRAM_BA            : OUT    STD_LOGIC_VECTOR(1 downto 0);
+  bSDRAM_DQ            : INOUT  STD_LOGIC_VECTOR(15 downto 0);
+  oSDRAM_DQM           : OUT    STD_LOGIC_VECTOR(1 downto 0);
+  oSDRAM_CASn          : OUT    STD_LOGIC;
+  oSDRAM_CKE           : OUT    STD_LOGIC;
+  oSDRAM_CSn           : OUT    STD_LOGIC;
+  oSDRAM_RASn          : OUT    STD_LOGIC;
+  oSDRAM_WEn           : OUT    STD_LOGIC;
+  oSDRAM_CLK           : BUFFER STD_LOGIC;
+  oHDMI_TX             : OUT    STD_LOGIC_VECTOR(2 downto 0);
+  oHDMI_CLK            : OUT    STD_LOGIC;
+  iHDMI_HPD            : IN     STD_LOGIC
 
 );
 END Camera_CSI_Example;
@@ -50,24 +52,36 @@ ARCHITECTURE BEHAVIORAL OF Camera_CSI_Example IS
   SIGNAL HDMI_Out_VS_HS     : STD_LOGIC;
   SIGNAL HDMI_Out_VS_VS     : STD_LOGIC;
   SIGNAL HDMI_Out_VS_DE     : STD_LOGIC;
-  COMPONENT CSI_Camera IS
+  COMPONENT Test_Image_Generator IS
   GENERIC (
-      CLK_Frequency : NATURAL := 12000000
+      image_size_div : NATURAL := 1;
+    pixel_clk_div  : NATURAL := 1 
 
   );
   PORT (
     CLK : IN STD_LOGIC;
-    Reset     : IN STD_LOGIC := '0';                
-    CLK_Lane  : IN STD_LOGIC;                       
-    Data_Lane : IN STD_LOGIC_VECTOR(1 downto 0);    
-    SCL       : INOUT STD_LOGIC;
-    SDA       : INOUT STD_LOGIC;
-    Pixel_R   : OUT STD_LOGIC_VECTOR (7 downto 0);
-    Pixel_G   : OUT STD_LOGIC_VECTOR (7 downto 0);
-    Pixel_B   : OUT STD_LOGIC_VECTOR (7 downto 0);
-    Column    : BUFFER NATURAL range 0 to 639 := 0;
-    Row       : BUFFER NATURAL range 0 to 479 := 0;
-    New_Pixel : BUFFER STD_LOGIC
+    oPixel_R   : OUT STD_LOGIC_VECTOR (7 downto 0);
+    oPixel_G   : OUT STD_LOGIC_VECTOR (7 downto 0);
+    oPixel_B   : OUT STD_LOGIC_VECTOR (7 downto 0);
+    oColumn    : OUT NATURAL range 0 to 639 := 0;
+    oRow       : OUT NATURAL range 0 to 479 := 0;
+    oNew_Pixel : OUT STD_LOGIC
+
+  );
+  END COMPONENT;
+  COMPONENT Test_Image_Generator2 IS
+  GENERIC (
+      image_size_div : NATURAL := 1
+
+  );
+  PORT (
+    CLK : IN STD_LOGIC;
+    oPixel_R   : OUT STD_LOGIC_VECTOR (7 downto 0);
+    oPixel_G   : OUT STD_LOGIC_VECTOR (7 downto 0);
+    oPixel_B   : OUT STD_LOGIC_VECTOR (7 downto 0);
+    iColumn    : IN  NATURAL range 0 to 639 := 0;
+    iRow       : IN  NATURAL range 0 to 479 := 0;
+    iNewPixel  : IN  STD_LOGIC
 
   );
   END COMPONENT;
@@ -102,7 +116,10 @@ ARCHITECTURE BEHAVIORAL OF Camera_CSI_Example IS
   );
   END COMPONENT;
   COMPONENT CRT_Controller IS
-  
+  GENERIC (
+      image_size_div : NATURAL := 1
+
+  );
   PORT (
     CLK : IN STD_LOGIC;
     Read_Column : OUT    NATURAL range 0 to 639 := 0;
@@ -142,27 +159,39 @@ ARCHITECTURE BEHAVIORAL OF Camera_CSI_Example IS
 BEGIN
 
   Camera_Enable <= '1';
-  CSI_Camera1 : CSI_Camera
+  Test_Image_Generator1 : Test_Image_Generator
   GENERIC MAP (
-      CLK_Frequency => 48000000
+      image_size_div => 1,
+    pixel_clk_div  => 5
 
   ) PORT MAP (
     CLK => CLK,
-    Reset         => '0',
-    CLK_Lane      => Camera_CLK_Lane,
-    Data_Lane     => Camera_Data_Lane,
-    SCL           => Camera_SCL,
-    SDA           => Camera_SDA,
-    Pixel_R       => Camera_Pixel_R,
-    Pixel_G       => Camera_Pixel_G,
-    Pixel_B       => Camera_Pixel_B,
-    Column        => Camera_Column,
-    Row           => Camera_Row,
-    New_Pixel     => Camera_New_Pixel
+    oColumn        => Camera_Column,
+    oRow           => Camera_Row,
+    oNew_Pixel     => Camera_New_Pixel
 
     
   );
-  Camera_Capture_SDRAM1 : Camera_Capture_SDRAM  PORT MAP (
+  Test_Image_Generator21 : Test_Image_Generator2
+  GENERIC MAP (
+      image_size_div => 1
+
+  ) PORT MAP (
+    CLK => CLK,
+    oPixel_R     => Camera_Pixel_R,
+    oPixel_G     => Camera_Pixel_G,
+    oPixel_B     => Camera_Pixel_B,
+    iColumn      => Camera_Column,
+    iRow         => Camera_Row,
+    iNewPixel    => Camera_New_Pixel
+
+    
+  );
+  Camera_Capture_SDRAM1 : Camera_Capture_SDRAM
+  GENERIC MAP (
+      Burst_Length => 8
+
+  ) PORT MAP (
     CLK => CLK,
     New_Pixel   => Camera_New_Pixel,
     Column      => Camera_Column,
@@ -187,7 +216,11 @@ BEGIN
 
     
   );
-  CRT_Controller1 : CRT_Controller  PORT MAP (
+  CRT_Controller1 : CRT_Controller
+  GENERIC MAP (
+      image_size_div => 1
+
+  ) PORT MAP (
     CLK => CLK,
     Read_Column => Camera_Capture_Read_Column,
     Read_Row    => Camera_Capture_Read_Row,

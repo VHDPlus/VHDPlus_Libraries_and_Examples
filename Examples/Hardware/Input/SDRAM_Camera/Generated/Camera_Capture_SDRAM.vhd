@@ -2,6 +2,8 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.numeric_std.all; 
+use work.sdram_config.all;
+use work.sdram_controller_interface.all;
 
 
 ENTITY Camera_Capture_SDRAM IS
@@ -74,51 +76,44 @@ ARCHITECTURE BEHAVIORAL OF Camera_Capture_SDRAM IS
   SIGNAL Read_Data_R : STD_LOGIC_VECTOR(7 downto 0);
   SIGNAL Read_Data_G : STD_LOGIC_VECTOR(7 downto 0);
   SIGNAL Read_Data_B : STD_LOGIC_VECTOR(7 downto 0);
-  SIGNAL ISSP_source : std_logic_vector (7 downto 0) := (others => '0');
-  SIGNAL ISSP_probe  : std_logic_vector (31 downto 0);
-  SIGNAL RAM_Step : NATURAL range 0 to Burst_Length := 0;
-  SIGNAL SDRAM_address        : std_logic_vector (21 downto 0) := (others => '0');
-  SIGNAL SDRAM_writedata      : std_logic_vector (15 downto 0) := (others => '0');
-  SIGNAL SDRAM_read_n         : std_logic := '1';
-  SIGNAL SDRAM_write_n        : std_logic := '1';
-  SIGNAL SDRAM_readdata       : std_logic_vector (15 downto 0) := (others => '0');
-  SIGNAL SDRAM_readdatavalid  : std_logic;
-  SIGNAL SDRAM_waitrequest    : std_logic;
-  SIGNAL SDRAM_Reset          : STD_LOGIC := '0';
+  CONSTANT SDRAM_Config : sdram_config_type := GetSDRAMParameters(20 ns, 2);
+  SIGNAL master_interface : SDRAM_controller_master_type;
+  SIGNAL slave_interface : SDRAM_controller_slave_type;
+  SIGNAL SDRAM_Reset          : STD_LOGIC := '1';
   SIGNAL copy_buffer_reg : BOOLEAN;
   SIGNAL read_pixel_reg : NATURAL;
-  COMPONENT ISSP IS
-  
-  PORT (
-    source : out std_logic_vector(7 downto 0);                      
-    probe  : in  std_logic_vector(31 downto 0)  := (others => 'X') 
-
+  COMPONENT sdr_sdram IS
+  GENERIC (
+      SHORT_INITIALIZATION  : boolean := false;
+            USE_AUTOMATIC_REFRESH : boolean;
+            BURST_LENGTH          : natural; 
+            SDRAM                 : sdram_config_type; 
+        
+            CS_WIDTH              : natural; 
+            CS_LOW_BIT            : natural; 
+            BA_LOW_BIT            : natural; 
+            ROW_LOW_BIT           : natural; 
+            COL_LOW_BIT           : natural 
+    
   );
-  END COMPONENT;
-  COMPONENT SDRAM IS
-  
   PORT (
-    clk_in_clk       : in    std_logic                     := '0';             
-    reset_reset_n    : in    std_logic                     := '0';             
-    s1_address       : in    std_logic_vector(21 downto 0) := (others => '0'); 
-    s1_byteenable_n  : in    std_logic_vector(1 downto 0)  := (others => '0'); 
-    s1_chipselect    : in    std_logic                     := '0';             
-    s1_writedata     : in    std_logic_vector(15 downto 0) := (others => '0'); 
-    s1_read_n        : in    std_logic                     := '0';             
-    s1_write_n       : in    std_logic                     := '0';             
-    s1_readdata      : out   std_logic_vector(15 downto 0);                    
-    s1_readdatavalid : out   std_logic;                                        
-    s1_waitrequest   : out   std_logic;                                        
-    sdram_addr       : out   std_logic_vector(11 downto 0);                    
-    sdram_ba         : out   std_logic_vector(1 downto 0);                     
-    sdram_cas_n      : out   std_logic;                                        
-    sdram_cke        : out   std_logic;                                        
-    sdram_cs_n       : out   std_logic;                                        
-    sdram_dq         : inout std_logic_vector(15 downto 0) := (others => '0'); 
-    sdram_dqm        : out   std_logic_vector(1 downto 0);                     
-    sdram_ras_n      : out   std_logic;                                        
-    sdram_we_n       : out   std_logic                                         
-
+    rst         : in    std_logic;  
+            clk         : in    std_logic;  
+            pll_locked  : in    std_logic;  
+        
+            ocpSlave    : out   SDRAM_controller_slave_type;
+            ocpMaster   : in    SDRAM_controller_master_type;
+        
+            sdram_CKE   : out   std_logic;  
+            sdram_RAS_n : out   std_logic;  
+            sdram_CAS_n : out   std_logic;  
+            sdram_WE_n  : out   std_logic;  
+            sdram_CS_n  : out   std_logic_vector(2 ** CS_WIDTH - 1 downto 0); 
+            sdram_BA    : out   std_logic_vector(SDRAM.BA_WIDTH - 1 downto 0); 
+            sdram_SA    : out   std_logic_vector(SDRAM.SA_WIDTH - 1 downto 0); 
+            sdram_DQ    : inout std_logic_vector(SDRAM_DATA_WIDTH - 1 downto 0); 
+            sdram_DQM   : out   std_logic_vector(SDRAM_DATA_WIDTH / 8 - 1 downto 0) 
+    
   );
   END COMPONENT;
   
@@ -184,6 +179,13 @@ BEGIN
         IF (TO_UNSIGNED(save_pixel, 10)(0) = '0') THEN
           save_buf_waddr  <= (save_pixel*3)/2;
           data_save_buf1  := Pixel_R & Pixel_G & Pixel_B;
+          IF (save_pixel = pixel_number-1) THEN
+            data_save_buf  := x"000000" & data_save_buf1;
+
+            write_count    := 0;
+            write_save_buf := true;
+          
+          END IF;
         ELSE
           data_save_buf  := Pixel_R & Pixel_G & Pixel_B & data_save_buf1;
 
@@ -198,14 +200,19 @@ BEGIN
       IF (write_save_buf) THEN
         save_buf_wr    <= true;
         save_buf_wdata <= data_save_buf(16*write_count+15 downto 16*write_count);
-        IF (write_count > 0 AND save_buf_waddr < Burst_Length-1) THEN
-          save_buf_waddr <= save_buf_waddr + 1;
-        
-        END IF;
-        IF (write_count < 2) THEN
-          write_count    := write_count + 1;
+        IF (save_buf_waddr < Burst_Length-1) THEN
+          IF (write_count > 0) THEN
+            save_buf_waddr <= save_buf_waddr + 1;
+          
+          END IF;
+          IF (write_count < 2) THEN
+            write_count    := write_count + 1;
+          ELSE
+            write_save_buf := false;
+          END IF;
         ELSE
           write_save_buf := false;
+          save_buf_wr    <= false;
         END IF;
       ELSE
         save_buf_wr    <= false;
@@ -330,134 +337,147 @@ BEGIN
     
     END IF;
   END PROCESS;
-  ISSP1 : ISSP  PORT MAP (
-    source => ISSP_source,
-    probe  => ISSP_probe
-
-    
-  );
   SDRAM_Controller_Interface : PROCESS (CTL_CLK)
+    VARIABLE start_up_cnt : NATURAL range 0 to 10000 := 0;
     VARIABLE read_wait : BOOLEAN := false;
     VARIABLE start_read_reg : BOOLEAN := false;
     VARIABLE save_wait : BOOLEAN := false;
     VARIABLE start_save_reg : BOOLEAN := false;
     VARIABLE RAM_Busy : BOOLEAN := false;
     VARIABLE RAM_Wr   : BOOLEAN := false;
-    VARIABLE ram_count : NATURAL := 0;
-    VARIABLE data_reg : STD_LOGIC_VECTOR(15 downto 0);
-    VARIABLE wait_delay : NATURAL range 0 to 3 := 0;
-    VARIABLE Receive_Count : NATURAL range 0 to Burst_Length := 0;
+    VARIABLE i : INTEGER range 0 to Burst_Length := 0;
+    VARIABLE Thread69 : NATURAL range 0 to 3 := 0;
+    VARIABLE Thread76 : NATURAL range 0 to 5 := 0;
   BEGIN
     IF (rising_edge(CTL_CLK)) THEN
-      IF (SDRAM_Reset = '0') THEN
-        SDRAM_Reset <= '1';
-      
-      END IF;
-      IF (start_read AND NOT start_read_reg) THEN
-        read_wait := true;
-      
-      END IF;
-      start_read_reg := start_read;
-      IF (start_save AND NOT start_save_reg) THEN
-        save_wait := true;
-      
-      END IF;
-      start_save_reg := start_save;
-      IF (NOT RAM_Busy) THEN
-        IF (save_wait AND ISSP_source(0) = '0') THEN
-          save_wait      := false;
-          RAM_Wr         := true;
-          RAM_Busy       := true;
-          save_ram_buf_raddr <= 0;
-          RAM_Step       <= 0;
-          ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(ram_count, 32));
-          ram_count := 0;
-        ELSIF (read_wait AND ISSP_source(1) = '0') THEN
-          read_wait      := false;
-          RAM_Wr         := false;
-          RAM_Busy       := true;
-          RAM_Step       <= 0;
-          wait_delay := 2;
-          ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(ram_count, 32));
-          ram_count := 0;
+      IF (start_up_cnt < 10000) THEN
+        start_up_cnt := start_up_cnt + 1;
+        master_interface.MCmd <= "000";
+        master_interface.MDataByteEn <= "11";
+        master_interface.MFlag_CmdRefresh <= '0';
+        IF (start_up_cnt < 10) THEN
+          SDRAM_Reset <= '1';
         ELSE
-          ram_count := ram_count + 1;
+          SDRAM_Reset <= '0';
         END IF;
-        read_ram_buf_wr <= false;
       ELSE
-        IF (RAM_Wr) THEN
-          IF (SDRAM_waitrequest /= '1' OR RAM_Step = 0) THEN
-            IF (RAM_Step < Burst_Length) THEN
-              SDRAM_write_n      <= '0';
-              SDRAM_writedata    <= save_ram_buf_rdata;
-              SDRAM_address      <= STD_LOGIC_VECTOR(TO_UNSIGNED(Save_RAM_Addr*Burst_Length+RAM_Step, SDRAM_address'LENGTH));
-              IF (RAM_Step < Burst_Length-1) THEN
-                save_ram_buf_raddr <= RAM_Step + 1;
-              
-              END IF;
-              RAM_Step           <= RAM_Step + 1;
-            ELSE
-              SDRAM_write_n   <= '1';
-              RAM_Busy        := false;
-            END IF;
+        IF (start_read AND NOT start_read_reg) THEN
+          read_wait := true;
+        
+        END IF;
+        start_read_reg := start_read;
+        IF (start_save AND NOT start_save_reg) THEN
+          save_wait := true;
+        
+        END IF;
+        start_save_reg := start_save;
+        IF (NOT RAM_Busy) THEN
+          IF (save_wait) THEN
+            save_wait      := false;
+            RAM_Wr         := true;
+            RAM_Busy       := true;
+            save_ram_buf_raddr <= 0;
+          ELSIF (read_wait) THEN
+            read_wait      := false;
+            RAM_Wr         := false;
+            RAM_Busy       := true;
           
           END IF;
+          read_ram_buf_wr <= false;
         ELSE
-          IF (RAM_Step = 0) THEN
-            SDRAM_read_n    <= '0';
-            SDRAM_address   <= STD_LOGIC_VECTOR(TO_UNSIGNED(Read_RAM_Addr*Burst_Length+RAM_Step, SDRAM_address'LENGTH));
-            RAM_Step        <= RAM_Step + 1;
-            Receive_Count   := 0;
-          ELSIF (SDRAM_waitrequest /= '1' OR wait_delay < 3 OR SDRAM_readdatavalid = '1') THEN
-            IF (RAM_Step < Burst_Length AND SDRAM_waitrequest /= '1') THEN
-              SDRAM_address   <= STD_LOGIC_VECTOR(TO_UNSIGNED(Read_RAM_Addr*Burst_Length+RAM_Step, SDRAM_address'LENGTH));
-              RAM_Step        <= RAM_Step + 1;
-            
-            END IF;
-            IF (SDRAM_readdatavalid = '1') THEN
-              read_ram_buf_wr     <= true;
-              read_ram_buf_waddr  <= Receive_Count;
-              read_ram_buf_wdata  <= data_reg;
-              Receive_Count       := Receive_Count + 1;
-              IF (Receive_Count = Burst_Length) THEN
-                SDRAM_read_n    <= '1';
+          IF (RAM_Wr) THEN
+            CASE (Thread69) IS
+              WHEN 0 =>
+                master_interface.MAddr <= STD_LOGIC_VECTOR(TO_UNSIGNED(Save_RAM_Addr*Burst_Length, SDRAM_ADDR_WIDTH));
+                master_interface.MData <= save_ram_buf_rdata;
+                save_ram_buf_raddr <= 1;
+                i := 1;
+                master_interface.MDataValid <= '1';
+                master_interface.MCmd  <= "001";
+                Thread69 := 1;
+              WHEN 1 =>
+                IF (i < Burst_Length) THEN
+                  IF (slave_interface.SDataAccept = '1') THEN
+                    master_interface.MCmd <= "000";
+                    master_interface.MData <= save_ram_buf_rdata;
+                    i := i + 1;
+                      IF (i < Burst_Length) THEN
+                        save_ram_buf_raddr <= i;
+                      END IF;
+                  
+                  END IF;
+                ELSE
+                  Thread69 := Thread69 + 1;
+                END IF;
+              WHEN 2 =>
                 RAM_Busy        := false;
-              END IF;
-            
-            END IF;
-            IF (SDRAM_waitrequest = '1' AND wait_delay < 3) THEN
-              wait_delay := wait_delay + 1;
-            ELSE
-              wait_delay := 0;
-            END IF;
+                Thread69 := 0;
+              WHEN others => Thread69 := 0;
+            END CASE;
+          ELSE
+            CASE (Thread76) IS
+              WHEN 0 =>
+                master_interface.MAddr <= STD_LOGIC_VECTOR(TO_UNSIGNED(Read_RAM_Addr*Burst_Length, SDRAM_ADDR_WIDTH));
+                master_interface.MCmd  <= "010";
+                Thread76 := 1;
+              WHEN 1 =>
+                IF (slave_interface.SCmdAccept = '0') THEN
+                ELSE
+                  Thread76 := Thread76 + 1;
+                END IF;
+              WHEN 2 =>
+                master_interface.MCmd <= "000";
+                i := 0;
+                Thread76 := 3;
+              WHEN 3 =>
+                IF (i < Burst_Length) THEN
+                  IF (slave_interface.SResp = '1') THEN
+                    read_ram_buf_wr    <= true;
+                    read_ram_buf_wdata <= slave_interface.SData;
+                    read_ram_buf_waddr <= i;
+                    i := i + 1;
+                  END IF;
+                ELSE
+                  Thread76 := Thread76 + 1;
+                END IF;
+              WHEN 4 =>
+                read_ram_buf_wr    <= false;
+                RAM_Busy        := false;
+                Thread76 := 0;
+              WHEN others => Thread76 := 0;
+            END CASE;
           END IF;
-
-          data_reg := SDRAM_readdata;
         END IF;
       END IF;
     END IF;
   END PROCESS;
-  SDRAM1 : SDRAM  PORT MAP (
-    clk_in_clk       => CTL_CLK,
-    reset_reset_n    => SDRAM_Reset,
-    s1_address       => SDRAM_address,
-    s1_byteenable_n  => "00",   
-    s1_chipselect    => '1',    
-    s1_writedata     => SDRAM_writedata,
-    s1_read_n        => SDRAM_read_n,
-    s1_write_n       => SDRAM_write_n,
-    s1_readdata      => SDRAM_readdata,
-    s1_readdatavalid => SDRAM_readdatavalid,
-    s1_waitrequest   => SDRAM_waitrequest,
-    sdram_addr       => SDRAM_ADDR,
-    sdram_ba         => SDRAM_BA,
-    sdram_cas_n      => SDRAM_CASn,
-    sdram_cke        => SDRAM_CKE,
-    sdram_cs_n       => SDRAM_CSn,
-    sdram_dq         => SDRAM_DQ,
-    sdram_dqm        => SDRAM_DQM,
-    sdram_ras_n      => SDRAM_RASn,
-    sdram_we_n       => SDRAM_WEn
+  sdr_sdram1 : sdr_sdram
+  GENERIC MAP (
+      SHORT_INITIALIZATION  => false,
+    USE_AUTOMATIC_REFRESH => true,
+    BURST_LENGTH          => Burst_Length,
+    SDRAM                 => SDRAM_Config,
+    CS_WIDTH              => 0,
+    CS_LOW_BIT            => SDRAM_Config.COL_WIDTH + SDRAM_Config.ROW_WIDTH + SDRAM_Config.BA_WIDTH,
+    BA_LOW_BIT            => SDRAM_Config.COL_WIDTH + SDRAM_Config.ROW_WIDTH,
+    ROW_LOW_BIT           => SDRAM_Config.COL_WIDTH,
+    COL_LOW_BIT           => 0
+
+  ) PORT MAP (
+    rst                   => SDRAM_Reset,
+    clk                   => CTL_CLK,
+    pll_locked            => '1',
+    ocpSlave              => slave_interface,
+    ocpMaster             => master_interface,
+    sdram_CKE             => SDRAM_CKE,
+    sdram_RAS_n           => SDRAM_RASn,
+    sdram_CAS_n           => SDRAM_CASn,
+    sdram_WE_n            => SDRAM_WEn,
+    sdram_CS_n(0)         => SDRAM_CSn,
+    sdram_BA              => SDRAM_BA,
+    sdram_SA              => SDRAM_ADDR,
+    sdram_DQ              => SDRAM_DQ,
+    sdram_DQM             => SDRAM_DQM
   );
   
 END BEHAVIORAL;

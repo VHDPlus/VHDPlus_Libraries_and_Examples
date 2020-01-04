@@ -1,0 +1,73 @@
+Component Test_Image_Generator2
+(
+    Generic
+    (
+        image_size_div : NATURAL := 1;
+    );
+    
+    oPixel_R   : OUT STD_LOGIC_VECTOR (7 downto 0);
+    oPixel_G   : OUT STD_LOGIC_VECTOR (7 downto 0);
+    oPixel_B   : OUT STD_LOGIC_VECTOR (7 downto 0);
+    iColumn    : IN  NATURAL range 0 to 639 := 0;
+    iRow       : IN  NATURAL range 0 to 479 := 0;
+    iNewPixel  : IN  STD_LOGIC;
+)
+{
+    Process ()
+    {
+        If(rising_edge(iNewPixel))
+        {
+            If(iColumn < (639/image_size_div) AND iRow < (479/image_size_div))
+            {
+                /*
+                VARIABLE color_step : NATURAL range 0 to 1536 := 0;
+                --color_step := ((col_reg*1536)/640);
+                color_step := (iColumn*2*image_size_div);
+                
+                If(color_step < 256)
+                {
+                    oPixel_R <= x"FF";
+                    oPixel_G <= STD_LOGIC_VECTOR(TO_UNSIGNED(color_step, 8));
+                    oPixel_B <= x"00";
+                }
+                Elsif(color_step < 512)
+                {
+                    oPixel_R <= STD_LOGIC_VECTOR(TO_UNSIGNED(255-(color_step-256), 8));
+                    oPixel_G <= x"FF";
+                    oPixel_B <= x"00";
+                }
+                Elsif(color_step < 768)
+                {
+                    oPixel_R <= x"00";
+                    oPixel_G <= x"FF";
+                    oPixel_B <= STD_LOGIC_VECTOR(TO_UNSIGNED(color_step-512, 8));
+                }
+                Elsif(color_step < 1024)
+                {
+                    oPixel_R <= x"00";
+                    oPixel_G <= STD_LOGIC_VECTOR(TO_UNSIGNED(255-(color_step-768), 8));
+                    oPixel_B <= x"FF";
+                }
+                Elsif(color_step < 1280)
+                {
+                    oPixel_R <= STD_LOGIC_VECTOR(TO_UNSIGNED(color_step-1024, 8));
+                    oPixel_G <= x"00";
+                    oPixel_B <= x"FF";
+                }
+                Else
+                {
+                    oPixel_R <= x"FF";
+                    oPixel_G <= x"00";
+                    oPixel_B <= STD_LOGIC_VECTOR(TO_UNSIGNED(255-(color_step-1280), 8));
+                }
+                 */
+                VARIABLE grey_step : NATURAL range 0 to 255 := 0;
+                --color_step := ((col_reg*1536)/640);
+                grey_step := (iColumn*255)/640;
+                oPixel_R <= STD_LOGIC_VECTOR(TO_UNSIGNED(grey_step, 8));
+                oPixel_G <= STD_LOGIC_VECTOR(TO_UNSIGNED(grey_step, 8));
+                oPixel_B <= STD_LOGIC_VECTOR(TO_UNSIGNED(grey_step, 8));
+            }
+        }
+    }
+}

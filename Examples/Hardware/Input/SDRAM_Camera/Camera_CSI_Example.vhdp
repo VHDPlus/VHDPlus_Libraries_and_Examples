@@ -32,26 +32,26 @@
 
 Main
 (
-    Camera_CLK_Lane      : IN    STD_LOGIC;
-    Camera_Data_Lane     : IN    STD_LOGIC_VECTOR (1 downto 0);
-    Camera_Enable        : OUT   STD_LOGIC;
-    Camera_SCL           : INOUT STD_LOGIC;
-    Camera_SDA           : INOUT STD_LOGIC;
+    Camera_CLK_Lane      : IN     STD_LOGIC;
+    Camera_Data_Lane     : IN     STD_LOGIC_VECTOR (1 downto 0);
+    Camera_Enable        : OUT    STD_LOGIC;
+    Camera_SCL           : INOUT  STD_LOGIC;
+    Camera_SDA           : INOUT  STD_LOGIC;
     
-    oSDRAM_ADDR          : OUT   STD_LOGIC_VECTOR(11 downto 0);
-    oSDRAM_BA            : OUT   STD_LOGIC_VECTOR(1 downto 0);
-    bSDRAM_DQ            : INOUT STD_LOGIC_VECTOR(15 downto 0);
-    oSDRAM_DQM           : OUT   STD_LOGIC_VECTOR(1 downto 0);
-    oSDRAM_CASn          : OUT   STD_LOGIC;
-    oSDRAM_CKE           : OUT   STD_LOGIC;
-    oSDRAM_CSn           : OUT   STD_LOGIC;
-    oSDRAM_RASn          : OUT   STD_LOGIC;
-    oSDRAM_WEn           : OUT   STD_LOGIC;
-    oSDRAM_CLK           : OUT   STD_LOGIC;
+    oSDRAM_ADDR          : BUFFER STD_LOGIC_VECTOR(11 downto 0);
+    oSDRAM_BA            : OUT    STD_LOGIC_VECTOR(1 downto 0);
+    bSDRAM_DQ            : INOUT  STD_LOGIC_VECTOR(15 downto 0);
+    oSDRAM_DQM           : OUT    STD_LOGIC_VECTOR(1 downto 0);
+    oSDRAM_CASn          : OUT    STD_LOGIC;
+    oSDRAM_CKE           : OUT    STD_LOGIC;
+    oSDRAM_CSn           : OUT    STD_LOGIC;
+    oSDRAM_RASn          : OUT    STD_LOGIC;
+    oSDRAM_WEn           : OUT    STD_LOGIC;
+    oSDRAM_CLK           : BUFFER STD_LOGIC;
     
-    oHDMI_TX             : OUT   STD_LOGIC_VECTOR(2 downto 0);
-    oHDMI_CLK            : OUT   STD_LOGIC;
-    iHDMI_HPD            : IN    STD_LOGIC;
+    oHDMI_TX             : OUT    STD_LOGIC_VECTOR(2 downto 0);
+    oHDMI_CLK            : OUT    STD_LOGIC;
+    iHDMI_HPD            : IN     STD_LOGIC;
 )
 {
     Camera_Enable <= '1';
@@ -63,22 +63,52 @@ Main
     SIGNAL Camera_Column        : NATURAL          range 0 to 639;
     SIGNAL Camera_Row           : NATURAL          range 0 to 479;
     SIGNAL Camera_New_Pixel     : STD_LOGIC;
-    NewComponent CSI_Camera
+    
+    --    NewComponent CSI_Camera
+    --    (
+    --        CLK_Frequency => 48000000,
+    --
+    --        Reset         => '0',
+    --        CLK_Lane      => Camera_CLK_Lane,
+    --        Data_Lane     => Camera_Data_Lane,
+    --        SCL           => Camera_SCL,
+    --        SDA           => Camera_SDA,
+    --
+    --        Pixel_R       => Camera_Pixel_R,
+    --        Pixel_G       => Camera_Pixel_G,
+    --        Pixel_B       => Camera_Pixel_B,
+    --        Column        => Camera_Column,
+    --        Row           => Camera_Row,
+    --        New_Pixel     => Camera_New_Pixel,
+    --    );
+    
+    NewComponent Test_Image_Generator
     (
-        CLK_Frequency => 48000000,
+        image_size_div => 1,
+        pixel_clk_div  => 5,
         
-        Reset         => '0',
-        CLK_Lane      => Camera_CLK_Lane,
-        Data_Lane     => Camera_Data_Lane,
-        SCL           => Camera_SCL,
-        SDA           => Camera_SDA,
+        oColumn        => Camera_Column,
+        oRow           => Camera_Row,
+        oNew_Pixel     => Camera_New_Pixel,
+    );
+    
+    NewComponent Test_Image_Generator2
+    (
+        image_size_div => 1,
         
-        Pixel_R       => Camera_Pixel_R,
-        Pixel_G       => Camera_Pixel_G,
-        Pixel_B       => Camera_Pixel_B,
-        Column        => Camera_Column,
-        Row           => Camera_Row,
-        New_Pixel     => Camera_New_Pixel,
+        oPixel_R     => Camera_Pixel_R,
+        oPixel_G     => Camera_Pixel_G,
+        oPixel_B     => Camera_Pixel_B,
+        
+        iColumn      => Camera_Column,
+        iRow         => Camera_Row,
+        iNewPixel    => Camera_New_Pixel,
+        
+        /*
+            iColumn => Camera_Capture_Read_Column,
+            iRow => Camera_Capture_Read_Row,
+            iNewPixel => Camera_Capture_SDRAM_Read_Ena,
+         */
     );
     
     --Save images in RAM
@@ -86,26 +116,10 @@ Main
     SIGNAL Camera_Capture_Read_Row    : NATURAL          range 0 to 479;
     SIGNAL Camera_Capture_Read_Data   : STD_LOGIC_VECTOR (23 downto 0);
     SIGNAL Camera_Capture_SDRAM_Read_Ena      : STD_LOGIC;
-
-    /*
-    NewComponent Camera_Capture
-    (
-        Compression => 3,
-        Width       => 4,
-        
-        Column      => Camera_Column,
-        Row         => Camera_Row,
-        Pixel_R     => Camera_Pixel_R,
-        Pixel_G     => Camera_Pixel_G,
-        Pixel_B     => Camera_Pixel_B,
-        Read_Column => Camera_Capture_Read_Column,
-        Read_Row    => Camera_Capture_Read_Row,
-        Read_Data   => Camera_Capture_Read_Data,
-    );
-    */
-
     NewComponent Camera_Capture_SDRAM
     (
+        Burst_Length => 8,
+        
         New_Pixel   => Camera_New_Pixel,
         Column      => Camera_Column,
         Row         => Camera_Row,
@@ -129,10 +143,12 @@ Main
         Read_Data   => Camera_Capture_Read_Data,
         Read_Ena    => Camera_Capture_SDRAM_Read_Ena,
     );
-
+    
     --Read images from RAM to create video stream
     NewComponent CRT_Controller
     (
+        image_size_div => 1,
+        
         Read_Column => Camera_Capture_Read_Column,
         Read_Row    => Camera_Capture_Read_Row,
         Read_Data   => Camera_Capture_Read_Data,
@@ -146,7 +162,7 @@ Main
         VS_VS       => HDMI_Out_VS_VS,
         VS_DE       => HDMI_Out_VS_DE,
     );
-
+    
     --Output video stream with hdmi interface
     SIGNAL HDMI_Out_VS_PCLK   : STD_LOGIC;
     SIGNAL HDMI_Out_VS_SCLK   : STD_LOGIC;
@@ -173,3 +189,147 @@ Main
     );
     
 }
+
+
+
+--
+--    SIGNAL Color_Correction_Filter_oPixel_R     : STD_LOGIC_VECTOR (7 downto 0);
+--    SIGNAL Color_Correction_Filter_oPixel_G     : STD_LOGIC_VECTOR (7 downto 0);
+--    SIGNAL Color_Correction_Filter_oPixel_B     : STD_LOGIC_VECTOR (7 downto 0);
+--    SIGNAL Color_Correction_Filter_oColumn      : NATURAL          range 0 to 639;
+--    SIGNAL Color_Correction_Filter_oRow         : NATURAL          range 0 to 479;
+--    SIGNAL Color_Correction_Filter_oNew_Pixel   : STD_LOGIC;
+--
+--    NewComponent Color_Correction_Filter
+--    (
+--        R_Multiplier => 1,
+--        R_Divider    => 1,
+--        R_Add        => 0,
+--        G_Multiplier => 1,
+--        G_Divider    => 1,
+--        G_Add        => 0,
+--        B_Multiplier => 1,
+--        B_Divider    => 1,
+--        B_Add        => 0,
+--
+--        iPixel_R     => Camera_Pixel_R,
+--        iPixel_G     => Camera_Pixel_G,
+--        iPixel_B     => Camera_Pixel_B,
+--        iColumn      => Camera_Column,
+--        iRow         => Camera_Row,
+--        iNew_Pixel   => Camera_New_Pixel,
+--        oPixel_R     => Color_Correction_Filter_oPixel_R,
+--        oPixel_G     => Color_Correction_Filter_oPixel_G,
+--        oPixel_B     => Color_Correction_Filter_oPixel_B,
+--        oColumn      => Color_Correction_Filter_oColumn,
+--        oRow         => Color_Correction_Filter_oRow,
+--        oNew_Pixel   => Color_Correction_Filter_oNew_Pixel,
+--    );
+--
+
+----
+----    NewComponent Camera_Capture
+----    (
+----        Compression => 3,
+----        Width       => 4,
+----
+----
+----        Column      => Camera_Column,
+----        Row         => Camera_Row,
+----        Pixel_R     => Camera_Pixel_R,
+----        Pixel_G     => Camera_Pixel_G,
+----        Pixel_B     => Camera_Pixel_B,
+----
+----        /*
+----            Column      => Color_Correction_Filter_oColumn,
+----            Row         => Color_Correction_Filter_oRow,
+----            Pixel_R     => Color_Correction_Filter_oPixel_R,
+----            Pixel_G     => Color_Correction_Filter_oPixel_G,
+----            Pixel_B     => Color_Correction_Filter_oPixel_B,
+----         */
+----        Read_Column => Camera_Capture_Read_Column,
+----        Read_Row    => Camera_Capture_Read_Row,
+----        Read_Data   => Camera_Capture_Read_Data,
+----    );
+----
+
+
+--Camera_Capture_Read_Data <= Camera_Pixel_R & Camera_Pixel_G & Camera_Pixel_B;
+
+
+
+--    SIGNAL ISSP_source : std_logic_vector (7 downto 0);
+--    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0);
+--    NewComponent ISSP
+--    (
+--        source => ISSP_source,
+--        probe  => ISSP_probe,
+--    );
+--
+--    Process ()
+--    {
+--        SIGNAL CLK_Count : UNSIGNED(31 downto 0) := (others => '0');
+--        CLK_Count <= CLK_Count + 1;
+--    }
+--
+--    Process ()
+--    {
+--        If(rising_edge(Camera_New_Pixel))
+--        {
+--            VARIABLE CLK_Count_reg : UNSIGNED (31 downto 0) := (others => '0');
+--            VARIABLE Pix_Count  : NATURAL range 0 to 99 := 0;
+--
+--            /*
+--            If(pix_count < 99)
+--            {
+--                Pix_Count := Pix_Count + 1;
+--            }
+--            Else
+--            {
+--                Pix_Count := 0;
+--                ISSP_probe <= STD_LOGIC_VECTOR(CLK_Count-CLK_Count_reg);
+--                CLK_Count_reg := CLK_Count;
+--            }
+--             */
+--
+--            If(Camera_Column = 0)
+--            {
+--                ISSP_probe <= STD_LOGIC_VECTOR(CLK_Count-CLK_Count_reg);
+--                CLK_Count_reg := CLK_Count;
+--            }
+--
+--            /*
+--            If(Camera_Column = 0 AND Camera_Row = 0)
+--            {
+--                ISSP_probe <= STD_LOGIC_VECTOR(CLK_Count-CLK_Count_reg);
+--                CLK_Count_reg := CLK_Count;
+--            }
+--             */
+--        }
+--    }
+
+--
+--    NewComponent CRT_Controller_RAM
+--    (
+--        image_size_div => 1,
+--
+--        New_Pixel      => Camera_New_Pixel,
+--        Column         => Camera_Column,
+--        Row            => Camera_Row,
+--        Pixel_R        => Camera_Pixel_R,
+--        Pixel_G        => Camera_Pixel_G,
+--        Pixel_B        => Camera_Pixel_B,
+--
+--        VS_PCLK        => HDMI_Out_VS_PCLK,
+--        VS_SCLK        => HDMI_Out_VS_SCLK,
+--        VS_R           => HDMI_Out_VS_R,
+--        VS_G           => HDMI_Out_VS_G,
+--        VS_B           => HDMI_Out_VS_B,
+--        VS_HS          => HDMI_Out_VS_HS,
+--        VS_VS          => HDMI_Out_VS_VS,
+--        VS_DE          => HDMI_Out_VS_DE,
+--    );
+
+
+
+

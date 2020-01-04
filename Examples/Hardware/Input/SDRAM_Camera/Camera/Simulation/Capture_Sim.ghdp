@@ -12,7 +12,7 @@ Component Camera_Capture_SDRAM_tb()
 
     NewComponent Camera_Capture_SDRAM
     (
-        Burst_Length => 256,
+        Burst_Length => 8,
         New_Pixel => New_Pixel,
         Column => Column,
         Row => Row,
@@ -36,6 +36,45 @@ Component Camera_Capture_SDRAM_tb()
         CLK => CLK,
     );
     
+    AttributeDeclaration
+    {
+        VHDL
+        {
+            COMPONENT mt48lc16m16a2 IS
+              PORT (
+                Clk : IN STD_LOGIC;
+                Addr : IN STD_LOGIC_VECTOR (11 DOWNTO 0);
+                Ba : IN STD_LOGIC_VECTOR (1 DOWNTO 0);
+                Cas_n: IN STD_LOGIC;
+                Cke : IN STD_LOGIC;
+                Cs_n : IN STD_LOGIC;
+                Dqm : IN STD_LOGIC_VECTOR (1 DOWNTO 0);
+                Ras_n : IN STD_LOGIC;
+                We_n : IN STD_LOGIC;
+                Dq : INOUT STD_LOGIC_VECTOR (15 DOWNTO 0)
+                          
+              );
+            END COMPONENT;
+        }
+    }
+    
+    VHDL
+    {
+        mt48lc16m16a21 : mt48lc16m16a2  PORT MAP (
+            Clk      => SDRAM_CLK,
+            Addr  => SDRAM_ADDR,
+            Ba    => SDRAM_BA,
+            Cas_n => SDRAM_CASn,
+            Cke   => SDRAM_CKE,
+            Cs_n  => SDRAM_CSn,
+            Dqm   => SDRAM_DQM,
+            Ras_n => SDRAM_RASn,
+            We_n  => SDRAM_WEn,
+            Dq    => SDRAM_DQ
+        );
+    }
+    
+    /*
     NewComponent SDRAM_sdram_controller_0_test_component 
     (
         clk      => SDRAM_CLK,
@@ -49,6 +88,7 @@ Component Camera_Capture_SDRAM_tb()
         zs_we_n  => SDRAM_WEn,
         zs_dq    => SDRAM_DQ,
     );
+    */
 
     SIGNAL New_Pixel : STD_LOGIC  := '0';
     SIGNAL Column : NATURAL range 0 to 639 := 0;
@@ -153,9 +193,10 @@ Component Camera_Capture_SDRAM_tb()
 
     Process Sim_Read_Column()
     {
+        wait for 5000 * period_time;
         While(finished /= '1')
         {
-            wait for 500 * period_time;
+            
             For(i IN 0 to 639)
             {
                 Read_Column <= i;
@@ -167,13 +208,14 @@ Component Camera_Capture_SDRAM_tb()
 
     Process Sim_Read_Row()
     {
+        wait for 5000 * period_time;
         While(finished /= '1')
         {
-            wait for 500 * period_time;
+            
             For(i IN 0 to 479)
             {
                 Read_Row <= i;
-                wait for 3060 * period_time;
+                wait for 2560 * period_time;
             }
         }
         wait;
@@ -181,6 +223,7 @@ Component Camera_Capture_SDRAM_tb()
 
     Process Sim_Read_Ena()
     {
+        wait for 5000 * period_time;
         While(finished /= '1')
         {
             Read_Ena <= '0';

@@ -15,10 +15,5 @@ DEFINE altera_ver         ./libraries/altera_ver/
 DEFINE lpm_ver            ./libraries/lpm_ver/                      
 DEFINE sgate_ver          ./libraries/sgate_ver/                    
 DEFINE altera_mf_ver      ./libraries/altera_mf_ver/                
+DEFINE altera_lnsim_ver   ./libraries/altera_lnsim_ver/             
 DEFINE fiftyfivenm_ver    ./libraries/fiftyfivenm_ver/              
-DEFINE altera             ./libraries/altera/                       
-DEFINE lpm                ./libraries/lpm/                          
-DEFINE sgate              ./libraries/sgate/                        
-DEFINE altera_mf          ./libraries/altera_mf/                    
-DEFINE altera_lnsim       ./libraries/altera_lnsim/                 
-DEFINE fiftyfivenm        ./libraries/fiftyfivenm/                  

@@ -62,21 +62,19 @@ ARCHITECTURE BEHAVIORAL OF Camera_Capture_SDRAM_tb IS
 
   );
   END COMPONENT;
-  COMPONENT SDRAM_sdram_controller_0_test_component IS
+  COMPONENT mt48lc16m16a2 IS
   
   PORT (
-    clk : IN STD_LOGIC;
-                     zs_addr : IN STD_LOGIC_VECTOR (11 DOWNTO 0);
-                     zs_ba : IN STD_LOGIC_VECTOR (1 DOWNTO 0);
-                     zs_cas_n : IN STD_LOGIC;
-                     zs_cke : IN STD_LOGIC;
-                     zs_cs_n : IN STD_LOGIC;
-                     zs_dqm : IN STD_LOGIC_VECTOR (1 DOWNTO 0);
-                     zs_ras_n : IN STD_LOGIC;
-                     zs_we_n : IN STD_LOGIC;
-
-              
-                     zs_dq : INOUT STD_LOGIC_VECTOR (15 DOWNTO 0)
+    Clk : IN STD_LOGIC;
+    Addr : IN STD_LOGIC_VECTOR (11 DOWNTO 0);
+    Ba : IN STD_LOGIC_VECTOR (1 DOWNTO 0);
+    Cas_n: IN STD_LOGIC;
+    Cke : IN STD_LOGIC;
+    Cs_n : IN STD_LOGIC;
+    Dqm : IN STD_LOGIC_VECTOR (1 DOWNTO 0);
+    Ras_n : IN STD_LOGIC;
+    We_n : IN STD_LOGIC;
+    Dq : INOUT STD_LOGIC_VECTOR (15 DOWNTO 0)
               
   );
   END COMPONENT;
@@ -91,7 +89,7 @@ BEGIN
   END PROCESS;
   Camera_Capture_SDRAM1 : Camera_Capture_SDRAM
   GENERIC MAP (
-      Burst_Length => 256
+      Burst_Length => 8
 
   ) PORT MAP (
     New_Pixel => New_Pixel,
@@ -118,17 +116,18 @@ BEGIN
 
     
   );
-  SDRAM_sdram_controller_0_test_component1 : SDRAM_sdram_controller_0_test_component  PORT MAP (
-    clk      => SDRAM_CLK,
-    zs_addr  => SDRAM_ADDR,
-    zs_ba    => SDRAM_BA,
-    zs_cas_n => SDRAM_CASn,
-    zs_cke   => SDRAM_CKE,
-    zs_cs_n  => SDRAM_CSn,
-    zs_dqm   => SDRAM_DQM,
-    zs_ras_n => SDRAM_RASn,
-    zs_we_n  => SDRAM_WEn,
-    zs_dq    => SDRAM_DQ
+
+  mt48lc16m16a21 : mt48lc16m16a2  PORT MAP (
+    Clk      => SDRAM_CLK,
+    Addr  => SDRAM_ADDR,
+    Ba    => SDRAM_BA,
+    Cas_n => SDRAM_CASn,
+    Cke   => SDRAM_CKE,
+    Cs_n  => SDRAM_CSn,
+    Dqm   => SDRAM_DQM,
+    Ras_n => SDRAM_RASn,
+    We_n  => SDRAM_WEn,
+    Dq    => SDRAM_DQ
   );
   Sim_New_Pixel : PROCESS 
     

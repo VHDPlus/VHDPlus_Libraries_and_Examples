@@ -2,6 +2,8 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.numeric_std.all; 
+use work.sdram_config.all;
+use work.sdram_controller_interface.all;
 
 
 ENTITY I2C_Master_Interface IS

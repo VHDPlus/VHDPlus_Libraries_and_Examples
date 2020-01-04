@@ -314,10 +314,10 @@ begin
   process (clk, reset_n)
   begin
     if reset_n = '0' then
-      refresh_counter <= std_logic_vector'("11101010011000");
+      refresh_counter <= std_logic_vector'("10011100010000");
     elsif clk'event and clk = '1' then
       if (std_logic_vector'("000000000000000000") & (refresh_counter)) = std_logic_vector'("00000000000000000000000000000000") then 
-        refresh_counter <= std_logic_vector'("00001100001011");
+        refresh_counter <= std_logic_vector'("00011000011010");
       else
         refresh_counter <= A_EXT (((std_logic_vector'("0") & (refresh_counter)) - (std_logic_vector'("00000000000000") & (A_TOSTDLOGICVECTOR(std_logic'('1'))))), 14);
       end if;

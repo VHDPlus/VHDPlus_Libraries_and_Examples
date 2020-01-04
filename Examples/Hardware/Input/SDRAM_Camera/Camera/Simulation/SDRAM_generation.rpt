@@ -1,5 +1,5 @@
 Info: Starting: Create simulation model
-Info: qsys-generate C:\Users\LeonB\Documents\VHDPlus\Projects\Tutorials\Camera_CSI\Camera\SDRAM.qsys --simulation=VHDL --allow-mixed-language-simulation --output-directory=C:\Users\LeonB\Documents\VHDPlus\Projects\Tutorials\Camera_CSI\Camera\Simulation\simulation --family="MAX 10" --part=10M08SAU169C8G
+Info: qsys-generate C:\Users\LeonB\Documents\VHDPlus\Projects\Tutorials\Camera_CSI\Camera\SDRAM.qsys --simulation=VERILOG --allow-mixed-language-simulation --output-directory=C:\Users\LeonB\Documents\VHDPlus\Projects\Tutorials\Camera_CSI\Camera\Simulation\simulation --family="MAX 10" --part=10M08SAU169C8G
 Progress: Loading Camera/SDRAM.qsys
 Progress: Reading input file
 Progress: Adding clk_0 [clock_source 18.1]
@@ -11,9 +11,9 @@ Progress: Parameterizing connections
 Progress: Validating
 Progress: Done reading input file
 Info: SDRAM.sdram_controller_0: SDRAM Controller will only be supported in Quartus Prime Standard Edition in the future release.
-Info: SDRAM: Generating SDRAM "SDRAM" for SIM_VHDL
+Info: SDRAM: Generating SDRAM "SDRAM" for SIM_VERILOG
 Info: sdram_controller_0: Starting RTL generation for module 'SDRAM_sdram_controller_0'
-Info: sdram_controller_0:   Generation command is [exec C:/intelfpga_lite/18.1/quartus/bin64/perl/bin/perl.exe -I C:/intelfpga_lite/18.1/quartus/bin64/perl/lib -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin/europa -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin/perl_lib -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin -I C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/common -I C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_new_sdram_controller -- C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_new_sdram_controller/generate_rtl.pl --name=SDRAM_sdram_controller_0 --dir=C:/Users/LeonB/AppData/Local/Temp/alt8263_7705346029414610508.dir/0002_sdram_controller_0_gen/ --quartus_dir=C:/intelfpga_lite/18.1/quartus --vhdl --config=C:/Users/LeonB/AppData/Local/Temp/alt8263_7705346029414610508.dir/0002_sdram_controller_0_gen//SDRAM_sdram_controller_0_component_configuration.pl  --do_build_sim=1    --sim_dir=C:/Users/LeonB/AppData/Local/Temp/alt8263_7705346029414610508.dir/0002_sdram_controller_0_gen/  ]
+Info: sdram_controller_0:   Generation command is [exec C:/intelfpga_lite/18.1/quartus/bin64/perl/bin/perl.exe -I C:/intelfpga_lite/18.1/quartus/bin64/perl/lib -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin/europa -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin/perl_lib -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin -I C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/common -I C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_new_sdram_controller -- C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_new_sdram_controller/generate_rtl.pl --name=SDRAM_sdram_controller_0 --dir=C:/Users/LeonB/AppData/Local/Temp/alt8265_8965654856119514751.dir/0002_sdram_controller_0_gen/ --quartus_dir=C:/intelfpga_lite/18.1/quartus --verilog --config=C:/Users/LeonB/AppData/Local/Temp/alt8265_8965654856119514751.dir/0002_sdram_controller_0_gen//SDRAM_sdram_controller_0_component_configuration.pl  --do_build_sim=1    --sim_dir=C:/Users/LeonB/AppData/Local/Temp/alt8265_8965654856119514751.dir/0002_sdram_controller_0_gen/  ]
 Info: sdram_controller_0: Done RTL generation for module 'SDRAM_sdram_controller_0'
 Info: sdram_controller_0: "SDRAM" instantiated altera_avalon_new_sdram_controller "sdram_controller_0"
 Info: rst_controller: "SDRAM" instantiated altera_reset_controller "rst_controller"
@@ -25,7 +25,8 @@ Info: sim-script-gen --spd=C:\Users\LeonB\Documents\VHDPlus\Projects\Tutorials\C
 Info: Doing: ip-make-simscript --spd=C:\Users\LeonB\Documents\VHDPlus\Projects\Tutorials\Camera_CSI\Camera\Simulation\SDRAM.spd --output-directory=C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/simulation/ --use-relative-paths=true
 Info: Generating the following file(s) for MODELSIM simulator in C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/simulation/ directory:
 Info: 	mentor/msim_setup.tcl
-Info: Skipping VCS script generation since VHDL file $QUARTUS_INSTALL_DIR/eda/sim_lib/altera_syn_attributes.vhd is required for simulation
+Info: Generating the following file(s) for VCS simulator in C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/simulation/ directory:
+Info: 	synopsys/vcs/vcs_setup.sh
 Info: Generating the following file(s) for VCSMX simulator in C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/simulation/ directory:
 Info: 	synopsys/vcsmx/synopsys_sim.setup
 Info: 	synopsys/vcsmx/vcsmx_setup.sh
@@ -41,7 +42,7 @@ Info: Regenerate these scripts whenever you make any change to any Quartus-gener
 Info: Finished: Create Modelsim Project.
 Info: 
 Info: Starting: Create HDL design files for synthesis
-Info: qsys-generate C:\Users\LeonB\Documents\VHDPlus\Projects\Tutorials\Camera_CSI\Camera\SDRAM.qsys --synthesis=VHDL --output-directory=C:\Users\LeonB\Documents\VHDPlus\Projects\Tutorials\Camera_CSI\Camera\Simulation\synthesis --family="MAX 10" --part=10M08SAU169C8G
+Info: qsys-generate C:\Users\LeonB\Documents\VHDPlus\Projects\Tutorials\Camera_CSI\Camera\SDRAM.qsys --synthesis=VERILOG --output-directory=C:\Users\LeonB\Documents\VHDPlus\Projects\Tutorials\Camera_CSI\Camera\Simulation\synthesis --family="MAX 10" --part=10M08SAU169C8G
 Progress: Loading Camera/SDRAM.qsys
 Progress: Reading input file
 Progress: Adding clk_0 [clock_source 18.1]
@@ -55,7 +56,7 @@ Progress: Done reading input file
 Info: SDRAM.sdram_controller_0: SDRAM Controller will only be supported in Quartus Prime Standard Edition in the future release.
 Info: SDRAM: Generating SDRAM "SDRAM" for QUARTUS_SYNTH
 Info: sdram_controller_0: Starting RTL generation for module 'SDRAM_sdram_controller_0'
-Info: sdram_controller_0:   Generation command is [exec C:/intelfpga_lite/18.1/quartus/bin64/perl/bin/perl.exe -I C:/intelfpga_lite/18.1/quartus/bin64/perl/lib -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin/europa -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin/perl_lib -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin -I C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/common -I C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_new_sdram_controller -- C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_new_sdram_controller/generate_rtl.pl --name=SDRAM_sdram_controller_0 --dir=C:/Users/LeonB/AppData/Local/Temp/alt8263_7705346029414610508.dir/0005_sdram_controller_0_gen/ --quartus_dir=C:/intelfpga_lite/18.1/quartus --verilog --config=C:/Users/LeonB/AppData/Local/Temp/alt8263_7705346029414610508.dir/0005_sdram_controller_0_gen//SDRAM_sdram_controller_0_component_configuration.pl  --do_build_sim=0  ]
+Info: sdram_controller_0:   Generation command is [exec C:/intelfpga_lite/18.1/quartus/bin64/perl/bin/perl.exe -I C:/intelfpga_lite/18.1/quartus/bin64/perl/lib -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin/europa -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin/perl_lib -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin -I C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/common -I C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_new_sdram_controller -- C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_new_sdram_controller/generate_rtl.pl --name=SDRAM_sdram_controller_0 --dir=C:/Users/LeonB/AppData/Local/Temp/alt8265_8965654856119514751.dir/0005_sdram_controller_0_gen/ --quartus_dir=C:/intelfpga_lite/18.1/quartus --verilog --config=C:/Users/LeonB/AppData/Local/Temp/alt8265_8965654856119514751.dir/0005_sdram_controller_0_gen//SDRAM_sdram_controller_0_component_configuration.pl  --do_build_sim=0  ]
 Info: sdram_controller_0: Done RTL generation for module 'SDRAM_sdram_controller_0'
 Info: sdram_controller_0: "SDRAM" instantiated altera_avalon_new_sdram_controller "sdram_controller_0"
 Info: rst_controller: "SDRAM" instantiated altera_reset_controller "rst_controller"

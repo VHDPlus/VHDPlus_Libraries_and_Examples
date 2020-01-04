@@ -140,7 +140,7 @@ Component CSI_Camera
             {
                 If(I2C_Master_Interface_Busy = '0')
                 {
-                    If(address /= x"5F")
+                    If(address /= x"61")
                     {
                         address <= STD_LOGIC_VECTOR(UNSIGNED(address)+1);
                         state   := 7;
@@ -259,13 +259,15 @@ Component CSI_Camera
             When(x"56"){ sreg <=  x"40506e"; }
             When(x"57"){ sreg <=  x"40518f"; }
             When(x"58"){ sreg <=  x"503d00"; }
-            When(x"59"){ sreg <=  x"010001"; }
-            When(x"5A"){ sreg <=  x"010001"; }
-            When(x"5B"){ sreg <=  x"480004"; }
-            When(x"5C"){ sreg <=  x"420200"; }
-            When(x"5D"){ sreg <=  x"300D00"; }
+            When(x"59"){ sreg <=  x"303704"; } --CLK / 4
+            When(x"5A"){ sreg <=  x"303630"; } --CLK * 48
+            When(x"5B"){ sreg <=  x"010001"; }
+            When(x"5C"){ sreg <=  x"010001"; }
+            When(x"5D"){ sreg <=  x"480004"; }
             When(x"5E"){ sreg <=  x"420200"; }
             When(x"5F"){ sreg <=  x"300D00"; }
+            When(x"60"){ sreg <=  x"420200"; }
+            When(x"61"){ sreg <=  x"300D00"; }
             When(others){sreg <=  x"FFFFFF"; }
         }
     }

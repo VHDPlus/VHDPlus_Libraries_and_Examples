@@ -2,6 +2,8 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.numeric_std.all; 
+use work.sdram_config.all;
+use work.sdram_controller_interface.all;
 
 
 ENTITY CSI_Camera IS
@@ -241,7 +243,7 @@ BEGIN
         END IF;
       ELSIF (state = 6) THEN
         IF (I2C_Master_Interface_Busy = '0') THEN
-          IF (address /= x"5F") THEN
+          IF (address /= x"61") THEN
             address <= STD_LOGIC_VECTOR(UNSIGNED(address)+1);
             state   := 7;
           
@@ -443,18 +445,22 @@ BEGIN
       WHEN x"58" =>
         sreg <=  x"503d00";
       WHEN x"59" =>
-        sreg <=  x"010001";
+        sreg <=  x"303704";
       WHEN x"5A" =>
-        sreg <=  x"010001";
+        sreg <=  x"303630";
       WHEN x"5B" =>
-        sreg <=  x"480004";
+        sreg <=  x"010001";
       WHEN x"5C" =>
-        sreg <=  x"420200";
+        sreg <=  x"010001";
       WHEN x"5D" =>
-        sreg <=  x"300D00";
+        sreg <=  x"480004";
       WHEN x"5E" =>
         sreg <=  x"420200";
       WHEN x"5F" =>
+        sreg <=  x"300D00";
+      WHEN x"60" =>
+        sreg <=  x"420200";
+      WHEN x"61" =>
         sreg <=  x"300D00";
       WHEN others =>
         sreg <=  x"FFFFFF";

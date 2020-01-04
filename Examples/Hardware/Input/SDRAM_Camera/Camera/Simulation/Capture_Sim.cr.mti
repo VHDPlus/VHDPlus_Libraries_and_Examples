@@ -13,41 +13,21 @@ Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  
 Top level modules:
 	SDRAM_sdram_controller_0
 
+} {} {}} C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Generated/Capture_Sim.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Generated/Capture_Sim.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  5 2016
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Compiling entity Camera_Capture_SDRAM_tb
+-- Compiling architecture BEHAVIORAL of Camera_Capture_SDRAM_tb
+
 } {} {}} C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/altera_reset_synchronizer.v {1 {vlog -work work -stats=none C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/altera_reset_synchronizer.v
 Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
 -- Compiling module altera_reset_synchronizer
 
 Top level modules:
 	altera_reset_synchronizer
-
-} {} {}} C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Generated/Camera_Capture_SDRAM.vhd {1 {vcom -work work -2002 -explicit -stats=none {C:\Users\LeonB\Documents\VHDPlus\Projects\Tutorials\Camera_CSI\Generated\Camera_Capture_SDRAM.vhd}
-Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  5 2016
--- Loading package STANDARD
--- Loading package TEXTIO
--- Loading package std_logic_1164
--- Loading package NUMERIC_STD
--- Compiling entity Camera_Capture_SDRAM
--- Compiling architecture BEHAVIORAL of Camera_Capture_SDRAM
-
-} {} {}} C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/sdram_config.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/sdram_config.vhd
-Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  5 2016
--- Loading package STANDARD
--- Compiling package sdram_config
-
-} {} {}} C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/SDRAM_sdram_controller_0_test_component.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/SDRAM_sdram_controller_0_test_component.vhd
-Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  5 2016
--- Loading package STANDARD
--- Loading package TEXTIO
--- Loading package std_logic_1164
--- Loading package NUMERIC_STD
--- Loading package std_logic_arith
--- Loading package STD_LOGIC_UNSIGNED
--- Loading package altera_europa_support_lib
--- Loading package altera_mf_components
--- Compiling entity SDRAM_sdram_controller_0_test_component
--- Compiling architecture europa of SDRAM_sdram_controller_0_test_component
--- Compiling entity SDRAM_sdram_controller_0_test_component_ram_module
--- Compiling architecture europa of SDRAM_sdram_controller_0_test_component_ram_module
 
 } {} {}} C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/SDRAM.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/SDRAM.vhd
 Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  5 2016
@@ -57,5 +37,12 @@ Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  
 -- Loading package NUMERIC_STD
 -- Compiling entity SDRAM
 -- Compiling architecture rtl of SDRAM
+
+} {} {}} C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/simulation/micron_model.v {1 {vlog -work work -stats=none C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/simulation/micron_model.v
+Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+-- Compiling module mt48lc16m16a2
+
+Top level modules:
+	mt48lc16m16a2
 
 } {} {}}

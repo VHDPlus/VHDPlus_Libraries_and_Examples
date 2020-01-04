@@ -13,14 +13,14 @@
    type="SDC"
    library="rst_controller" />
  <file
-   path="simulation/submodules/SDRAM_sdram_controller_0.vhd"
-   type="VHDL"
+   path="simulation/submodules/SDRAM_sdram_controller_0.v"
+   type="VERILOG"
    library="sdram_controller_0" />
  <file
-   path="simulation/submodules/SDRAM_sdram_controller_0_test_component.vhd"
-   type="VHDL"
+   path="simulation/submodules/SDRAM_sdram_controller_0_test_component.v"
+   type="VERILOG"
    library="sdram_controller_0" />
- <file path="simulation/SDRAM.vhd" type="VHDL" />
+ <file path="simulation/SDRAM.v" type="VERILOG" />
  <topLevel name="SDRAM" />
  <deviceFamily name="max10" />
 </simPackage>
