@@ -1,6 +1,9 @@
 # VHDPlus Libraries and Examples
 This is a collection of the built in libraries of the VHDPlus IDE toghether with examples. Commits will be featured in the IDE with future updates.
 
+## License
+The HDMI Library contains files only covered under the [GNU General Public License](https://www.gnu.org/licenses/gpl-3.0.en.html) and is Copyright 2018 ARDUINO SA.
+
 ## Change the repository
 - Sign in with your GitHub account
 - Click on Fork
