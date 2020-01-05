@@ -1,0 +1,49 @@
+--Not Working
+--https://github.com/jpiat/hard-cv/blob/master/hw/rtl/image/rgb2hsv.vhd
+/*
+Component RGB2HSV_Filter
+(
+    iPixel_R   : IN STD_LOGIC_VECTOR (7 downto 0);
+    iPixel_G   : IN STD_LOGIC_VECTOR (7 downto 0);
+    iPixel_B   : IN STD_LOGIC_VECTOR (7 downto 0);
+
+    oPixel_H     : OUT STD_LOGIC_VECTOR (7 downto 0);
+    oPixel_S     : OUT STD_LOGIC_VECTOR (7 downto 0);
+    oPixel_V     : OUT STD_LOGIC_VECTOR (7 downto 0);
+)
+{
+    signal rmax, gmax, bmax : std_logic ;
+    signal max, min, c : std_logic_vector(7 downto 0);
+    signal Hpr, Hpg, Hpb, sixtyonc : signed(15 downto 0);
+    
+    rmax <= '1'  when iPixel_R > iPixel_G and iPixel_R > iPixel_B else '0' ;
+
+    gmax <= '1' when iPixel_G > iPixel_R and iPixel_G > iPixel_B else '0' ;
+
+    bmax <= '1' when iPixel_B > iPixel_R and iPixel_B > iPixel_G else '0' ;
+    
+    max <= iPixel_R when rmax = '1' else
+    iPixel_G when gmax = '1' else
+    iPixel_B when bmax = '1' else
+    iPixel_R ;
+    
+    min <= iPixel_R when iPixel_R < iPixel_G and iPixel_R < iPixel_B else
+    iPixel_G when iPixel_G < iPixel_R and iPixel_G < iPixel_B else
+    iPixel_B when iPixel_B < iPixel_R and iPixel_B < iPixel_G else
+    iPixel_R ;
+
+    c <= max - min ;
+
+    Hpr <=  (iPixel_G - iPixel_B) * sixtyonc; -- need to work on table implementation for the 32 values of C
+    Hpg <=  (iPixel_B - iPixel_R) * sixtyonc;
+    Hpb <=  (iPixel_R - iPixel_G) * sixtyonc;
+
+
+    oPixel_H <= ("0000" & Hpr(15 downto 4)) when rmax else
+    ("0000" & Hpg(15 downto 4)) when gmax else
+    ("0000" & Hpb(15 downto 4)) when bmax else
+    (others => '0') ;
+
+    oPixel_V <= max ;
+}
+*/

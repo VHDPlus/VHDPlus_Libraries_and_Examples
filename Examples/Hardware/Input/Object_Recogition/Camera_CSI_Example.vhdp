@@ -75,9 +75,6 @@ Main
     SIGNAL Color_Correction_Filter_oPixel_R     : STD_LOGIC_VECTOR (7 downto 0);
     SIGNAL Color_Correction_Filter_oPixel_G     : STD_LOGIC_VECTOR (7 downto 0);
     SIGNAL Color_Correction_Filter_oPixel_B     : STD_LOGIC_VECTOR (7 downto 0);
-    SIGNAL Color_Correction_Filter_oColumn      : NATURAL          range 0 to 639;
-    SIGNAL Color_Correction_Filter_oRow         : NATURAL          range 0 to 479;
-    SIGNAL Color_Correction_Filter_oNew_Pixel   : STD_LOGIC;
     
     NewComponent Color_Correction_Filter
     (
@@ -94,16 +91,10 @@ Main
         iPixel_R     => Camera_Pixel_R,
         iPixel_G     => Camera_Pixel_G,
         iPixel_B     => Camera_Pixel_B,
-        iColumn      => Camera_Column,
-        iRow         => Camera_Row,
-        iNew_Pixel   => Camera_New_Pixel,
         
         oPixel_R     => Color_Correction_Filter_oPixel_R,
         oPixel_G     => Color_Correction_Filter_oPixel_G,
         oPixel_B     => Color_Correction_Filter_oPixel_B,
-        oColumn      => Color_Correction_Filter_oColumn,
-        oRow         => Color_Correction_Filter_oRow,
-        oNew_Pixel   => Color_Correction_Filter_oNew_Pixel,
     );
     
     NewComponent RGB2FakeLAB_Filter
@@ -111,27 +102,15 @@ Main
         iPixel_R   => Color_Correction_Filter_oPixel_R,
         iPixel_G   => Color_Correction_Filter_oPixel_G,
         iPixel_B   => Color_Correction_Filter_oPixel_B,
-        iColumn    => Color_Correction_Filter_oColumn,
-        iRow       => Color_Correction_Filter_oRow,
-        iNew_Pixel => Color_Correction_Filter_oNew_Pixel,
-        
-        oPixel_R   => Color_Threshold_Filter_iPixel_R,
-        oPixel_G   => Color_Threshold_Filter_iPixel_G,
-        oPixel_B   => Color_Threshold_Filter_iPixel_B,
+
         oLAB_L     => Color_Threshold_Filter_iLAB_L,
         oLAB_A     => Color_Threshold_Filter_iLAB_A,
         oLAB_B     => Color_Threshold_Filter_iLAB_B,
-        oColumn    => Color_Threshold_Filter_iColumn,
-        oRow       => Color_Threshold_Filter_iRow,
-        oNew_Pixel => Color_Threshold_Filter_iNew_Pixel,
     );
     
     SIGNAL Color_Threshold_Filter_oPixel_R     : STD_LOGIC_VECTOR (7 downto 0);
     SIGNAL Color_Threshold_Filter_oPixel_G     : STD_LOGIC_VECTOR (7 downto 0);
     SIGNAL Color_Threshold_Filter_oPixel_B     : STD_LOGIC_VECTOR (7 downto 0);
-    SIGNAL Color_Threshold_Filter_oColumn      : NATURAL          range 0 to 639;
-    SIGNAL Color_Threshold_Filter_oRow         : NATURAL          range 0 to 479;
-    SIGNAL Color_Threshold_Filter_oNew_Pixel   : STD_LOGIC;
     SIGNAL Color_Threshold_Filter_iLAB_L       : STD_LOGIC_VECTOR (7 downto 0);
     SIGNAL Color_Threshold_Filter_iLAB_A       : STD_LOGIC_VECTOR (7 downto 0);
     SIGNAL Color_Threshold_Filter_iLAB_B       : STD_LOGIC_VECTOR (7 downto 0);
@@ -141,13 +120,10 @@ Main
     SIGNAL Color_Threshold_Filter_iPixel_X     : STD_LOGIC_VECTOR (7 downto 0);
     SIGNAL Color_Threshold_Filter_iPixel_Y     : STD_LOGIC_VECTOR (7 downto 0);
     SIGNAL Color_Threshold_Filter_iPixel_Z     : STD_LOGIC_VECTOR (7 downto 0);
-    SIGNAL Color_Threshold_Filter_iColumn      : NATURAL          range 0 to 639;
-    SIGNAL Color_Threshold_Filter_iRow         : NATURAL          range 0 to 479;
-    SIGNAL Color_Threshold_Filter_iNew_Pixel   : STD_LOGIC;
     
-    Color_Threshold_Filter_iPixel_X <= Color_Threshold_Filter_iPixel_R when ISSP_source = x"04" else Color_Threshold_Filter_iLAB_L;
-    Color_Threshold_Filter_iPixel_Y <= Color_Threshold_Filter_iPixel_G when ISSP_source = x"04" else Color_Threshold_Filter_iLAB_A;
-    Color_Threshold_Filter_iPixel_Z <= Color_Threshold_Filter_iPixel_B when ISSP_source = x"04" else Color_Threshold_Filter_iLAB_B;
+    Color_Threshold_Filter_iPixel_X <= Color_Correction_Filter_oPixel_R when ISSP_source = x"04" else Color_Threshold_Filter_iLAB_L;
+    Color_Threshold_Filter_iPixel_Y <= Color_Correction_Filter_oPixel_G when ISSP_source = x"04" else Color_Threshold_Filter_iLAB_A;
+    Color_Threshold_Filter_iPixel_Z <= Color_Correction_Filter_oPixel_B when ISSP_source = x"04" else Color_Threshold_Filter_iLAB_B;
     
     NewComponent Color_Threshold_LAB_Filter
     (
@@ -161,9 +137,7 @@ Main
         iPixel_R   => Color_Threshold_Filter_iPixel_X,
         iPixel_G   => Color_Threshold_Filter_iPixel_Y,
         iPixel_B   => Color_Threshold_Filter_iPixel_Z,
-        iColumn    => Color_Threshold_Filter_iColumn,
-        iRow       => Color_Threshold_Filter_iRow,
-        iNew_Pixel => Color_Threshold_Filter_iNew_Pixel,
+
         iLAB_L     => Color_Threshold_Filter_iLAB_L,
         iLAB_A     => Color_Threshold_Filter_iLAB_A,
         iLAB_B     => Color_Threshold_Filter_iLAB_B,
@@ -171,9 +145,6 @@ Main
         oPixel_R   => Color_Threshold_Filter_oPixel_R,
         oPixel_G   => Color_Threshold_Filter_oPixel_G,
         oPixel_B   => Color_Threshold_Filter_oPixel_B,
-        oColumn    => Color_Threshold_Filter_oColumn,
-        oRow       => Color_Threshold_Filter_oRow,
-        oNew_Pixel => Color_Threshold_Filter_oNew_Pixel,
     );
     
     SIGNAL Camera_Capture_iPixel_R     : STD_LOGIC_VECTOR (7 downto 0);
@@ -189,43 +160,24 @@ Main
         probe  => ISSP_probe,
     );
     
-    Process ()
-    {
-        If(rising_edge(Color_Threshold_Filter_oNew_Pixel))
-        {
-            If(ISSP_source = x"00")    --Camera output
-            {
-                Camera_Capture_iPixel_R <= Camera_Pixel_R;
-                Camera_Capture_iPixel_G <= Camera_Pixel_G;
-                Camera_Capture_iPixel_B <= Camera_Pixel_B;
-            }
-            Elsif(ISSP_source = x"01") --Image after color filter
-            {
-                Camera_Capture_iPixel_R <= Color_Correction_Filter_oPixel_R;
-                Camera_Capture_iPixel_G <= Color_Correction_Filter_oPixel_G;
-                Camera_Capture_iPixel_B <= Color_Correction_Filter_oPixel_B;
-            }
-            Elsif(ISSP_source = x"02") --Image after LAB filter
-            {
-                Camera_Capture_iPixel_R <= Color_Threshold_Filter_iPixel_R;
-                Camera_Capture_iPixel_G <= Color_Threshold_Filter_iPixel_G;
-                Camera_Capture_iPixel_B <= Color_Threshold_Filter_iPixel_B;
-            }
-            Elsif(ISSP_source = x"03") --Image after LAB filter as LAB value
-            {
-                Camera_Capture_iPixel_R <= Color_Threshold_Filter_iLAB_L;
-                Camera_Capture_iPixel_G <= Color_Threshold_Filter_iLAB_A;
-                Camera_Capture_iPixel_B <= Color_Threshold_Filter_iLAB_B;
-            }
-            Elsif(ISSP_source = x"04" OR ISSP_source = x"05") --04 = Image after Threshold Filter 05 = Image after Threshold Filter as LAB value
-            {
-                Camera_Capture_iPixel_R <= Color_Threshold_Filter_oPixel_R;
-                Camera_Capture_iPixel_G <= Color_Threshold_Filter_oPixel_G;
-                Camera_Capture_iPixel_B <= Color_Threshold_Filter_oPixel_B;
-            }
-        }
-    }
-
+    Camera_Capture_iPixel_R <= Camera_Pixel_R when ISSP_source = x"00" else
+    Color_Correction_Filter_oPixel_R when ISSP_source = x"01" else
+    Color_Threshold_Filter_iPixel_R when ISSP_source = x"02" else
+    Color_Threshold_Filter_iLAB_L when ISSP_source = x"03" else
+    Color_Threshold_Filter_oPixel_R;
+    
+    Camera_Capture_iPixel_G <= Camera_Pixel_G when ISSP_source = x"00" else
+    Color_Correction_Filter_oPixel_G when ISSP_source = x"01" else
+    Color_Threshold_Filter_iPixel_G when ISSP_source = x"02" else
+    Color_Threshold_Filter_iLAB_A when ISSP_source = x"03" else
+    Color_Threshold_Filter_oPixel_G;
+    
+    Camera_Capture_iPixel_B <= Camera_Pixel_B when ISSP_source = x"00" else
+    Color_Correction_Filter_oPixel_B when ISSP_source = x"01" else
+    Color_Threshold_Filter_iPixel_B when ISSP_source = x"02" else
+    Color_Threshold_Filter_iLAB_B when ISSP_source = x"03" else
+    Color_Threshold_Filter_oPixel_B;
+    
     --Save images in RAM
     SIGNAL Camera_Capture_Read_Column : NATURAL          range 0 to 639;
     SIGNAL Camera_Capture_Read_Row    : NATURAL          range 0 to 479;
@@ -244,9 +196,9 @@ Main
         Pixel_G     => Camera_Pixel_G,
         Pixel_B     => Camera_Pixel_B,
          */
-        New_Pixel   => Color_Threshold_Filter_oNew_Pixel,
-        Column      => Color_Threshold_Filter_oColumn,
-        Row         => Color_Threshold_Filter_oRow,
+        New_Pixel   => Camera_New_Pixel,
+        Column      => Camera_Column,
+        Row         => Camera_Row,
         Pixel_R     => Camera_Capture_iPixel_R,
         Pixel_G     => Camera_Capture_iPixel_G,
         Pixel_B     => Camera_Capture_iPixel_B,
