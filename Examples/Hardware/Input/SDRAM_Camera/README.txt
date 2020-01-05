@@ -1,0 +1,2 @@
+Here I just messed around with different SDRAM controllers and was trying to get the Camera Image in full resolution.
+Apparently there is some problem with wrong addressing especialy with higher speed. Feel free to test it yourself and maybe get it working.

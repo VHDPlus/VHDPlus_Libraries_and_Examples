@@ -252,7 +252,7 @@ reg              oe /* synthesis ALTERA_ATTRIBUTE = "FAST_OUTPUT_ENABLE_REGISTER
 wire             pending;
 wire             rd_strobe;
 reg     [  1: 0] rd_valid;
-reg     [ 12: 0] refresh_counter;
+reg     [ 13: 0] refresh_counter;
 reg              refresh_request;
 wire             rnw_match;
 wire             row_match;
@@ -302,9 +302,9 @@ wire             zs_we_n;
   always @(posedge clk or negedge reset_n)
     begin
       if (reset_n == 0)
-          refresh_counter <= 5000;
+          refresh_counter <= 16000;
       else if (refresh_counter == 0)
-          refresh_counter <= 781;
+          refresh_counter <= 2499;
       else 
         refresh_counter <= refresh_counter - 1'b1;
     end
@@ -367,7 +367,7 @@ wire             zs_we_n;
               3'b001: begin
                   i_state <= 3'b011;
                   i_cmd <= {{1{1'b0}},3'h2};
-                  i_count <= 0;
+                  i_count <= 1;
                   i_next <= 3'b010;
               end // 3'b001 
           
@@ -375,7 +375,7 @@ wire             zs_we_n;
                   i_cmd <= {{1{1'b0}},3'h1};
                   i_refs <= i_refs + 1'b1;
                   i_state <= 3'b011;
-                  i_count <= 1;
+                  i_count <= 5;
                   // Count up init_refresh_commands
                   if (i_refs == 3'h1)
                       i_next <= 3'b111;
@@ -400,7 +400,7 @@ wire             zs_we_n;
                   i_state <= 3'b011;
                   i_cmd <= {{1{1'b0}},3'h0};
                   i_addr <= {{2{1'b0}},1'b0,2'b00,3'h2,4'h0};
-                  i_count <= 4;
+                  i_count <= 3;
                   i_next <= 3'b101;
               end // 3'b111 
           
@@ -458,7 +458,7 @@ wire             zs_we_n;
                         begin
                           m_state <= 9'b001000000;
                           m_next <= 9'b010000000;
-                          m_count <= 0;
+                          m_count <= 1;
                           active_cs_n <= 1'b1;
                         end
                       else if (!f_empty)
@@ -488,7 +488,7 @@ wire             zs_we_n;
                   m_addr <= active_addr[20 : 9];
                   m_data <= active_data;
                   m_dqm <= active_dqm;
-                  m_count <= 1;
+                  m_count <= 2;
                   m_next <= active_rnw ? 9'b000001000 : 9'b000010000;
               end // 9'b000000010 
           
@@ -554,7 +554,7 @@ wire             zs_we_n;
                         begin
                           m_state <= 9'b000000100;
                           m_next <= 9'b000000001;
-                          m_count <= 1;
+                          m_count <= 2;
                         end
                       else 
                         begin
@@ -586,7 +586,7 @@ wire             zs_we_n;
                   else 
                     begin
                       m_state <= 9'b001000000;
-                      m_count <= 0;
+                      m_count <= 1;
                     end
               end // 9'b000100000 
           
@@ -604,7 +604,7 @@ wire             zs_we_n;
                   ack_refresh_request <= 1'b1;
                   m_state <= 9'b000000100;
                   m_cmd <= {{1{1'b0}},3'h1};
-                  m_count <= 1;
+                  m_count <= 5;
                   m_next <= 9'b000000001;
               end // 9'b010000000 
           
@@ -612,7 +612,11 @@ wire             zs_we_n;
                   m_cmd <= {csn_decode,3'h7};
                   //if we need to ARF, bail, else spin
                   if (refresh_request)
-                      m_state <= 9'b000000001;
+                    begin
+                      m_state <= 9'b000000100;
+                      m_next <= 9'b000000001;
+                      m_count <= 1;
+                    end
                   else //wait for fifo to have contents
                   if (!f_empty)
                       //Are we 'pending' yet?
@@ -628,9 +632,9 @@ wire             zs_we_n;
                         end
                       else 
                         begin
-                          m_state <= 9'b001000000;
+                          m_state <= 9'b000100000;
                           m_next <= 9'b000000001;
-                          m_count <= 0;
+                          m_count <= 1;
                         end
               end // 9'b100000000 
           

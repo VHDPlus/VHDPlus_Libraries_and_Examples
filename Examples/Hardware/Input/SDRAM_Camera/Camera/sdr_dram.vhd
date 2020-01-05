@@ -145,9 +145,9 @@ architecture RTL of sdr_sdram is
             when 2 => result(2 downto 0) := "001";
             when 4 => result(2 downto 0) := "010";
             when 8 => result(2 downto 0) := "011";
-            when 0 => result(2 downto 0) := "111";
-                assert result(3) = '0' report "Full Page Burst not possible in interleaved mode" severity error;
-                report "Full Page Bursts not supported by controller" severity error;
+            when 256 => result(2 downto 0) := "111";
+                --assert result(3) = '0' report "Full Page Burst not possible in interleaved mode" severity error;
+                --report "Full Page Bursts not supported by controller" severity error;
             when others =>
                 report "Burst Length not supported by SDRAM" severity error;
         end case;
@@ -222,7 +222,7 @@ architecture RTL of sdr_sdram is
     constant DELAY_CNT_MAX                              : natural := max(SDRAM.RP, max(SDRAM.RFC, max(SDRAM.MRD, max(c_ACT2WRITE_CYCLES, max(c_ACT2READ_CYCLES, SDRAM.DAL)))));
     signal delay_cnt_nxt, delay_cnt_r                   : integer range 0 to DELAY_CNT_MAX;
     -- Counts the word of the burst
-    signal burst_cnt_nxt, burst_cnt_r                   : integer range 0 to 7;
+    signal burst_cnt_nxt, burst_cnt_r                   : integer range 0 to 256;
     -- The DQ is saved in register during read, so need to delay the acknowledgment
     signal SResp_nxt, SResp_r                           : std_logic;
     signal SRespLast_nxt, SRespLast_r                   : std_logic;
@@ -250,7 +250,7 @@ begin
             sdram_BA             <= sdram_BA_nxt;
             sdram_SA             <= sdram_SA_nxt;
             sdram_DQM            <= sdram_DQM_nxt;
-            sdram_DQ_r           <= sdram_DQ;
+            --sdram_DQ_r           <= sdram_DQ;
             sdram_DQout_r        <= ocpMaster.MData;
             sdram_DQoe_r         <= sdram_DQoe_nxt;
             -- Delay the read data acknowledge for two cycles corresponding to 2 additional latency cycles introduced by controller.
@@ -274,6 +274,14 @@ begin
 
         end if;
     end process reg;
+    
+    -- Registers
+    reg2 : process(clk, rst) is
+    begin
+        if falling_edge(clk) then
+            sdram_DQ_r           <= sdram_DQ;
+        end if;
+    end process reg2;
 
     assert false report "Controller timing information: " & lf & "Refresh cycles: " & natural'image(SDRAM.RFC) & lf &
         -- (c_ACT2WRITE-1) is used because it includes the first cycle of the data burst

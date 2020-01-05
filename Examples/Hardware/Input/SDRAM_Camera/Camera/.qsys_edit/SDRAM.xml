@@ -932,7 +932,7 @@
 														</leaf>
 													</node>
 													<node nodeId="1389812802503" orientation="VERTICAL" divider="0.6704331450094162">
-														<leaf id="4" nodeId="1389812800464">
+														<leaf id="1" nodeId="1389812800464">
 															<placeholders>
 																<placeholder>dock.single.Parameters</placeholder>
 																<placeholder>dock.single.Block\ Symbol</placeholder>
@@ -974,7 +974,7 @@
 														</leaf>
 													</node>
 												</node>
-												<leaf id="1" nodeId="1372710005745">
+												<leaf id="4" nodeId="1372710005745">
 													<placeholders>
 														<placeholder>dock.single.Messages</placeholder>
 														<placeholder>dock.single.Generation\ Messages</placeholder>
@@ -1016,14 +1016,73 @@
 									<children ignore="false"/>
 								</child>
 								<child>
-									<layout factory="predefined" placeholder="dock.single.Messages">
-										<replacement id="dockablesingle Messages"/>
-										<delegate id="delegate_ccontrol backup factory id">
-											<id>Messages</id>
-											<area/>
-										</delegate>
+									<layout factory="delegate_StackDockStationFactory">
+										<selected>0</selected>
+										<placeholders>
+											<version>0</version>
+											<format>dock.PlaceholderList</format>
+											<entry>
+												<key shared="false">
+													<placeholder>dock.single.Block\ Symbol</placeholder>
+												</key>
+											</entry>
+											<entry>
+												<key shared="false">
+													<placeholder>dock.single.Parameters</placeholder>
+												</key>
+												<item key="convert" type="b">true</item>
+												<item key="convert-keys" type="a">
+													<item type="s">index</item>
+													<item type="s">id</item>
+													<item type="s">placeholder</item>
+												</item>
+												<item key="dock.index" type="i">0</item>
+												<item key="dock.id" type="i">0</item>
+												<item key="dock.placeholder" type="s">dock.single.Parameters</item>
+											</entry>
+											<entry>
+												<key shared="false">
+													<placeholder>dock.single.Details</placeholder>
+												</key>
+												<item key="convert" type="b">true</item>
+												<item key="convert-keys" type="a">
+													<item type="s">index</item>
+													<item type="s">id</item>
+													<item type="s">placeholder</item>
+												</item>
+												<item key="dock.index" type="i">1</item>
+												<item key="dock.id" type="i">1</item>
+												<item key="dock.placeholder" type="s">dock.single.Details</item>
+											</entry>
+											<entry>
+												<key shared="false">
+													<placeholder>dock.single.Presets</placeholder>
+												</key>
+											</entry>
+										</placeholders>
 									</layout>
-									<children ignore="false"/>
+									<children ignore="false">
+										<child>
+											<layout factory="predefined" placeholder="dock.single.Parameters">
+												<replacement id="dockablesingle Parameters"/>
+												<delegate id="delegate_ccontrol backup factory id">
+													<id>Parameters</id>
+													<area/>
+												</delegate>
+											</layout>
+											<children ignore="false"/>
+										</child>
+										<child>
+											<layout factory="predefined" placeholder="dock.single.Details">
+												<replacement id="dockablesingle Details"/>
+												<delegate id="delegate_ccontrol backup factory id">
+													<id>Details</id>
+													<area/>
+												</delegate>
+											</layout>
+											<children ignore="false"/>
+										</child>
+									</children>
 								</child>
 								<child>
 									<layout factory="delegate_StackDockStationFactory">
@@ -1193,73 +1252,14 @@
 									</children>
 								</child>
 								<child>
-									<layout factory="delegate_StackDockStationFactory">
-										<selected>0</selected>
-										<placeholders>
-											<version>0</version>
-											<format>dock.PlaceholderList</format>
-											<entry>
-												<key shared="false">
-													<placeholder>dock.single.Block\ Symbol</placeholder>
-												</key>
-											</entry>
-											<entry>
-												<key shared="false">
-													<placeholder>dock.single.Parameters</placeholder>
-												</key>
-												<item key="convert" type="b">true</item>
-												<item key="convert-keys" type="a">
-													<item type="s">index</item>
-													<item type="s">id</item>
-													<item type="s">placeholder</item>
-												</item>
-												<item key="dock.index" type="i">0</item>
-												<item key="dock.id" type="i">0</item>
-												<item key="dock.placeholder" type="s">dock.single.Parameters</item>
-											</entry>
-											<entry>
-												<key shared="false">
-													<placeholder>dock.single.Details</placeholder>
-												</key>
-												<item key="convert" type="b">true</item>
-												<item key="convert-keys" type="a">
-													<item type="s">index</item>
-													<item type="s">id</item>
-													<item type="s">placeholder</item>
-												</item>
-												<item key="dock.index" type="i">1</item>
-												<item key="dock.id" type="i">1</item>
-												<item key="dock.placeholder" type="s">dock.single.Details</item>
-											</entry>
-											<entry>
-												<key shared="false">
-													<placeholder>dock.single.Presets</placeholder>
-												</key>
-											</entry>
-										</placeholders>
+									<layout factory="predefined" placeholder="dock.single.Messages">
+										<replacement id="dockablesingle Messages"/>
+										<delegate id="delegate_ccontrol backup factory id">
+											<id>Messages</id>
+											<area/>
+										</delegate>
 									</layout>
-									<children ignore="false">
-										<child>
-											<layout factory="predefined" placeholder="dock.single.Parameters">
-												<replacement id="dockablesingle Parameters"/>
-												<delegate id="delegate_ccontrol backup factory id">
-													<id>Parameters</id>
-													<area/>
-												</delegate>
-											</layout>
-											<children ignore="false"/>
-										</child>
-										<child>
-											<layout factory="predefined" placeholder="dock.single.Details">
-												<replacement id="dockablesingle Details"/>
-												<delegate id="delegate_ccontrol backup factory id">
-													<id>Details</id>
-													<area/>
-												</delegate>
-											</layout>
-											<children ignore="false"/>
-										</child>
-									</children>
+									<children ignore="false"/>
 								</child>
 							</children>
 						</root>

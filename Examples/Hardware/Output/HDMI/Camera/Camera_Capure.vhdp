@@ -31,15 +31,17 @@ Component Camera_Capture
     (
         Compression : NATURAL := 3;  --640/Complression Columns and 480/Compression Rows are saved
         Width       : NATURAL := 4;  --number of bits for R,G and B
-        Brightness  : NATURAL := 0;  --Shifts left input by this amout of bits
     );
 
+    --Camera data
+    New_Pixel   : IN     STD_LOGIC := '0';
     Column      : IN     NATURAL range 0 to 639 := 0;
     Row         : IN     NATURAL range 0 to 479 := 0;
     Pixel_R     : IN     STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
     Pixel_G     : IN     STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
     Pixel_B     : IN     STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
-    
+
+    --RAM Output interface
     Read_Column : IN     NATURAL range 0 to 639 := 0;
     Read_Row    : IN     NATURAL range 0 to 479 := 0;
     Read_Data   : OUT    STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
@@ -62,7 +64,7 @@ Component Camera_Capture
     
     Process RAM_Controller ()
     {
-        if(RAM_Write = '1')
+        If(RAM_Write = '1')
         {
             image(RAM_Addr_Row)(RAM_Addr_Col) <= RAM_Data_In;
         }
@@ -80,20 +82,20 @@ Component Camera_Capture
     (
         VARIABLE skip_row  : NATURAL range 0 to Compression-1 := 0;
         VARIABLE skip_col  : NATURAL range 0 to Compression-1 := 0;
-        VARIABLE Col_prev  : STD_LOGIC := '0';
-        VARIABLE Row_prev  : STD_LOGIC := '0';
+        VARIABLE Col_prev  : NATURAL range 0 to 639 := 0;
+        VARIABLE Row_prev  : NATURAL range 0 to 479 := 0;
     )
     {
-        If(RAM_Write = '1')
+        If(rising_edge(New_Pixel))
         {
-            RAM_Write <= '0';
-        }
-        Else
-        {
-            If(TO_UNSIGNED(Row, 10)(0) /= Row_prev)
+            If(RAM_Write = '1')
             {
-                Row_prev := NOT Row_prev;
-                If(skip_row < Compression-1)
+                RAM_Write <= '0';
+            }
+            If(Row_prev /= Row)
+            {
+                Row_prev := Row;
+                If(skip_row < Compression-1 AND Row > 0)
                 {
                     skip_row := skip_row + 1;
                 }
@@ -102,24 +104,24 @@ Component Camera_Capture
                     skip_row := 0;
                 }
             }
-            If(TO_UNSIGNED(Column, 10)(0) /= Col_prev)
+            If(Col_prev /= Column)
             {
-                Col_prev := NOT Col_prev;
-                If(skip_col < Compression-1)
+                Col_prev := Column;
+                If(skip_col < Compression-1 AND Column > 0)
                 {
                     skip_col := skip_col + 1;
                 }
                 Else
                 {
                     skip_col := 0;
-                    If(skip_row = 0)
-                    {
-                        RAM_Data_In <= Pixel_R(7-Brightness downto 8-Width-Brightness) & Pixel_G(7-Brightness downto 8-Width-Brightness) & Pixel_B(7-Brightness downto 8-Width-Brightness);
-                        RAM_Addr_Row <= Row/Compression;
-                        RAM_Addr_Col <= Column/Compression;
-                        RAM_Write <= '1';
-                    }
                 }
+            }
+            If(skip_row = Compression/2 AND skip_col = Compression/2)
+            {
+                RAM_Data_In <= Pixel_R(7 downto 8-Width) & Pixel_G(7 downto 8-Width) & Pixel_B(7 downto 8-Width);
+                RAM_Addr_Row <= Row/Compression;
+                RAM_Addr_Col <= Column/Compression;
+                RAM_Write <= '1';
             }
         }
     }

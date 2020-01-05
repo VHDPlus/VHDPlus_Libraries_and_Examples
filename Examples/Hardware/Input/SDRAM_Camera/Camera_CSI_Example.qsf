@@ -182,6 +182,7 @@ set_global_assignment -name VHDL_FILE Camera/sdr_dram.vhd
 set_global_assignment -name VHDL_FILE Camera/PLL.vhd
 set_global_assignment -name QSYS_FILE Camera/SDRAM.qsys
 set_global_assignment -name QIP_FILE Camera/PLL.qip
+set_global_assignment -name VHDL_FILE Camera/sdram.vhd
 set_global_assignment -name VHDL_FILE Camera/sdram_config.vhd
 set_global_assignment -name VHDL_FILE Camera/sdram_interface.vhd
 set_global_assignment -name VHDL_FILE Generated/Camera_Capture.vhd

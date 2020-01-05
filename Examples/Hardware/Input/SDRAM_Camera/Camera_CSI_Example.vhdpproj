@@ -46,6 +46,9 @@
       <Header>PLL.qip</Header>
     </Items>
     <Items xsi:type="ProjectFile">
+      <Header>sdram.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
       <Header>sdram_config.vhd</Header>
     </Items>
     <Items xsi:type="ProjectFile">

@@ -3,11 +3,11 @@
 preplace inst SDRAM.clk_0 -pg 1 -lvl 1 -y 30
 preplace inst SDRAM -pg 1 -lvl 1 -y 40 -regy -20
 preplace inst SDRAM.sdram_controller_0 -pg 1 -lvl 2 -y 50
-preplace netloc EXPORT<net_container>SDRAM</net_container>(SLAVE)sdram_controller_0.s1,(SLAVE)SDRAM.s1) 1 0 2 NJ 100 NJ
-preplace netloc EXPORT<net_container>SDRAM</net_container>(SLAVE)clk_0.clk_in,(SLAVE)SDRAM.clk_in) 1 0 1 NJ
-preplace netloc POINT_TO_POINT<net_container>SDRAM</net_container>(SLAVE)sdram_controller_0.clk,(MASTER)clk_0.clk) 1 1 1 280
-preplace netloc EXPORT<net_container>SDRAM</net_container>(SLAVE)SDRAM.sdram,(SLAVE)sdram_controller_0.wire) 1 0 2 NJ 120 NJ
+preplace netloc POINT_TO_POINT<net_container>SDRAM</net_container>(MASTER)clk_0.clk,(SLAVE)sdram_controller_0.clk) 1 1 1 280
+preplace netloc EXPORT<net_container>SDRAM</net_container>(SLAVE)sdram_controller_0.wire,(SLAVE)SDRAM.sdram) 1 0 2 NJ 120 NJ
 preplace netloc EXPORT<net_container>SDRAM</net_container>(SLAVE)clk_0.clk_in_reset,(SLAVE)SDRAM.reset) 1 0 1 NJ
+preplace netloc EXPORT<net_container>SDRAM</net_container>(SLAVE)SDRAM.clk_in,(SLAVE)clk_0.clk_in) 1 0 1 NJ
 preplace netloc POINT_TO_POINT<net_container>SDRAM</net_container>(MASTER)clk_0.clk_reset,(SLAVE)sdram_controller_0.reset) 1 1 1 260
+preplace netloc EXPORT<net_container>SDRAM</net_container>(SLAVE)SDRAM.s1,(SLAVE)sdram_controller_0.s1) 1 0 2 NJ 100 NJ
 levelinfo -pg 1 0 50 470
 levelinfo -hier SDRAM 60 90 340 460

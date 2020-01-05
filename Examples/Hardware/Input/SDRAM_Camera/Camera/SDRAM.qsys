@@ -63,7 +63,7 @@
    type="conduit"
    dir="end" />
  <module name="clk_0" kind="clock_source" version="18.1" enabled="1">
-  <parameter name="clockFrequency" value="25000000" />
+  <parameter name="clockFrequency" value="80000000" />
   <parameter name="clockFrequencyKnown" value="true" />
   <parameter name="inputClockFrequency" value="0" />
   <parameter name="resetSynchronousEdges" value="NONE" />
@@ -80,7 +80,7 @@
   <parameter name="TRP" value="20.0" />
   <parameter name="TWR" value="14.0" />
   <parameter name="casLatency" value="2" />
-  <parameter name="clockRate" value="25000000" />
+  <parameter name="clockRate" value="80000000" />
   <parameter name="columnWidth" value="8" />
   <parameter name="componentName">$${FILENAME}_sdram_controller_0</parameter>
   <parameter name="dataWidth" value="16" />

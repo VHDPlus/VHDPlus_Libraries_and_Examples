@@ -1,12 +1,12 @@
-# system info SDRAM on 2020.01.04.09:42:14
+# system info SDRAM on 2020.01.05.13:22:19
 system_info:
 name,value
 DEVICE,10M08SAU169C8G
 DEVICE_FAMILY,MAX 10
-GENERATION_ID,1578127332
+GENERATION_ID,1578226937
 #
 #
-# Files generated for SDRAM on 2020.01.04.09:42:14
+# Files generated for SDRAM on 2020.01.05.13:22:19
 files:
 filepath,kind,attributes,module,is_top
 simulation/SDRAM.v,VERILOG,,SDRAM,true

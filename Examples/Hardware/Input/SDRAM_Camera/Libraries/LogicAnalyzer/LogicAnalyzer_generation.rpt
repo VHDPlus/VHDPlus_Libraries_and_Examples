@@ -1,0 +1,15 @@
+Info: Starting: Create HDL design files for synthesis
+Info: qsys-generate C:\Users\LeonB\Documents\VHDPlus\Projects\Tutorials\Camera_CSI\Libraries\LogicAnalyzer.qsys --synthesis=VHDL --output-directory=C:\Users\LeonB\Documents\VHDPlus\Projects\Tutorials\Camera_CSI\Libraries\LogicAnalyzer\synthesis --family="Cyclone 10 LP" --part=10CL016YU256C8G
+Progress: Loading Libraries/LogicAnalyzer.qsys
+Progress: Reading input file
+Progress: Adding signaltap_ii_logic_analyzer_0 [altera_signaltap_ii_logic_analyzer 18.1]
+Progress: Parameterizing module signaltap_ii_logic_analyzer_0
+Progress: Building connections
+Progress: Parameterizing connections
+Progress: Validating
+Progress: Done reading input file
+Info: LogicAnalyzer: Generating LogicAnalyzer "LogicAnalyzer" for QUARTUS_SYNTH
+Info: signaltap_ii_logic_analyzer_0: "LogicAnalyzer" instantiated altera_signaltap_ii_logic_analyzer "signaltap_ii_logic_analyzer_0"
+Info: LogicAnalyzer: Done "LogicAnalyzer" with 2 modules, 1 files
+Info: qsys-generate succeeded.
+Info: Finished: Create HDL design files for synthesis

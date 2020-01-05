@@ -1,0 +1,304 @@
+/*
+    Name: CRT Controller
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 06.06.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Description: This example takes video data from a camera and outputs it via HDMI
+ */
+
+/*
+ IMPORTANT:
+ Camera_Capture_SDRAM CLK INPUT HAVE TO BE CONNECTED WITH A 100MHz CLK (with an PLL)
+ */
+
+Main
+(
+    Camera_CLK_Lane      : IN     STD_LOGIC;
+    Camera_Data_Lane     : IN     STD_LOGIC_VECTOR (1 downto 0);
+    Camera_Enable        : OUT    STD_LOGIC;
+    Camera_SCL           : INOUT  STD_LOGIC;
+    Camera_SDA           : INOUT  STD_LOGIC;
+    
+    oHDMI_TX             : OUT    STD_LOGIC_VECTOR(2 downto 0);
+    oHDMI_CLK            : OUT    STD_LOGIC;
+    iHDMI_HPD            : IN     STD_LOGIC;
+)
+{
+    Camera_Enable <= '1';
+
+    --Receive CSI Data
+    SIGNAL Camera_Pixel_R       : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Camera_Pixel_G       : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Camera_Pixel_B       : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Camera_Column        : NATURAL          range 0 to 639;
+    SIGNAL Camera_Row           : NATURAL          range 0 to 479;
+    SIGNAL Camera_New_Pixel     : STD_LOGIC;
+    
+    NewComponent CSI_Camera
+    (
+        CLK_Frequency => 48000000,
+        
+        Reset         => '0',
+        CLK_Lane      => Camera_CLK_Lane,
+        Data_Lane     => Camera_Data_Lane,
+        SCL           => Camera_SCL,
+        SDA           => Camera_SDA,
+        
+        Pixel_R       => Camera_Pixel_R,
+        Pixel_G       => Camera_Pixel_G,
+        Pixel_B       => Camera_Pixel_B,
+        Column        => Camera_Column,
+        Row           => Camera_Row,
+        New_Pixel     => Camera_New_Pixel,
+    );
+    
+    
+    SIGNAL Color_Correction_Filter_oPixel_R     : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Color_Correction_Filter_oPixel_G     : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Color_Correction_Filter_oPixel_B     : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Color_Correction_Filter_oColumn      : NATURAL          range 0 to 639;
+    SIGNAL Color_Correction_Filter_oRow         : NATURAL          range 0 to 479;
+    SIGNAL Color_Correction_Filter_oNew_Pixel   : STD_LOGIC;
+    
+    NewComponent Color_Correction_Filter
+    (
+        R_Multiplier => 1,
+        R_Divider    => 1,
+        R_Add        => 15,
+        G_Multiplier => 1,
+        G_Divider    => 1,
+        G_Add        => 0,
+        B_Multiplier => 1,
+        B_Divider    => 1,
+        B_Add        => 5,
+        
+        iPixel_R     => Camera_Pixel_R,
+        iPixel_G     => Camera_Pixel_G,
+        iPixel_B     => Camera_Pixel_B,
+        iColumn      => Camera_Column,
+        iRow         => Camera_Row,
+        iNew_Pixel   => Camera_New_Pixel,
+        
+        oPixel_R     => Color_Correction_Filter_oPixel_R,
+        oPixel_G     => Color_Correction_Filter_oPixel_G,
+        oPixel_B     => Color_Correction_Filter_oPixel_B,
+        oColumn      => Color_Correction_Filter_oColumn,
+        oRow         => Color_Correction_Filter_oRow,
+        oNew_Pixel   => Color_Correction_Filter_oNew_Pixel,
+    );
+    
+    NewComponent RGB2FakeLAB_Filter
+    (
+        iPixel_R   => Color_Correction_Filter_oPixel_R,
+        iPixel_G   => Color_Correction_Filter_oPixel_G,
+        iPixel_B   => Color_Correction_Filter_oPixel_B,
+        iColumn    => Color_Correction_Filter_oColumn,
+        iRow       => Color_Correction_Filter_oRow,
+        iNew_Pixel => Color_Correction_Filter_oNew_Pixel,
+        
+        oPixel_R   => Color_Threshold_Filter_iPixel_R,
+        oPixel_G   => Color_Threshold_Filter_iPixel_G,
+        oPixel_B   => Color_Threshold_Filter_iPixel_B,
+        oLAB_L     => Color_Threshold_Filter_iLAB_L,
+        oLAB_A     => Color_Threshold_Filter_iLAB_A,
+        oLAB_B     => Color_Threshold_Filter_iLAB_B,
+        oColumn    => Color_Threshold_Filter_iColumn,
+        oRow       => Color_Threshold_Filter_iRow,
+        oNew_Pixel => Color_Threshold_Filter_iNew_Pixel,
+    );
+    
+    SIGNAL Color_Threshold_Filter_oPixel_R     : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Color_Threshold_Filter_oPixel_G     : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Color_Threshold_Filter_oPixel_B     : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Color_Threshold_Filter_oColumn      : NATURAL          range 0 to 639;
+    SIGNAL Color_Threshold_Filter_oRow         : NATURAL          range 0 to 479;
+    SIGNAL Color_Threshold_Filter_oNew_Pixel   : STD_LOGIC;
+    SIGNAL Color_Threshold_Filter_iLAB_L       : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Color_Threshold_Filter_iLAB_A       : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Color_Threshold_Filter_iLAB_B       : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Color_Threshold_Filter_iPixel_R     : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Color_Threshold_Filter_iPixel_G     : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Color_Threshold_Filter_iPixel_B     : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Color_Threshold_Filter_iPixel_X     : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Color_Threshold_Filter_iPixel_Y     : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Color_Threshold_Filter_iPixel_Z     : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Color_Threshold_Filter_iColumn      : NATURAL          range 0 to 639;
+    SIGNAL Color_Threshold_Filter_iRow         : NATURAL          range 0 to 479;
+    SIGNAL Color_Threshold_Filter_iNew_Pixel   : STD_LOGIC;
+    
+    Color_Threshold_Filter_iPixel_X <= Color_Threshold_Filter_iPixel_R when ISSP_source = x"04" else Color_Threshold_Filter_iLAB_L;
+    Color_Threshold_Filter_iPixel_Y <= Color_Threshold_Filter_iPixel_G when ISSP_source = x"04" else Color_Threshold_Filter_iLAB_A;
+    Color_Threshold_Filter_iPixel_Z <= Color_Threshold_Filter_iPixel_B when ISSP_source = x"04" else Color_Threshold_Filter_iLAB_B;
+    
+    NewComponent Color_Threshold_LAB_Filter
+    (
+        L_Min      => 0,
+        L_Max      => 255,
+        A_Min      => 0,
+        A_Max      => 255,
+        B_Min      => 127,
+        B_Max      => 255,
+        
+        iPixel_R   => Color_Threshold_Filter_iPixel_X,
+        iPixel_G   => Color_Threshold_Filter_iPixel_Y,
+        iPixel_B   => Color_Threshold_Filter_iPixel_Z,
+        iColumn    => Color_Threshold_Filter_iColumn,
+        iRow       => Color_Threshold_Filter_iRow,
+        iNew_Pixel => Color_Threshold_Filter_iNew_Pixel,
+        iLAB_L     => Color_Threshold_Filter_iLAB_L,
+        iLAB_A     => Color_Threshold_Filter_iLAB_A,
+        iLAB_B     => Color_Threshold_Filter_iLAB_B,
+        
+        oPixel_R   => Color_Threshold_Filter_oPixel_R,
+        oPixel_G   => Color_Threshold_Filter_oPixel_G,
+        oPixel_B   => Color_Threshold_Filter_oPixel_B,
+        oColumn    => Color_Threshold_Filter_oColumn,
+        oRow       => Color_Threshold_Filter_oRow,
+        oNew_Pixel => Color_Threshold_Filter_oNew_Pixel,
+    );
+    
+    SIGNAL Camera_Capture_iPixel_R     : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Camera_Capture_iPixel_G     : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Camera_Capture_iPixel_B     : STD_LOGIC_VECTOR (7 downto 0);
+    
+    SIGNAL ISSP_source : std_logic_vector (7 downto 0);
+    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0);
+    
+    NewComponent ISSP
+    (
+        source => ISSP_source,
+        probe  => ISSP_probe,
+    );
+    
+    Process ()
+    {
+        If(rising_edge(Color_Threshold_Filter_oNew_Pixel))
+        {
+            If(ISSP_source = x"00")    --Camera output
+            {
+                Camera_Capture_iPixel_R <= Camera_Pixel_R;
+                Camera_Capture_iPixel_G <= Camera_Pixel_G;
+                Camera_Capture_iPixel_B <= Camera_Pixel_B;
+            }
+            Elsif(ISSP_source = x"01") --Image after color filter
+            {
+                Camera_Capture_iPixel_R <= Color_Correction_Filter_oPixel_R;
+                Camera_Capture_iPixel_G <= Color_Correction_Filter_oPixel_G;
+                Camera_Capture_iPixel_B <= Color_Correction_Filter_oPixel_B;
+            }
+            Elsif(ISSP_source = x"02") --Image after LAB filter
+            {
+                Camera_Capture_iPixel_R <= Color_Threshold_Filter_iPixel_R;
+                Camera_Capture_iPixel_G <= Color_Threshold_Filter_iPixel_G;
+                Camera_Capture_iPixel_B <= Color_Threshold_Filter_iPixel_B;
+            }
+            Elsif(ISSP_source = x"03") --Image after LAB filter as LAB value
+            {
+                Camera_Capture_iPixel_R <= Color_Threshold_Filter_iLAB_L;
+                Camera_Capture_iPixel_G <= Color_Threshold_Filter_iLAB_A;
+                Camera_Capture_iPixel_B <= Color_Threshold_Filter_iLAB_B;
+            }
+            Elsif(ISSP_source = x"04" OR ISSP_source = x"05") --04 = Image after Threshold Filter 05 = Image after Threshold Filter as LAB value
+            {
+                Camera_Capture_iPixel_R <= Color_Threshold_Filter_oPixel_R;
+                Camera_Capture_iPixel_G <= Color_Threshold_Filter_oPixel_G;
+                Camera_Capture_iPixel_B <= Color_Threshold_Filter_oPixel_B;
+            }
+        }
+    }
+
+    --Save images in RAM
+    SIGNAL Camera_Capture_Read_Column : NATURAL          range 0 to 639;
+    SIGNAL Camera_Capture_Read_Row    : NATURAL          range 0 to 479;
+    SIGNAL Camera_Capture_Read_Data   : STD_LOGIC_VECTOR (23 downto 0);
+    SIGNAL Camera_Capture_SDRAM_Read_Ena      : STD_LOGIC;
+    
+    NewComponent Camera_Capture
+    (
+        Compression => 3,
+        Width       => 3,
+        /*
+        New_Pixel   => Camera_New_Pixel,
+        Column      => Camera_Column,
+        Row         => Camera_Row,
+        Pixel_R     => Camera_Pixel_R,
+        Pixel_G     => Camera_Pixel_G,
+        Pixel_B     => Camera_Pixel_B,
+         */
+        New_Pixel   => Color_Threshold_Filter_oNew_Pixel,
+        Column      => Color_Threshold_Filter_oColumn,
+        Row         => Color_Threshold_Filter_oRow,
+        Pixel_R     => Camera_Capture_iPixel_R,
+        Pixel_G     => Camera_Capture_iPixel_G,
+        Pixel_B     => Camera_Capture_iPixel_B,
+
+        Read_Column => Camera_Capture_Read_Column,
+        Read_Row    => Camera_Capture_Read_Row,
+        Read_Data   => Camera_Capture_Read_Data,
+    );
+    
+    
+    --Read images from RAM to create video stream
+    NewComponent CRT_Controller
+    (
+        image_size_div => 1,
+        
+        Read_Column => Camera_Capture_Read_Column,
+        Read_Row    => Camera_Capture_Read_Row,
+        Read_Data   => Camera_Capture_Read_Data,
+        Read_Ena    => Camera_Capture_SDRAM_Read_Ena,
+        VS_PCLK     => HDMI_Out_VS_PCLK,
+        VS_SCLK     => HDMI_Out_VS_SCLK,
+        VS_R        => HDMI_Out_VS_R,
+        VS_G        => HDMI_Out_VS_G,
+        VS_B        => HDMI_Out_VS_B,
+        VS_HS       => HDMI_Out_VS_HS,
+        VS_VS       => HDMI_Out_VS_VS,
+        VS_DE       => HDMI_Out_VS_DE,
+    );
+    
+    --Output video stream with hdmi interface
+    SIGNAL HDMI_Out_VS_PCLK   : STD_LOGIC;
+    SIGNAL HDMI_Out_VS_SCLK   : STD_LOGIC;
+    SIGNAL HDMI_Out_VS_R      : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL HDMI_Out_VS_G      : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL HDMI_Out_VS_B      : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL HDMI_Out_VS_HS     : STD_LOGIC;
+    SIGNAL HDMI_Out_VS_VS     : STD_LOGIC;
+    SIGNAL HDMI_Out_VS_DE     : STD_LOGIC;
+    
+    NewComponent HDMI_Out
+    (
+        VS_PCLK    => HDMI_Out_VS_PCLK,
+        VS_SCLK    => HDMI_Out_VS_SCLK,
+        VS_R       => HDMI_Out_VS_R,
+        VS_G       => HDMI_Out_VS_G,
+        VS_B       => HDMI_Out_VS_B,
+        VS_HS      => HDMI_Out_VS_HS,
+        VS_VS      => HDMI_Out_VS_VS,
+        VS_DE      => HDMI_Out_VS_DE,
+        oHDMI_DATA => oHDMI_TX,
+        oHDMI_CLK  => oHDMI_CLK,
+        iHDMI_HPD  => iHDMI_HPD,
+    );
+    
+}

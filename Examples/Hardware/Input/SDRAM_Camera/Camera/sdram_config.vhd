@@ -65,16 +65,16 @@ package body sdram_config is
         constant ROW_WIDTH : integer := 12;
         constant COL_WIDTH : integer := 8;
 
-        constant tINIT_IDLE         : time    := 200 us; -- Inactivity perdiod required during initialization 
+        constant tINIT_IDLE         : time    := 300 us; -- Inactivity perdiod required during initialization 
         constant INIT_REFRESH_COUNT : natural := 8; -- Number of Refresh commands required during initialization
         constant tRRD               : time    := 14 ns; -- Row to Row Delay (ACT[0]-ACT[1])
         constant tRCD               : time    := 20 ns; -- Row to Column Delay (ACT-READ/WRITE)
-        constant tRAS               : time    := 45 ns; -- Row Access Strobe (ACT-PRE)
-        constant tRC                : time    := 67.5 ns; -- Row Cycle (REF-REF,ACT-ACT)
+        constant tRAS               : time    := 42 ns; -- Row Access Strobe (ACT-PRE)
+        constant tRC                : time    := 63 ns; -- Row Cycle (REF-REF,ACT-ACT)
         constant tRP                : time    := 20 ns; -- Row Precharge (PRE-ACT)
         constant tCCD               : time    := clkPeriod * 1; -- Column Command Delay Time
         constant tDPL               : time    := 14 ns; -- Input Data to Precharge (DQ_WR-PRE)
-        constant tDAL               : time    := 35 ns; -- Input Data to Activate (DQ_WR-ACT/PRE)
+        constant tDAL               : time    := 20 ns; -- Input Data to Activate (DQ_WR-ACT/PRE)
         constant tRBD               : time    := clkPeriod * CACCycles; -- Burst Stop to High Impedance (Read)
         constant tWBD               : time    := 0 ns; -- Burst Stop to Input in Invalid (Write)
         constant tPQL               : time    := clkPeriod * (CACCycles - 1); -- Last Output to Auto-Precharge Start (READ)
@@ -104,8 +104,8 @@ package body sdram_config is
         constant REFI      : natural := RoundTimeConstantToCycles(clkPeriod, tREFI); --! Minimal refresh interval
         constant RFC       : natural := RC; --! Equal to RowCycle for this SDRAМ
     begin
-        assert CACCycles = 2 or CACCycles = 3 report "CAS Latency of 2 or 3 must be used" severity error;
-        assert CACCycles > 2 or clkPeriod >= 10 ns report "CAS Latency 2 is only supported for clk freq < 100 MHz" severity error;
+        --assert CACCycles = 2 or CACCycles = 3 report "CAS Latency of 2 or 3 must be used" severity error;
+        --assert CACCycles > 2 or clkPeriod >= 10 ns report "CAS Latency 2 is only supported for clk freq < 100 MHz" severity error;
 
         res := (SA_WIDTH           => SA_WIDTH,
                 BA_WIDTH           => BA_WIDTH,

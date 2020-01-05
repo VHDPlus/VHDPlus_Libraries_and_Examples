@@ -1,19 +1,4 @@
-C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/altera_reset_controller.v {1 {vlog -work work -stats=none C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/altera_reset_controller.v
-Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
--- Compiling module altera_reset_controller
-
-Top level modules:
-	altera_reset_controller
-
-} {} {}} C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/SDRAM_sdram_controller_0.v {1 {vlog -work work -stats=none C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/SDRAM_sdram_controller_0.v
-Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
--- Compiling module SDRAM_sdram_controller_0_input_efifo_module
--- Compiling module SDRAM_sdram_controller_0
-
-Top level modules:
-	SDRAM_sdram_controller_0
-
-} {} {}} C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Generated/Capture_Sim.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Generated/Capture_Sim.vhd
+C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Generated/Capture_Sim.vhd {1 {vcom -work work -2002 -explicit -stats=none {C:\Users\LeonB\Documents\VHDPlus\Projects\Tutorials\Camera_CSI\Generated\Capture_Sim.vhd}
 Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  5 2016
 -- Loading package STANDARD
 -- Loading package TEXTIO
@@ -21,13 +6,6 @@ Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  
 -- Loading package NUMERIC_STD
 -- Compiling entity Camera_Capture_SDRAM_tb
 -- Compiling architecture BEHAVIORAL of Camera_Capture_SDRAM_tb
-
-} {} {}} C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/altera_reset_synchronizer.v {1 {vlog -work work -stats=none C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/submodules/altera_reset_synchronizer.v
-Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
--- Compiling module altera_reset_synchronizer
-
-Top level modules:
-	altera_reset_synchronizer
 
 } {} {}} C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/SDRAM.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/synthesis/SDRAM.vhd
 Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  5 2016

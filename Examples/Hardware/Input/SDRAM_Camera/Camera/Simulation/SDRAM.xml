@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deploy
- date="2020.01.04.09:42:18"
+ date="2020.01.05.13:22:24"
  outputDirectory="C:/Users/LeonB/Documents/VHDPlus/Projects/Tutorials/Camera_CSI/Camera/Simulation/">
  <perimeter>
   <parameter
@@ -52,7 +52,7 @@
      onHdl="0"
      affectsHdl="1" />
   <interface name="clk_in" kind="clock" start="0">
-   <property name="clockRate" value="25000000" />
+   <property name="clockRate" value="80000000" />
    <property name="externallyDriven" value="false" />
    <property name="ptfSchematicName" value="" />
    <port name="clk_in_clk" direction="input" role="clk" width="1" />
@@ -134,13 +134,13 @@
  </perimeter>
  <entity
    path=""
-   parameterizationKey="SDRAM:1.0:AUTO_CLK_IN_CLOCK_DOMAIN=-1,AUTO_CLK_IN_CLOCK_RATE=-1,AUTO_CLK_IN_RESET_DOMAIN=-1,AUTO_DEVICE=10M08SAU169C8G,AUTO_DEVICE_FAMILY=MAX 10,AUTO_DEVICE_SPEEDGRADE=8,AUTO_GENERATION_ID=1578127337,AUTO_UNIQUE_ID=(clock_source:18.1:clockFrequency=25000000,clockFrequencyKnown=true,inputClockFrequency=0,resetSynchronousEdges=NONE)(altera_avalon_new_sdram_controller:18.1:TAC=5.4,TMRD=3,TRCD=20.0,TRFC=70.0,TRP=20.0,TWR=14.0,addressWidth=22,bankWidth=2,casLatency=2,clockRate=25000000,columnWidth=8,componentName=SDRAM_sdram_controller_0,dataWidth=16,generateSimulationModel=true,initNOPDelay=0.0,initRefreshCommands=2,masteredTristateBridgeSlave=0,model=single_Micron_MT48LC4M32B2_7_chip,numberOfBanks=4,numberOfChipSelects=1,pinsSharedViaTriState=false,powerUpDelay=200.0,refreshPeriod=31.25,registerDataIn=true,rowWidth=12,size=8388608)(clock:18.1:)(reset:18.1:)"
+   parameterizationKey="SDRAM:1.0:AUTO_CLK_IN_CLOCK_DOMAIN=-1,AUTO_CLK_IN_CLOCK_RATE=-1,AUTO_CLK_IN_RESET_DOMAIN=-1,AUTO_DEVICE=10M08SAU169C8G,AUTO_DEVICE_FAMILY=MAX 10,AUTO_DEVICE_SPEEDGRADE=8,AUTO_GENERATION_ID=1578226942,AUTO_UNIQUE_ID=(clock_source:18.1:clockFrequency=80000000,clockFrequencyKnown=true,inputClockFrequency=0,resetSynchronousEdges=NONE)(altera_avalon_new_sdram_controller:18.1:TAC=5.4,TMRD=3,TRCD=20.0,TRFC=70.0,TRP=20.0,TWR=14.0,addressWidth=22,bankWidth=2,casLatency=2,clockRate=80000000,columnWidth=8,componentName=SDRAM_sdram_controller_0,dataWidth=16,generateSimulationModel=true,initNOPDelay=0.0,initRefreshCommands=2,masteredTristateBridgeSlave=0,model=single_Micron_MT48LC4M32B2_7_chip,numberOfBanks=4,numberOfChipSelects=1,pinsSharedViaTriState=false,powerUpDelay=200.0,refreshPeriod=31.25,registerDataIn=true,rowWidth=12,size=8388608)(clock:18.1:)(reset:18.1:)"
    instancePathKey="SDRAM"
    kind="SDRAM"
    version="1.0"
    name="SDRAM">
   <parameter name="AUTO_CLK_IN_CLOCK_DOMAIN" value="-1" />
-  <parameter name="AUTO_GENERATION_ID" value="1578127337" />
+  <parameter name="AUTO_GENERATION_ID" value="1578226942" />
   <parameter name="AUTO_DEVICE" value="10M08SAU169C8G" />
   <parameter name="AUTO_DEVICE_FAMILY" value="MAX 10" />
   <parameter name="AUTO_CLK_IN_CLOCK_RATE" value="-1" />
@@ -206,7 +206,7 @@
    <message level="Debug" culprit="SDRAM"><![CDATA["<b>SDRAM</b>" reuses <b>altera_reset_controller</b> "<b>submodules/altera_reset_controller</b>"]]></message>
    <message level="Debug" culprit="SDRAM">queue size: 1 starting:altera_avalon_new_sdram_controller "submodules/SDRAM_sdram_controller_0"</message>
    <message level="Info" culprit="sdram_controller_0">Starting RTL generation for module 'SDRAM_sdram_controller_0'</message>
-   <message level="Info" culprit="sdram_controller_0">  Generation command is [exec C:/intelfpga_lite/18.1/quartus/bin64/perl/bin/perl.exe -I C:/intelfpga_lite/18.1/quartus/bin64/perl/lib -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin/europa -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin/perl_lib -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin -I C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/common -I C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_new_sdram_controller -- C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_new_sdram_controller/generate_rtl.pl --name=SDRAM_sdram_controller_0 --dir=C:/Users/LeonB/AppData/Local/Temp/alt8265_8965654856119514751.dir/0005_sdram_controller_0_gen/ --quartus_dir=C:/intelfpga_lite/18.1/quartus --verilog --config=C:/Users/LeonB/AppData/Local/Temp/alt8265_8965654856119514751.dir/0005_sdram_controller_0_gen//SDRAM_sdram_controller_0_component_configuration.pl  --do_build_sim=0  ]</message>
+   <message level="Info" culprit="sdram_controller_0">  Generation command is [exec C:/intelfpga_lite/18.1/quartus/bin64/perl/bin/perl.exe -I C:/intelfpga_lite/18.1/quartus/bin64/perl/lib -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin/europa -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin/perl_lib -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin -I C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/common -I C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_new_sdram_controller -- C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_new_sdram_controller/generate_rtl.pl --name=SDRAM_sdram_controller_0 --dir=C:/Users/LeonB/AppData/Local/Temp/alt8266_3176044754008575190.dir/0005_sdram_controller_0_gen/ --quartus_dir=C:/intelfpga_lite/18.1/quartus --verilog --config=C:/Users/LeonB/AppData/Local/Temp/alt8266_3176044754008575190.dir/0005_sdram_controller_0_gen//SDRAM_sdram_controller_0_component_configuration.pl  --do_build_sim=0  ]</message>
    <message level="Info" culprit="sdram_controller_0">Done RTL generation for module 'SDRAM_sdram_controller_0'</message>
    <message level="Info" culprit="sdram_controller_0"><![CDATA["<b>SDRAM</b>" instantiated <b>altera_avalon_new_sdram_controller</b> "<b>sdram_controller_0</b>"]]></message>
    <message level="Debug" culprit="SDRAM">queue size: 0 starting:altera_reset_controller "submodules/altera_reset_controller"</message>
@@ -215,7 +215,7 @@
  </entity>
  <entity
    path="submodules/"
-   parameterizationKey="altera_avalon_new_sdram_controller:18.1:TAC=5.4,TMRD=3,TRCD=20.0,TRFC=70.0,TRP=20.0,TWR=14.0,addressWidth=22,bankWidth=2,casLatency=2,clockRate=25000000,columnWidth=8,componentName=SDRAM_sdram_controller_0,dataWidth=16,generateSimulationModel=true,initNOPDelay=0.0,initRefreshCommands=2,masteredTristateBridgeSlave=0,model=single_Micron_MT48LC4M32B2_7_chip,numberOfBanks=4,numberOfChipSelects=1,pinsSharedViaTriState=false,powerUpDelay=200.0,refreshPeriod=31.25,registerDataIn=true,rowWidth=12,size=8388608"
+   parameterizationKey="altera_avalon_new_sdram_controller:18.1:TAC=5.4,TMRD=3,TRCD=20.0,TRFC=70.0,TRP=20.0,TWR=14.0,addressWidth=22,bankWidth=2,casLatency=2,clockRate=80000000,columnWidth=8,componentName=SDRAM_sdram_controller_0,dataWidth=16,generateSimulationModel=true,initNOPDelay=0.0,initRefreshCommands=2,masteredTristateBridgeSlave=0,model=single_Micron_MT48LC4M32B2_7_chip,numberOfBanks=4,numberOfChipSelects=1,pinsSharedViaTriState=false,powerUpDelay=200.0,refreshPeriod=31.25,registerDataIn=true,rowWidth=12,size=8388608"
    instancePathKey="SDRAM:.:sdram_controller_0"
    kind="altera_avalon_new_sdram_controller"
    version="18.1"
@@ -226,7 +226,7 @@
   <parameter name="masteredTristateBridgeSlave" value="0" />
   <parameter name="TMRD" value="3" />
   <parameter name="pinsSharedViaTriState" value="false" />
-  <parameter name="clockRate" value="25000000" />
+  <parameter name="clockRate" value="80000000" />
   <parameter name="TRP" value="20.0" />
   <parameter name="numberOfChipSelects" value="1" />
   <parameter name="columnWidth" value="8" />
@@ -265,7 +265,7 @@
   <messages>
    <message level="Debug" culprit="SDRAM">queue size: 1 starting:altera_avalon_new_sdram_controller "submodules/SDRAM_sdram_controller_0"</message>
    <message level="Info" culprit="sdram_controller_0">Starting RTL generation for module 'SDRAM_sdram_controller_0'</message>
-   <message level="Info" culprit="sdram_controller_0">  Generation command is [exec C:/intelfpga_lite/18.1/quartus/bin64/perl/bin/perl.exe -I C:/intelfpga_lite/18.1/quartus/bin64/perl/lib -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin/europa -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin/perl_lib -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin -I C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/common -I C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_new_sdram_controller -- C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_new_sdram_controller/generate_rtl.pl --name=SDRAM_sdram_controller_0 --dir=C:/Users/LeonB/AppData/Local/Temp/alt8265_8965654856119514751.dir/0005_sdram_controller_0_gen/ --quartus_dir=C:/intelfpga_lite/18.1/quartus --verilog --config=C:/Users/LeonB/AppData/Local/Temp/alt8265_8965654856119514751.dir/0005_sdram_controller_0_gen//SDRAM_sdram_controller_0_component_configuration.pl  --do_build_sim=0  ]</message>
+   <message level="Info" culprit="sdram_controller_0">  Generation command is [exec C:/intelfpga_lite/18.1/quartus/bin64/perl/bin/perl.exe -I C:/intelfpga_lite/18.1/quartus/bin64/perl/lib -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin/europa -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin/perl_lib -I C:/intelfpga_lite/18.1/quartus/sopc_builder/bin -I C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/common -I C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_new_sdram_controller -- C:/intelfpga_lite/18.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_new_sdram_controller/generate_rtl.pl --name=SDRAM_sdram_controller_0 --dir=C:/Users/LeonB/AppData/Local/Temp/alt8266_3176044754008575190.dir/0005_sdram_controller_0_gen/ --quartus_dir=C:/intelfpga_lite/18.1/quartus --verilog --config=C:/Users/LeonB/AppData/Local/Temp/alt8266_3176044754008575190.dir/0005_sdram_controller_0_gen//SDRAM_sdram_controller_0_component_configuration.pl  --do_build_sim=0  ]</message>
    <message level="Info" culprit="sdram_controller_0">Done RTL generation for module 'SDRAM_sdram_controller_0'</message>
    <message level="Info" culprit="sdram_controller_0"><![CDATA["<b>SDRAM</b>" instantiated <b>altera_avalon_new_sdram_controller</b> "<b>sdram_controller_0</b>"]]></message>
   </messages>
