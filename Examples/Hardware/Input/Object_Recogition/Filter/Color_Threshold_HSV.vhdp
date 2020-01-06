@@ -1,0 +1,40 @@
+Component Color_Threshold_HSV_Filter
+(
+    Generic
+    (
+        H_Min : NATURAL := 0;   --0 = red => 30 yellow => 60 green => 90 turquoise
+        H_Max : NATURAL := 180; --180 = red <= 150 pink <= 120 Blue
+        
+        S_Min : NATURAL := 0;   --low saturation
+        S_Max : NATURAL := 255; --high saturation
+        
+        V_Min : NATURAL := 0;   --dark
+        V_Max : NATURAL := 255; --bright
+        
+        Relace : STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
+    );
+    
+    iPixel_R   : IN STD_LOGIC_VECTOR (7 downto 0);
+    iPixel_G   : IN STD_LOGIC_VECTOR (7 downto 0);
+    iPixel_B   : IN STD_LOGIC_VECTOR (7 downto 0);
+    
+    iHSV_H     : IN STD_LOGIC_VECTOR (7 downto 0);
+    iHSV_S     : IN STD_LOGIC_VECTOR (7 downto 0);
+    iHSV_V     : IN STD_LOGIC_VECTOR (7 downto 0);
+    
+    oPixel_R   : OUT STD_LOGIC_VECTOR (7 downto 0);
+    oPixel_G   : OUT STD_LOGIC_VECTOR (7 downto 0);
+    oPixel_B   : OUT STD_LOGIC_VECTOR (7 downto 0);
+)
+{
+    SIGNAL Pixel_Data : STD_LOGIC_VECTOR(23 downto 0);
+    Pixel_Data <= iPixel_R & iPixel_G & iPixel_B when
+    UNSIGNED(iHSV_H) >= H_Min AND UNSIGNED(iHSV_H) <= H_Max AND
+    UNSIGNED(iHSV_S) >= S_Min AND UNSIGNED(iHSV_S) <= S_Max AND
+    UNSIGNED(iHSV_V) >= V_Min AND UNSIGNED(iHSV_V) <= V_Max else Relace;
+    
+    oPixel_R <= Pixel_Data(23 downto 16);
+    oPixel_G <= Pixel_Data(15 downto 8);
+    oPixel_B <= Pixel_Data(7 downto 0);
+    
+}

@@ -1,15 +1,17 @@
-Component Color_Threshold_LAB_Filter
+Component Color_Threshold_2_Filter
 (
     Generic
     (
-        L_Min : NATURAL := 0;
-        L_Max : NATURAL := 255;
+        L_Min : NATURAL := 0;   --dark
+        L_Max : NATURAL := 255; --bright
         
-        A_Min : NATURAL := 0;
-        A_Max : NATURAL := 255;
+        A_Min : NATURAL := 0;   --green
+        A_Max : NATURAL := 255; --red
         
-        B_Min : NATURAL := 0;
-        B_Max : NATURAL := 255;
+        B_Min : NATURAL := 0;   --blue
+        B_Max : NATURAL := 255; --yellow
+        
+        Relace : STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
     );
     
     iPixel_R   : IN STD_LOGIC_VECTOR (7 downto 0);
@@ -26,10 +28,10 @@ Component Color_Threshold_LAB_Filter
 )
 {
     SIGNAL Pixel_Data : STD_LOGIC_VECTOR(23 downto 0);
-    Pixel_Data <= iPixel_R & iPixel_G & iPixel_B when 
-    UNSIGNED(iLAB_L) >= L_Min AND UNSIGNED(iLAB_L) <= L_Max AND 
-    UNSIGNED(iLAB_A) >= A_Min AND UNSIGNED(iLAB_A) <= A_Max AND 
-    UNSIGNED(iLAB_B) >= B_Min AND UNSIGNED(iLAB_B) <= B_Max else (others => '0');
+    Pixel_Data <= iPixel_R & iPixel_G & iPixel_B when
+    UNSIGNED(iLAB_L) >= L_Min AND UNSIGNED(iLAB_L) <= L_Max AND
+    UNSIGNED(iLAB_A) >= A_Min AND UNSIGNED(iLAB_A) <= A_Max AND
+    UNSIGNED(iLAB_B) >= B_Min AND UNSIGNED(iLAB_B) <= B_Max else Relace;
     
     oPixel_R <= Pixel_Data(23 downto 16);
     oPixel_G <= Pixel_Data(15 downto 8);
