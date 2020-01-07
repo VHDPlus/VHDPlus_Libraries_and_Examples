@@ -1,3 +1,5 @@
+--NOT WORKING
+
 Component Contrast_Filter
 (
     Factor_Multiplier : IN NATURAL range 0 to 15 := 1;
@@ -14,12 +16,18 @@ Component Contrast_Filter
 )
 {
 
-    SIGNAL pixel_buf_r : INTEGER range -100 to 355;
-    SIGNAL pixel_buf_g : INTEGER range -100 to 355;
-    SIGNAL pixel_buf_b : INTEGER range -100 to 355;
-    pixel_buf_r <= ((TO_INTEGER(UNSIGNED(iPixel_R))-Average)*Factor_Multiplier)/Factor_Divider + Average;
-    pixel_buf_g <= ((TO_INTEGER(UNSIGNED(iPixel_G))-Average)*Factor_Multiplier)/Factor_Divider + Average;
-    pixel_buf_b <= ((TO_INTEGER(UNSIGNED(iPixel_B))-Average)*Factor_Multiplier)/Factor_Divider + Average;
+    SIGNAL pixel_buf_r : INTEGER range -355 to 355;
+    SIGNAL pixel_buf_g : INTEGER range -355 to 355;
+    SIGNAL pixel_buf_b : INTEGER range -355 to 355;
+    SIGNAL pixel_buf_r1 : INTEGER range -255 to 255;
+    SIGNAL pixel_buf_g1 : INTEGER range -255 to 255;
+    SIGNAL pixel_buf_b1 : INTEGER range -255 to 255;
+    pixel_buf_r1 <= TO_INTEGER(UNSIGNED(iPixel_R))-Average;
+    pixel_buf_g1 <= TO_INTEGER(UNSIGNED(iPixel_G))-Average;
+    pixel_buf_b1 <= TO_INTEGER(UNSIGNED(iPixel_B))-Average;
+    pixel_buf_r <= ((pixel_buf_r1*Factor_Multiplier)/Factor_Divider) + Average;
+    pixel_buf_g <= ((pixel_buf_g1*Factor_Multiplier)/Factor_Divider) + Average;
+    pixel_buf_b <= ((pixel_buf_b1*Factor_Multiplier)/Factor_Divider) + Average;
     oPixel_R <= STD_LOGIC_VECTOR(TO_UNSIGNED(pixel_buf_r,8)) when pixel_buf_r <= 255 AND pixel_buf_r >= 0 else
     (others => '1') when pixel_buf_r > 255 else (others => '0');
     oPixel_G <= STD_LOGIC_VECTOR(TO_UNSIGNED(pixel_buf_g,8)) when pixel_buf_g <= 255 AND pixel_buf_g >= 0 else

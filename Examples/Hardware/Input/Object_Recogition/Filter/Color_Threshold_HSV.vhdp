@@ -1,18 +1,15 @@
 Component Color_Threshold_HSV_Filter
 (
-    Generic
-    (
-        H_Min : NATURAL := 0;   --0 = red => 30 yellow => 60 green => 90 turquoise
-        H_Max : NATURAL := 180; --180 = red <= 150 pink <= 120 Blue
-        
-        S_Min : NATURAL := 0;   --low saturation
-        S_Max : NATURAL := 255; --high saturation
-        
-        V_Min : NATURAL := 0;   --dark
-        V_Max : NATURAL := 255; --bright
-        
-        Relace : STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
-    );
+    H_Min : IN NATURAL := 0;   --0 = red => 30 yellow => 60 green => 90 turquoise
+    H_Max : IN NATURAL := 180; --180 = red <= 150 pink <= 120 Blue
+    
+    S_Min : IN NATURAL := 0;   --low saturation
+    S_Max : IN NATURAL := 255; --high saturation
+    
+    V_Min : IN NATURAL := 0;   --dark
+    V_Max : IN NATURAL := 255; --bright
+    
+    Relace : IN STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
     
     iPixel_R   : IN STD_LOGIC_VECTOR (7 downto 0);
     iPixel_G   : IN STD_LOGIC_VECTOR (7 downto 0);

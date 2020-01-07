@@ -77,21 +77,28 @@ Main
     SIGNAL Color_Correction_Filter_oPixel_G     : STD_LOGIC_VECTOR (7 downto 0);
     SIGNAL Color_Correction_Filter_oPixel_B     : STD_LOGIC_VECTOR (7 downto 0);
     
-    SIGNAL ISSP1_source : std_logic_vector (7 downto 0) := "00010001";
-    SIGNAL ISSP2_source : std_logic_vector (7 downto 0) := "00010001";
-    SIGNAL ISSP3_source : std_logic_vector (7 downto 0) := "00010001";
-    SIGNAL ISSP4_source : std_logic_vector (7 downto 0) := "00000000";
     
+    SIGNAL ISSP1_source : std_logic_vector (7 downto 0) := "01001000";
+    SIGNAL ISSP2_source : std_logic_vector (7 downto 0) := "00010001";
+    --SIGNAL ISSP3_source : std_logic_vector (7 downto 0) := "00100011";
+    --SIGNAL ISSP4_source : std_logic_vector (7 downto 0) := "00000000";
+    
+    SIGNAL ISSP1_probe  : std_logic_vector (31 downto 0);
+    SIGNAL ISSP2_probe  : std_logic_vector (31 downto 0);
+
     NewComponent ISSP
     (
         source => ISSP1_source,
+        probe  => ISSP1_probe,
     );
     
     NewComponent ISSP
     (
         source => ISSP2_source,
+        probe  => ISSP2_probe,
     );
     
+    /*
     NewComponent ISSP
     (
         source => ISSP3_source,
@@ -101,9 +108,14 @@ Main
     (
         source => ISSP4_source,
     );
-    
+     */
+    Color_Correction_Filter_oPixel_R <= Camera_Pixel_R;
+    Color_Correction_Filter_oPixel_G <= Camera_Pixel_G;
+    Color_Correction_Filter_oPixel_B <= Camera_Pixel_B;
+    /*
     NewComponent Color_Correction_Filter
-    (
+    (*/
+    /*
         R_Multiplier => TO_INTEGER(UNSIGNED(ISSP1_source(3 downto 0))),
         R_Divider    => TO_INTEGER(UNSIGNED(ISSP1_source(7 downto 4))),
         R_Add        => TO_INTEGER(SIGNED(ISSP4_source(7 downto 0))),
@@ -113,6 +125,18 @@ Main
         B_Multiplier => TO_INTEGER(UNSIGNED(ISSP3_source(3 downto 0))),
         B_Divider    => TO_INTEGER(UNSIGNED(ISSP3_source(7 downto 4))),
         B_Add        => TO_INTEGER(SIGNED(ISSP4_source(7 downto 0))),
+     */
+    /*
+        R_Multiplier => 1, -- 2
+        R_Divider    => 1, -- 1
+        R_Add        => 0, -- -30
+        G_Multiplier => 1,
+        G_Divider    => 1,
+        G_Add        => 0,
+        B_Multiplier => 1, -- 3
+        B_Divider    => 1, -- 2
+        B_Add        => 0,
+        
         
         iPixel_R     => Camera_Pixel_R,
         iPixel_G     => Camera_Pixel_G,
@@ -122,38 +146,7 @@ Main
         oPixel_G     => Color_Correction_Filter_oPixel_G,
         oPixel_B     => Color_Correction_Filter_oPixel_B,
     );
-    
-    SIGNAL Contrast_Filter_oPixel_R     : STD_LOGIC_VECTOR (7 downto 0);
-    SIGNAL Contrast_Filter_oPixel_G     : STD_LOGIC_VECTOR (7 downto 0);
-    SIGNAL Contrast_Filter_oPixel_B     : STD_LOGIC_VECTOR (7 downto 0);
-    
-    SIGNAL ISSP5_source : std_logic_vector (7 downto 0) := "00010001";
-    SIGNAL ISSP6_source : std_logic_vector (7 downto 0) := "10000000";
-    
-    NewComponent ISSP
-    (
-        source => ISSP5_source,
-    );
-    
-    NewComponent ISSP
-    (
-        source => ISSP6_source,
-    );
-    
-    NewComponent Contrast_Filter
-    (
-        Factor_Multiplier => TO_INTEGER(UNSIGNED(ISSP5_source(3 downto 0))),
-        Factor_Divider    => TO_INTEGER(UNSIGNED(ISSP5_source(7 downto 4))),
-        Average           => TO_INTEGER(UNSIGNED(ISSP6_source(7 downto 0))),
-        
-        iPixel_R          => Color_Correction_Filter_oPixel_R,
-        iPixel_G          => Color_Correction_Filter_oPixel_G,
-        iPixel_B          => Color_Correction_Filter_oPixel_B,
-        oPixel_R          => Contrast_Filter_oPixel_R,
-        oPixel_G          => Contrast_Filter_oPixel_G,
-        oPixel_B          => Contrast_Filter_oPixel_B,
-    );
-    
+     */
     /*
     NewComponent RGB2FakeLAB_Filter
     (
@@ -191,12 +184,12 @@ Main
     
     NewComponent Color_Threshold_HSV_Filter
     (
-        H_Min      => 15,
-        H_Max      => 45,
-        S_Min      => 0,
-        S_Max      => 255,
-        V_Min      => 10,
-        V_Max      => 255,
+        H_Min      => 0,--TO_INTEGER(UNSIGNED(ISSP1_source)), --10
+        H_Max      => 255,--TO_INTEGER(UNSIGNED(ISSP2_source)), --30
+        S_Min      => 220, --TO_INTEGER(UNSIGNED(ISSP1_source)), --220
+        S_Max      => 255, --TO_INTEGER(UNSIGNED(ISSP2_source)), --255
+        V_Min      => 30, --TO_INTEGER(UNSIGNED(ISSP3_source)), --30
+        V_Max      => 255, --TO_INTEGER(UNSIGNED(ISSP4_source)), --255
         
         iPixel_R   => Color_Threshold_Filter_iPixel_X,
         iPixel_G   => Color_Threshold_Filter_iPixel_Y,
@@ -220,9 +213,9 @@ Main
         H_Min      => 0,
         H_Max      => 255,
         S_Min      => 0,
-        S_Max      => 100,
+        S_Max      => 255,
         V_Min      => 0,
-        V_Max      => 20,
+        V_Max      => 30,
         Relace     => (others => '1'),
         
         iPixel_R   => Color_Threshold_Filter_iPixel_X,
@@ -244,9 +237,9 @@ Main
     
     NewComponent Color_Threshold_HSV_Filter
     (
-        H_Min      => 105,
-        H_Max      => 135,
-        S_Min      => 0,
+        H_Min      => 70, --105
+        H_Max      => 100, --135
+        S_Min      => 50, --20
         S_Max      => 255,
         V_Min      => 10,
         V_Max      => 255,
@@ -275,8 +268,8 @@ Main
         H_Min      => 0,
         H_Max      => 255,
         S_Min      => 0,
-        S_Max      => 100,
-        V_Min      => 100,
+        S_Max      => 130,
+        V_Min      => 150,
         V_Max      => 255,
         
         iPixel_R   => Color_Threshold_Filter_iPixel_X,
@@ -306,30 +299,25 @@ Main
     );
     
     /*
-    ISSP 1:
+    (
+    ISSP 0:
     R Multiply (3 downto 0) 0-15
     R Divide   (7 downto 4) 0-15
-    ISSP 2:
+    ISSP 1:
     G Multiply (3 downto 0) 0-15
     G Divide   (7 downto 4) 0-15
-    ISSP 3:
+    ISSP 2:
     B Multiply (3 downto 0) 0-15
     B Divide   (7 downto 4) 0-15
 
-    ISSP 4:
+    ISSP 3:
     Brightness (7 downto 0) -64 - 63
+    )
     
-    ISSP 5:
-    Contrast Multiply (3 downto 0) 0-15
-    Contrast Divide   (7 downto 4) 0-15
-    
-    ISSP 6:
-    Contrast Average (7 downto 0) 0 - 255
-    
-    ISSP 7:    
+    ISSP 4:
     00 = Camera
     01 = After Color Correction
-    02 = After Contrast and Color Correction
+    02 = After Blob detection (ISSP1_source 0-31 sets which blob in buffer)
     03 = Hue (0 red => 30 yellow => 60 green => 90 turquoise => 120 Blue => 150 pink => 180 red)
     04 = Yellow filter with Hue output (Red 150 - 30 Green 30 - 90 Blue 90 - 150)
     05 = Yellow filter with RGB output
@@ -339,11 +327,17 @@ Main
     09 = Blue filter with RGB output
     0A = White filter with Hue output (Red 150 - 30 Green 30 - 90 Blue 90 - 150)
     0B = White filter with RGB output
+    
+    ISSP2_source:
+    00 = Yellow Blob
+    01 = Black Blob
+    02 = Blue Blob
+    03 = White Blob
      */
     
     Camera_Capture_iPixel_R <= Camera_Pixel_R when ISSP_source = x"00" else
     Color_Correction_Filter_oPixel_R          when ISSP_source = x"01" else
-    Contrast_Filter_oPixel_R                  when ISSP_source = x"02" else
+    Square_oPixel_R(16)                        when ISSP_source = x"02" else
     Color_Threshold_Filter_iHSV_H             when ISSP_source = x"03" else
     Yellow_Filter_oPixel_R                    when ISSP_source = x"04" else
     Yellow_Filter_oPixel_R                    when ISSP_source = x"05" else
@@ -356,7 +350,7 @@ Main
     
     Camera_Capture_iPixel_G <= Camera_Pixel_G when ISSP_source = x"00" else
     Color_Correction_Filter_oPixel_G          when ISSP_source = x"01" else
-    Contrast_Filter_oPixel_G                  when ISSP_source = x"01" else
+    Square_oPixel_G(16)                        when ISSP_source = x"02" else
     Color_Threshold_Filter_iHSV_H             when ISSP_source = x"03" else
     Yellow_Filter_oPixel_G                    when ISSP_source = x"04" else
     Yellow_Filter_oPixel_G                    when ISSP_source = x"05" else
@@ -369,7 +363,7 @@ Main
     
     Camera_Capture_iPixel_B <= Camera_Pixel_B when ISSP_source = x"00" else
     Color_Correction_Filter_oPixel_B          when ISSP_source = x"01" else
-    Contrast_Filter_oPixel_B                  when ISSP_source = x"01" else
+    Square_oPixel_B(16)                        when ISSP_source = x"02" else
     Color_Threshold_Filter_iHSV_H             when ISSP_source = x"03" else
     Yellow_Filter_oPixel_B                    when ISSP_source = x"04" else
     Yellow_Filter_oPixel_B                    when ISSP_source = x"05" else
@@ -399,28 +393,128 @@ Main
     hsync <= '1' when Camera_Column = 0 else '0';
     vsync <= '1' when Camera_Row = 0 else '0';
     
+    SIGNAL CLK_150MHz : STD_LOGIC;
+    
+    NewComponent PLL
+    (
+        inclk0 => CLK,
+        c0     => CLK_150MHz,
+    );
+    
+    SIGNAL blob_in : NATURAL range 0 to 255;
+    
+    blob_in <= (TO_INTEGER(UNSIGNED(Yellow_Filter_oPixel_R)) + TO_INTEGER(UNSIGNED(Yellow_Filter_oPixel_G)) + TO_INTEGER(UNSIGNED(Yellow_Filter_oPixel_B)))/3 when ISSP2_source = x"00" else
+    (TO_INTEGER(UNSIGNED(Black_Filter_oPixel_R)) + TO_INTEGER(UNSIGNED(Black_Filter_oPixel_G)) + TO_INTEGER(UNSIGNED(Black_Filter_oPixel_B)))/3 when ISSP2_source = x"01" else
+    (TO_INTEGER(UNSIGNED(Blue_Filter_oPixel_R)) + TO_INTEGER(UNSIGNED(Blue_Filter_oPixel_G)) + TO_INTEGER(UNSIGNED(Blue_Filter_oPixel_B)))/3 when ISSP2_source = x"02" else
+    (TO_INTEGER(UNSIGNED(White_Filter_oPixel_R)) + TO_INTEGER(UNSIGNED(White_Filter_oPixel_G)) + TO_INTEGER(UNSIGNED(White_Filter_oPixel_B)))/3;
+    
+    
     NewComponent blob_detection
     (
         LINE_SIZE      => 640,
         
-        clk            => CLK,
+        clk            => CLK_150MHz,
         resetn         => '1',
         pixel_in_clk   => Camera_New_Pixel,
         pixel_in_hsync => hsync,
         pixel_in_vsync => vsync,
-        pixel_in_data  => Color_Threshold_Filter_iHSV_H,
+        pixel_in_data  => STD_LOGIC_VECTOR(TO_UNSIGNED(blob_in,8)),
         blob_data      => blob_detection_blob_data,
         mem_addr       => blob_detection_mem_addr,
         mem_data       => blob_detection_mem_data,
         mem_wr         => blob_detection_mem_wr,
     );
     
+    TYPE blob_pos IS RECORD
+    x0 : NATURAL range 0 to 1024;
+    y0 : NATURAL range 0 to 1024;
+    x1 : NATURAL range 0 to 1024;
+    y1 : NATURAL range 0 to 1024;
+    END RECORD blob_pos;
+    
     SIGNAL blob_detection_blob_data      : std_logic_vector (7 downto 0);
     SIGNAL blob_detection_mem_addr       : std_logic_vector (15 downto 0);
     SIGNAL blob_detection_mem_data       : std_logic_vector (15 downto 0);
     SIGNAL blob_detection_mem_wr         : std_logic;
     
-    ISSP_probe <= blob_detection_blob_data & blob_detection_mem_addr(10 downto 0) & blob_detection_mem_data(11 downto 0) & blob_detection_mem_wr;
+    CONSTANT blob_buf_width : NATURAL := 32;
+    
+    TYPE blob_buf_type IS ARRAY (0 to blob_buf_width-1) OF blob_pos;
+    SIGNAL blob_buf : blob_buf_type;
+    
+    SIGNAL blobs_in_buf : NATURAL range 0 to blob_buf_width-1 := 0;
+    
+    Process ()
+    {
+        If(rising_edge(CLK_150MHz))
+        {
+            VARIABLE wr_reg : STD_LOGIC;
+            VARIABLE receive_cnt : NATURAL range 0 to 2 := 0;
+            VARIABLE data_reg : STD_LOGIC_VECTOR(47 downto 0);
+            If((wr_reg = '0' AND blob_detection_mem_wr = '1') OR receive_cnt > 0)
+            {
+                data_reg(16*receive_cnt + 15 downto 16*receive_cnt) := blob_detection_mem_data;
+                
+                If(receive_cnt < 2)
+                {
+                    receive_cnt := receive_cnt + 1;
+                }
+                Else
+                {
+                    ISSP_probe <= data_reg(31 downto 0);
+                    ISSP1_probe(15 downto 0) <= data_reg(47 downto 32);
+                    
+                    VARIABLE blob_reg : blob_pos;
+                    blob_reg.y0 := TO_INTEGER(UNSIGNED(data_reg(9 downto 0)));
+                    blob_reg.x0 := TO_INTEGER(UNSIGNED(data_reg(19 downto 10)));
+                    blob_reg.y1 := TO_INTEGER(UNSIGNED(data_reg(29 downto 20)));
+                    blob_reg.x1 := TO_INTEGER(UNSIGNED(data_reg(39 downto 30)));
+                    /*
+                If(blob_reg.x0 - blob_reg.x1m> 2)
+                {
+                    blob_buf(blobs_in_buf) <= blob_reg;
+                    blobs_in_buf <= blobs_in_buf + 1;
+                }
+                     */
+                    blob_buf(blobs_in_buf) <= blob_reg;
+                    blobs_in_buf <= blobs_in_buf + 1;
+                    receive_cnt := 0;
+                }
+            }
+            wr_reg := blob_detection_mem_wr;
+        }
+    }
+    
+    Square_oPixel_R(0) <= Color_Correction_Filter_oPixel_R;
+    Square_oPixel_G(0) <= Color_Correction_Filter_oPixel_G;
+    Square_oPixel_B(0) <= Color_Correction_Filter_oPixel_B;
+    
+    TYPE Square_oPixel_type IS ARRAY (0 to 32) OF STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Square_oPixel_R : Square_oPixel_type;
+    SIGNAL Square_oPixel_G : Square_oPixel_type;
+    SIGNAL Square_oPixel_B : Square_oPixel_type;
+    
+    Generate (for i in 0 to 15)
+    {
+        NewComponent Draw_Square
+        (
+            Width     => 4,
+            Color     => x"FF0000",
+            
+            Square_X0 => blob_buf(i).X0,
+            Square_X1 => blob_buf(i).X1,
+            Square_Y0 => blob_buf(i).Y0,
+            Square_Y1 => blob_buf(i).Y1,
+            iColumn   => Camera_Row,
+            iRow      => Camera_Column,
+            iPixel_R  => Square_oPixel_R(i),
+            iPixel_G  => Square_oPixel_G(i),
+            iPixel_B  => Square_oPixel_B(i),
+            oPixel_R  => Square_oPixel_R(i+1),
+            oPixel_G  => Square_oPixel_G(i+1),
+            oPixel_B  => Square_oPixel_B(i+1),
+        );
+    }
     
     --Save images in RAM
     SIGNAL Camera_Capture_Read_Column : NATURAL          range 0 to 639;

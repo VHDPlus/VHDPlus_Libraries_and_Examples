@@ -74,6 +74,13 @@
     </Items>
   </Items>
   <Items xsi:type="ProjectFolder">
+    <Header>Drawing</Header>
+    <fileWatcherIgnore />
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Square.vhdp</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
     <Header>Filter</Header>
     <fileWatcherIgnore />
     <Items xsi:type="ProjectFileVHDP">
@@ -92,10 +99,59 @@
       <Header>Contrast.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
+      <Header>Gauss.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
       <Header>RGB2HSV.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>RGB2LAB.vhdp</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Header>Generated</Header>
+    <fileWatcherIgnore />
+    <Items xsi:type="ProjectFile">
+      <Header>Camera_Capture.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>Camera_CSI_Example.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>Color_Correction_Filter.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>Color_Threshold_2_Filter.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>Color_Threshold_Filter.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>Color_Threshold_HSV_Filter.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>Contrast_Filter.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>CRT_Controller.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>CSI_Camera.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>Draw_Square.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>HDMI_Out.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>I2C_Master_Interface.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>RGB2FakeLAB_Filter.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>RGB2HSV_Filter.vhd</Header>
     </Items>
   </Items>
   <Items xsi:type="ProjectFolder">
@@ -128,6 +184,12 @@
     </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>ISSP.qsys.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>PLL.qip</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>PLL.vhd</Header>
     </Items>
   </Items>
   <Items xsi:type="ProjectFileVHDP">

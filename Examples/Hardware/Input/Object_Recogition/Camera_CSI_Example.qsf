@@ -86,6 +86,7 @@ set_global_assignment -name VHDL_FILE Generated/Color_Threshold_HSV_Filter.vhd
 set_global_assignment -name VHDL_FILE Generated/Contrast_Filter.vhd
 set_global_assignment -name VHDL_FILE Generated/CRT_Controller.vhd
 set_global_assignment -name VHDL_FILE Generated/CSI_Camera.vhd
+set_global_assignment -name VHDL_FILE Generated/Draw_Square.vhd
 set_global_assignment -name VHDL_FILE Generated/HDMI_Out.vhd
 set_global_assignment -name VHDL_FILE Generated/I2C_Master_Interface.vhd
 set_global_assignment -name VHDL_FILE Generated/RGB2FakeLAB_Filter.vhd
@@ -95,6 +96,8 @@ set_global_assignment -name QIP_FILE HDMI/VS_PLL.qip
 set_global_assignment -name VERILOG_FILE HDMI/DVI_OUT.v
 set_global_assignment -name VERILOG_FILE HDMI/TMDS_ENCODE.v
 set_global_assignment -name QSYS_FILE Libraries/ISSP.qsys
+set_global_assignment -name QIP_FILE Libraries/PLL.qip
+set_global_assignment -name VHDL_FILE Libraries/PLL.vhd
 set_location_assignment PIN_E2 -to CLK
 set_location_assignment PIN_L2 -to Camera_Data_Lane[0]
 set_location_assignment PIN_J2 -to Camera_Data_Lane[1]

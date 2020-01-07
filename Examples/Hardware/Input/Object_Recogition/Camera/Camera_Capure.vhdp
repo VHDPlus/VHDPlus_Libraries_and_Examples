@@ -86,7 +86,7 @@ Component Camera_Capture
         VARIABLE Row_prev  : NATURAL range 0 to 479 := 0;
     )
     {
-        If(rising_edge(New_Pixel))
+        If(falling_edge(New_Pixel))
         {
             If(RAM_Write = '1')
             {

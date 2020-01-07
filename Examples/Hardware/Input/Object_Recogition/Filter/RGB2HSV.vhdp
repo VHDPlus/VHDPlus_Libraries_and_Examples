@@ -9,9 +9,10 @@ Component RGB2HSV_Filter
     oPixel_V     : OUT STD_LOGIC_VECTOR (7 downto 0);
 )
 {
-    signal r_int, g_int, b_int : integer;
-    signal max_value, min_value, delta : integer;
-    signal h_value, s_value, v_value : unsigned(7 downto 0);
+    signal r_int, g_int, b_int : integer range 0 to 255;
+    signal max_value, min_value, delta : integer range 0 to 255;
+    signal h_value : integer range 0 to 255;
+    signal s_value : integer range 0 to 255;
     
     -- rgb conversion from ycc
     r_int <= to_integer(unsigned(iPixel_R));
@@ -26,24 +27,33 @@ Component RGB2HSV_Filter
     g_int when (g_int < r_int and g_int < b_int) else
     b_int;
     
+    delta <= max_value-min_value;
+
+    SIGNAL degree_offset : NATURAL range 0 to 180 := 0;
+    degree_offset <= 0 when delta = 0 else
+    0   when (max_value = r_int AND g_int >= b_int) else
+    180 when (max_value = r_int AND g_int < b_int)  else
+    60  when (max_value = g_int) else
+    120 when (max_value = b_int);
+    
+    SIGNAL remainder_diff : INTEGER range -255 to 255 := 0;
+    remainder_diff <= 0 when delta = 0 else
+    g_int - b_int when (max_value = r_int) else
+    b_int - r_int when (max_value = g_int) else
+    r_int - g_int when (max_value = b_int);
+    
     -- converion signals
-    h_value <= to_unsigned(((30*(g_int-b_int))/delta mod 45900)/255, 8) when (r_int = max_value and delta /= 0) else
-    to_unsigned((30*(b_int-r_int))/delta + 60, 8) when (g_int = max_value and delta /= 0) else
-    to_unsigned((30*(r_int-g_int))/delta + 120, 8) when (b_int = max_value and delta /= 0) else
-    to_unsigned(0, 8);
-    s_value <= to_unsigned((255*delta)/max_value, 8) when (max_value /= 0) else to_unsigned(0, 8);
-    v_value <= to_unsigned(max_value, 8);
+    h_value <= 0 when delta = 0 else
+    ((30 * remainder_diff)/delta) + degree_offset;
     
-    SIGNAL hue, saturation, value : unsigned(7 downto 0);
-    
+    s_value <= 0 when max_value = 0 else
+    (delta*255)/max_value;
+
     -- perform limiting
-    hue <= h_value;
-    saturation <= s_value;
-    value <= v_value;
     
-    oPixel_H <= std_logic_vector(hue) when hue <= 180 else std_logic_vector(to_unsigned(180, 8));
+    oPixel_H <= std_logic_vector(TO_UNSIGNED(h_value,8)) when h_value <= 180 else std_logic_vector(to_unsigned(180, 8));
     
-    oPixel_S <= std_logic_vector(saturation) when saturation <= 255 else std_logic_vector(to_unsigned(255, 8));
+    oPixel_S <= std_logic_vector(TO_UNSIGNED(s_value,8)) when s_value <= 255 else std_logic_vector(to_unsigned(255, 8));
     
-    oPixel_V <= std_logic_vector(value) when value <= 255 else std_logic_vector(to_unsigned(255, 8));
+    oPixel_V <= std_logic_vector(TO_UNSIGNED(max_value,8)) when max_value <= 255 else std_logic_vector(to_unsigned(255, 8));
 }
