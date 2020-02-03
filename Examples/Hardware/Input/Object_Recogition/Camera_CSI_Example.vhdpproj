@@ -3,55 +3,10 @@
   <Header>Camera_CSI_Example</Header>
   <fileWatcherIgnore />
   <Items xsi:type="ProjectFolder">
-    <Header>Blob</Header>
+    <Header>Blob_Detection</Header>
     <fileWatcherIgnore />
-    <Items xsi:type="ProjectFile">
-      <Header>blob_detection.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>blob_manager.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>blob_pack.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>blob_sender.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>blobs.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>dpram_NxN.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>image_pack.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>libv.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>line_counter.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>neighbours.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>pgm.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>pixel_counter.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>primitive_pack.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>simple_counter.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>small_fifo.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>utils_pack.vhd</Header>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Blob_Detect.vhdp</Header>
     </Items>
   </Items>
   <Items xsi:type="ProjectFolder">
@@ -72,6 +27,9 @@
     <Items xsi:type="ProjectFileVHDP">
       <Header>I2C.vhdp</Header>
     </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Image_Data.vhdp</Header>
+    </Items>
   </Items>
   <Items xsi:type="ProjectFolder">
     <Header>Drawing</Header>
@@ -83,6 +41,25 @@
   <Items xsi:type="ProjectFolder">
     <Header>Filter</Header>
     <fileWatcherIgnore />
+    <Items xsi:type="ProjectFolder">
+      <Header>Gaussian</Header>
+      <fileWatcherIgnore />
+      <Items xsi:type="ProjectFileVHDP">
+        <Header>Gaussian.vhdp</Header>
+      </Items>
+      <Items xsi:type="ProjectFileVHDP">
+        <Header>Gaussian_RGB.vhdp</Header>
+      </Items>
+      <Items xsi:type="ProjectFileVHDP">
+        <Header>Line_Buffer.vhdp</Header>
+      </Items>
+      <Items xsi:type="ProjectFileVHDP">
+        <Header>Shift_Register.vhdp</Header>
+      </Items>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>AreaLimitedCompression.vhdp</Header>
+    </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>Color_Correction.vhdp</Header>
     </Items>
@@ -99,7 +76,7 @@
       <Header>Contrast.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Header>Gauss.vhdp</Header>
+      <Header>Gaussian_Filter.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>RGB2HSV.vhdp</Header>
@@ -111,6 +88,12 @@
   <Items xsi:type="ProjectFolder">
     <Header>Generated</Header>
     <fileWatcherIgnore />
+    <Items xsi:type="ProjectFile">
+      <Header>AreaLimitedCompression.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>Blob_Detect.vhd</Header>
+    </Items>
     <Items xsi:type="ProjectFile">
       <Header>Camera_Capture.vhd</Header>
     </Items>
@@ -142,10 +125,28 @@
       <Header>Draw_Square.vhd</Header>
     </Items>
     <Items xsi:type="ProjectFile">
+      <Header>Gaussian_Filter.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>Gaussian_Filter2.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>Gaussian_RGB_Filter.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
       <Header>HDMI_Out.vhd</Header>
     </Items>
     <Items xsi:type="ProjectFile">
       <Header>I2C_Master_Interface.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>Image_Data_Package.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>LineBuffer.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>RamShiftRegister.vhd</Header>
     </Items>
     <Items xsi:type="ProjectFile">
       <Header>RGB2FakeLAB_Filter.vhd</Header>

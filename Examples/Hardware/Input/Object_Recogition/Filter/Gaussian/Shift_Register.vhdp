@@ -1,0 +1,42 @@
+-- fpgagate.com: FPGA Projects, Verilog projects, VHDL projects
+-- vhdl projects: Gaussian Filter
+-- this is a simple ram
+
+Component RamShiftRegister
+(
+    Generic
+    (
+        depth : integer:=256;
+        width : integer:=8;
+    );
+    rst       : in  STD_LOGIC;
+    new_pixel : in  STD_LOGIC;
+    pixel_in  : in  STD_LOGIC_VECTOR (width-1 downto 0);
+    pixel_out : out  STD_LOGIC_VECTOR (width-1 downto 0);
+)
+{
+    type memory is array (0 to depth-1) of std_logic_vector(width-1 downto 0);
+    signal ram:memory:=(others=>(others=>'0'));
+    signal data:std_logic_vector(width-1 downto 0):=(others=>'0');
+    signal addr_p,addr_n:integer range 0 to depth-2:=0;
+    
+    Process ()
+    {
+        if(rising_edge(new_pixel))
+        {
+            ram(addr_p)<=pixel_in;-- store new value with each clock cycle
+            data<=ram(addr_p);--read previous value
+            If(rst = '1')
+            {
+                addr_p <= depth-2;
+            }
+            Else
+            {
+                addr_p<=addr_n;-- update address
+            }
+        }
+    }
+    addr_n<=0 when addr_p=depth-2 else
+    addr_p+1;--increment address
+    pixel_out<=data;
+}

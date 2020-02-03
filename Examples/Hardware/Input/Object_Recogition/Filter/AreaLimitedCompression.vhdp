@@ -1,0 +1,147 @@
+/*
+Compresses image depending on image area
+-> closer objects are lower on the image and farther objects higher -> compresses lower parts and keeps higher parts
+Only works with BW and 1 Bit images
+ */
+
+Component AreaLimitedCompression
+(
+    Generic
+    (
+        Image_Width : NATURAL := 640;
+        Image_Height: NATURAL := 480;
+        MAX_Area_O  : NATURAL := 4;  --Maximum number of pixels in area
+        MAX_Area    : NATURAL range 1 to 24 := 10; --3 = 3x3 pixels used to create one blurred pixel
+        MIN_Area    : NATURAL range 1 to 24 := 1;
+        Start_Row   : NATURAL := 0;
+        CLK_Edge    : BOOLEAN := true; --true = rising edge
+    );
+    iStream    : in   rgb_stream;
+    oStream    : out  rgb_stream;
+)
+{
+    SIGNAL iStream_buf    : rgb_stream;
+    SIGNAL oStream_buf    : rgb_stream;
+    
+    oStream.New_Pixel <= iStream.New_Pixel;
+
+    type ram_type is array (MAX_Area-2 downto 0, Image_Width-1 downto 0) of std_logic_vector (0 downto 0);
+    signal RAM_r : ram_type;
+
+    TYPE last_pixel_type IS ARRAY (MAX_Area-1 downto 0) OF std_logic_vector (0 downto 0);
+    TYPE last_pixel_arr_type IS ARRAY (MAX_Area downto 0) OF last_pixel_type;
+    
+    SIGNAL New_Pixel_Buf : STD_LOGIC;
+    New_Pixel_Buf <= iStream.New_Pixel when CLK_Edge else NOT iStream.New_Pixel;
+    
+    Process ()
+    {
+        If(rising_edge(New_Pixel_Buf))
+        {
+            iStream_buf <= iStream;
+            
+            oStream.R <= oStream_buf.R;
+            oStream.G <= oStream_buf.G;
+            oStream.B <= oStream_buf.B;
+            oStream.Column <= oStream_buf.Column;
+            oStream.Row <= oStream_buf.Row;
+            
+            --current row in RAM -> if 1 -> saves in 1 and last data is in 0
+            VARIABLE row_count : NATURAL range 0 to MAX_Area-2 := 0;
+            VARIABLE last_col  : NATURAL range 0 to Image_Width := 0;
+            If(last_col > iStream_buf.Column)
+            {
+                If(row_count < MAX_Area-2)
+                {
+                    row_count := row_count + 1;
+                }
+                Else
+                {
+                    row_count := 0;
+                }
+            }
+            last_col := iStream_buf.Column;
+            
+            If(iStream_buf.Row > 2 AND iStream_buf.Column > 3)
+            {
+                oStream_buf.Column <= iStream_buf.Column-2;
+                oStream_buf.Row    <= iStream_buf.Row-1;
+                VARIABLE r_add : NATURAL;
+                r_add := 0;
+                
+                VARIABLE area_width    : NATURAL range 1 to 24;
+                CONSTANT row_divider   : NATURAL := (Image_Height-Start_Row)/(MAX_Area-MIN_Area+1);
+                
+                If(oStream_buf.Row < Start_Row)
+                {
+                    area_width := MAX_Area;
+                }
+                Else
+                {
+                    area_width := (oStream_buf.Row-Start_Row)/row_divider+MIN_Area;
+                }
+
+                VARIABLE start_width : NATURAL range 0 to 24 := 0;
+                VARIABLE end_width   : NATURAL range 0 to 24 := 24;
+                start_width := (MAX_Area-area_width+1)/2; --0-5
+                end_width   := (MAX_Area+area_width+1)/2; --6-10
+                
+                For(i IN 0 to MAX_Area-1)
+                {
+                    For(j IN 1 to MAX_Area)
+                    {
+                        r_add := r_add + TO_INTEGER(UNSIGNED(Buf_r(j)(i)));
+                    }
+                }
+                If(r_add > (MAX_Area_O*area_width**2)/(MAX_Area**2))
+                {
+                    oStream_buf.R <= (others => '1');
+                }
+                Else
+                {
+                    oStream_buf.R <= (others => '0');
+                }
+            }
+
+            VARIABLE Buf_r : last_pixel_arr_type;
+
+            --| 20 | 10 |     00    |
+            --| 21 | 11 | row_count |
+            --| 22 | 12 | new pixel |
+            Buf_r(MAX_Area downto 1) := Buf_r(MAX_Area-1 downto 0);
+            If(start_width > 0)
+            {
+                Buf_r(start_width-1 downto 0) := (others => (others => (others => '0')));
+            }
+            If(end_width < MAX_Area)
+            {
+                Buf_r(MAX_Area-1 downto end_width) := (others => (others => (others => '0')));
+            }
+
+            For(i IN 0 to MAX_Area-2)
+            {
+                VARIABLE read_row : NATURAL range 0 to MAX_Area-2 := 0;
+                If(row_count >= i)
+                {
+                    read_row := row_count-i;
+                }
+                Else
+                {
+                    read_row := (MAX_Area-1)+row_count-i;
+                }
+                If(i < start_width OR i >= end_width)
+                {
+                    Buf_r(start_width)(i) := (others => '0');
+                }
+                Else
+                {
+                    Buf_r(start_width)(i) := RAM_r(read_row, iStream_buf.Column);
+                }
+            }
+
+            Buf_r(start_width)(end_width-1) := iStream_buf.R(7 downto 7);
+
+            RAM_r(row_count, iStream_buf.Column)   <= iStream_buf.R(7 downto 7);
+        }
+    }
+}

@@ -1,0 +1,148 @@
+Component Blob_Detect
+(
+    Generic
+    (
+        Blob_Number     : NATURAL := 64;
+        
+        Width           : NATURAL := 640;
+        Height          : NATURAL := 480;
+        Min_Blob_Width  : NATURAL := 4;
+        Min_Blob_Height : NATURAL := 4;
+        Max_Blob_Width  : NATURAL := 200;
+        Max_Blob_Height : NATURAL := 200;
+    );
+    New_Pixel : IN STD_LOGIC;
+    Pixel_In  : IN STD_LOGIC; --'1' for object and '0' for surrounding area
+    Column    : IN NATURAL range 0 to 639;
+    Row       : IN NATURAL range 0 to 479;
+    
+    Blobs     : OUT NATURAL range 0 to Blob_Number-1;
+    Blob_Addr : IN  NATURAL range 0 to Blob_Number-1;
+    Blob_X0   : OUT NATURAL range 0 to Width-1;
+    Blob_X1   : OUT NATURAL range 0 to Width-1;
+    Blob_Y0   : OUT NATURAL range 0 to Height-1;
+    Blob_Y1   : OUT NATURAL range 0 to Height-1;
+)
+{
+    
+    --  ->000011111100000
+    --  00001111100111000
+    --  00000011001111110
+    --  00001111111101100
+    --  00000000011000000
+    
+    --Wenn 1 -> 1. Anfang speichern und bis 0 gehen 2. gucken ob schon blob mit xa0 <= xn1 und xa1 >= xn0 gibt und ya1 = yn1-1
+    
+    TYPE blob_type IS RECORD
+    x0 : NATURAL range 0 to Width-1;
+    x1 : NATURAL range 0 to Width-1;
+    y0 : NATURAL range 0 to Height-1;
+    y1 : NATURAL range 0 to Height-1;
+    END RECORD blob_type;
+    
+    TYPE blob_array IS ARRAY (0 to Blob_Number-1) OF blob_type;
+    SIGNAL blob_reg : blob_array;
+    
+    SIGNAL blob_num : NATURAL range 0 to Blob_Number;
+    
+    SIGNAL blob_reg_out : blob_array;
+    
+    Blob_X0 <= blob_reg_out(blob_addr).x0;
+    Blob_X1 <= blob_reg_out(blob_addr).x1;
+    Blob_Y0 <= blob_reg_out(blob_addr).y0;
+    Blob_Y1 <= blob_reg_out(blob_addr).y1;
+    
+    --!!!!!
+    --Es müssen blobs die abgeschlossen sind (ya1 < yn1-1) in Buffer geschrieben werden und die zu bearbeitenden jeden CLK Zyklus geprüft werden, um LEs zu spaaren
+    
+    SIGNAL ISSP_source : std_logic_vector (7 downto 0);
+    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0);
+    NewComponent ISSP
+    (
+        source => ISSP_source,
+        probe  => ISSP_probe,
+    );
+    
+    Process ()
+    {
+        If(rising_edge(New_Pixel))
+        {
+            VARIABLE Row_Reg      : NATURAL range 0 to Height-1 := 0;
+            VARIABLE Column_Reg   : NATURAL range 0 to Width-1 := 0;
+            
+            VARIABLE start_x : NATURAL range 0 to Width-1 := 0;
+            VARIABLE end_x   : NATURAL range 0 to Width-1 := 0;
+            
+            VARIABLE Pixel_In_Reg : STD_LOGIC;
+            
+            VARIABLE cur_blob : NATURAL range 0 to Blob_Number-1;
+            
+            If(Row < Row_Reg and Column < Column_Reg)
+            {
+                For(i IN 0 to Blob_Number-1)
+                {
+                    If(i < blob_num AND blob_reg(i).x1-blob_reg(i).x0 >= Min_Blob_Width AND blob_reg(i).y1-blob_reg(i).y0 >= Min_Blob_Height
+                        AND blob_reg(i).x1-blob_reg(i).x0 <= Max_Blob_Width AND blob_reg(i).y1-blob_reg(i).y0 <= Max_Blob_Height)
+                    {
+                        blob_reg_out(cur_blob) <= blob_reg(i);
+                        cur_blob := cur_blob + 1;
+                    }
+                }
+                
+                ISSP_probe(23 downto 16) <= STD_LOGIC_VECTOR(TO_UNSIGNED(blob_num, 8));
+                ISSP_probe(31 downto 24) <= STD_LOGIC_VECTOR(TO_UNSIGNED(cur_blob, 8));
+                
+                Blobs    <= cur_blob;
+                blob_num <= 0;
+            }
+            Row_Reg := Row;
+            Column_Reg := Column;
+            
+            ISSP_probe(15 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(blob_num, 16));
+            
+            If(Pixel_In = '1' AND Pixel_In_Reg = '0')
+            {
+                start_x := Column;
+            }
+            
+            If(Pixel_In = '0' AND Pixel_In_Reg = '1')
+            {
+                end_x := Column;
+                
+                VARIABLE found : BOOLEAN;
+                found := false;
+                For(i IN 0 to Blob_Number-1)
+                {
+                    If(i < blob_num)
+                    {
+                        --Muss zwei Blobs verbinden wenn für 2 Blobs geht
+                        If(blob_reg(i).x0 <= end_x AND blob_reg(i).x1 >= start_x AND blob_reg(i).y1 >= Row-1)
+                        {
+                            found := true;
+                            blob_reg(i).y1 <= Row;
+                            If(blob_reg(i).x0 > start_x)
+                            {
+                                blob_reg(i).x0 <= start_x;
+                            }
+                            If(blob_reg(i).x1 < end_x)
+                            {
+                                blob_reg(i).x1 <= end_x;
+                            }
+                            exit;
+                        }
+                    }
+                }
+                If(not found AND blob_num < Blob_Number)
+                {
+                    blob_reg(blob_num).x0 <= start_x;
+                    blob_reg(blob_num).x1 <= end_x;
+                    blob_reg(blob_num).y0 <= Row;
+                    blob_reg(blob_num).y1 <= Row;
+                    blob_num <= blob_num + 1;
+                }
+            }
+            
+            Pixel_In_Reg := Pixel_In;
+        }
+    }
+}

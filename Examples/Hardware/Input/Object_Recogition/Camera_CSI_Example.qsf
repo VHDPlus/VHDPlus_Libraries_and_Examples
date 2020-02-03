@@ -61,22 +61,8 @@ set_global_assignment -name SIGNALTAP_FILE output_files/stp_addr_data.stp
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
 set_global_assignment -name INTERNAL_FLASH_UPDATE_MODE "SINGLE IMAGE WITH ERAM"
 set_global_assignment -name NUM_PARALLEL_PROCESSORS 8
-set_global_assignment -name VHDL_FILE Blob/blob_detection.vhd
-set_global_assignment -name VHDL_FILE Blob/blob_manager.vhd
-set_global_assignment -name VHDL_FILE Blob/blob_pack.vhd
-set_global_assignment -name VHDL_FILE Blob/blob_sender.vhd
-set_global_assignment -name VHDL_FILE Blob/blobs.vhd
-set_global_assignment -name VHDL_FILE Blob/dpram_NxN.vhd
-set_global_assignment -name VHDL_FILE Blob/image_pack.vhd
-set_global_assignment -name VHDL_FILE Blob/libv.vhd
-set_global_assignment -name VHDL_FILE Blob/line_counter.vhd
-set_global_assignment -name VHDL_FILE Blob/neighbours.vhd
-set_global_assignment -name VHDL_FILE Blob/pgm.vhd
-set_global_assignment -name VHDL_FILE Blob/pixel_counter.vhd
-set_global_assignment -name VHDL_FILE Blob/primitive_pack.vhd
-set_global_assignment -name VHDL_FILE Blob/simple_counter.vhd
-set_global_assignment -name VHDL_FILE Blob/small_fifo.vhd
-set_global_assignment -name VHDL_FILE Blob/utils_pack.vhd
+set_global_assignment -name VHDL_FILE Generated/AreaLimitedCompression.vhd
+set_global_assignment -name VHDL_FILE Generated/Blob_Detect.vhd
 set_global_assignment -name VHDL_FILE Generated/Camera_Capture.vhd
 set_global_assignment -name VHDL_FILE Generated/Camera_CSI_Example.vhd
 set_global_assignment -name VHDL_FILE Generated/Color_Correction_Filter.vhd
@@ -87,8 +73,14 @@ set_global_assignment -name VHDL_FILE Generated/Contrast_Filter.vhd
 set_global_assignment -name VHDL_FILE Generated/CRT_Controller.vhd
 set_global_assignment -name VHDL_FILE Generated/CSI_Camera.vhd
 set_global_assignment -name VHDL_FILE Generated/Draw_Square.vhd
+set_global_assignment -name VHDL_FILE Generated/Gaussian_Filter.vhd
+set_global_assignment -name VHDL_FILE Generated/Gaussian_Filter2.vhd
+set_global_assignment -name VHDL_FILE Generated/Gaussian_RGB_Filter.vhd
 set_global_assignment -name VHDL_FILE Generated/HDMI_Out.vhd
 set_global_assignment -name VHDL_FILE Generated/I2C_Master_Interface.vhd
+set_global_assignment -name VHDL_FILE Generated/Image_Data_Package.vhd
+set_global_assignment -name VHDL_FILE Generated/LineBuffer.vhd
+set_global_assignment -name VHDL_FILE Generated/RamShiftRegister.vhd
 set_global_assignment -name VHDL_FILE Generated/RGB2FakeLAB_Filter.vhd
 set_global_assignment -name VHDL_FILE Generated/RGB2HSV_Filter.vhd
 set_global_assignment -name VHDL_FILE HDMI/VS_PLL.vhd
