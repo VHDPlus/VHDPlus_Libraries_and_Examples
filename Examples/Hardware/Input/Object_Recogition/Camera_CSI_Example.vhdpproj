@@ -84,6 +84,9 @@
     <Items xsi:type="ProjectFileVHDP">
       <Header>RGB2LAB.vhdp</Header>
     </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Row_Compression.vhdp</Header>
+    </Items>
   </Items>
   <Items xsi:type="ProjectFolder">
     <Header>Generated</Header>
@@ -125,6 +128,9 @@
       <Header>Draw_Square.vhd</Header>
     </Items>
     <Items xsi:type="ProjectFile">
+      <Header>Dual_Port_RAM.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
       <Header>Gaussian_Filter.vhd</Header>
     </Items>
     <Items xsi:type="ProjectFile">
@@ -154,6 +160,9 @@
     <Items xsi:type="ProjectFile">
       <Header>RGB2HSV_Filter.vhd</Header>
     </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>Row_Compression.vhd</Header>
+    </Items>
   </Items>
   <Items xsi:type="ProjectFolder">
     <Header>HDMI</Header>
@@ -180,6 +189,9 @@
   <Items xsi:type="ProjectFolder">
     <Header>Libraries</Header>
     <fileWatcherIgnore />
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Dual-Port_RAM.vhdp</Header>
+    </Items>
     <Items xsi:type="ProjectFile">
       <Header>ISSP.qsys</Header>
     </Items>

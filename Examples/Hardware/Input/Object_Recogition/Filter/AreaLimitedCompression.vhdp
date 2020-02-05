@@ -4,6 +4,9 @@ Compresses image depending on image area
 Only works with BW and 1 Bit images
  */
 
+--!!!Bildbreite vierteln indem vor HSV 4 Pixel in einer Reihe zusammengefasst werden (braucht keinen RAM)
+--Danach überall mit voller Höhe aber 1/4 Breite arbeiten
+
 Component AreaLimitedCompression
 (
     Generic
@@ -13,135 +16,136 @@ Component AreaLimitedCompression
         MAX_Area_O  : NATURAL := 4;  --Maximum number of pixels in area
         MAX_Area    : NATURAL range 1 to 24 := 10; --3 = 3x3 pixels used to create one blurred pixel
         MIN_Area    : NATURAL range 1 to 24 := 1;
+        Colors      : NATURAL := 1;
         Start_Row   : NATURAL := 0;
         CLK_Edge    : BOOLEAN := true; --true = rising edge
     );
-    iStream    : in   rgb_stream;
-    oStream    : out  rgb_stream;
+    iPixel     : IN STD_LOGIC_VECTOR(Colors-1 downto 0);
+    iColumn    : IN NATURAL range 0 to Image_Width-1;
+    iRow       : IN NATURAL range 0 to Image_Height-1;
+    iNew_Pixel : IN STD_LOGIC;
+    
+    oPixel     : OUT STD_LOGIC_VECTOR(Colors-1 downto 0);
+    oColumn    : OUT NATURAL range 0 to Image_Width-1;
+    oRow       : OUT NATURAL range 0 to Image_Height-1;
+    oNew_Pixel : OUT STD_LOGIC;
 )
 {
-    SIGNAL iStream_buf    : rgb_stream;
-    SIGNAL oStream_buf    : rgb_stream;
+    SIGNAL iPixel_buf    : STD_LOGIC_VECTOR(Colors-1 downto 0);
+    SIGNAL oPixel_buf    : STD_LOGIC_VECTOR(Colors-1 downto 0);
     
-    oStream.New_Pixel <= iStream.New_Pixel;
+    oNew_Pixel <= iNew_Pixel;
 
-    type ram_type is array (MAX_Area-2 downto 0, Image_Width-1 downto 0) of std_logic_vector (0 downto 0);
-    signal RAM_r : ram_type;
-
-    TYPE last_pixel_type IS ARRAY (MAX_Area-1 downto 0) OF std_logic_vector (0 downto 0);
-    TYPE last_pixel_arr_type IS ARRAY (MAX_Area downto 0) OF last_pixel_type;
+    TYPE last_pixel_sub_row_type IS ARRAY (NATURAL range <>) OF STD_LOGIC_VECTOR(Colors-1 downto 0);
+    TYPE last_pixel_row_type IS ARRAY (NATURAL range <>) OF last_pixel_sub_row_type(MAX_Area-1 downto 0);
     
     SIGNAL New_Pixel_Buf : STD_LOGIC;
-    New_Pixel_Buf <= iStream.New_Pixel when CLK_Edge else NOT iStream.New_Pixel;
+    New_Pixel_Buf <= iNew_Pixel when CLK_Edge else NOT iNew_Pixel;
+    
+    --!!!! In Buffer immer Summe von einer Spalte speichern, da man so das summieren der Reihen spart
+    
+    TYPE col_add IS ARRAY (Colors-1 downto 0) OF NATURAL range 0 to MAX_Area*2;
+    TYPE matrix_add IS ARRAY (Colors-1 downto 0) OF NATURAL range 0 to MAX_Area**2;
+    
+    TYPE sum_matrix_type IS ARRAY (NATURAL range <>) OF col_add;
+    SIGNAL sum_matrix : sum_matrix_type(Image_Width-1 downto 0);
     
     Process ()
     {
         If(rising_edge(New_Pixel_Buf))
         {
-            iStream_buf <= iStream;
+            iPixel_buf <= iPixel;
+            oPixel <= oPixel_buf;
             
-            oStream.R <= oStream_buf.R;
-            oStream.G <= oStream_buf.G;
-            oStream.B <= oStream_buf.B;
-            oStream.Column <= oStream_buf.Column;
-            oStream.Row <= oStream_buf.Row;
+            oColumn <= iColumn-2-(area_width/2);
+            oRow    <= iRow-1-(area_width/2);
             
-            --current row in RAM -> if 1 -> saves in 1 and last data is in 0
-            VARIABLE row_count : NATURAL range 0 to MAX_Area-2 := 0;
-            VARIABLE last_col  : NATURAL range 0 to Image_Width := 0;
-            If(last_col > iStream_buf.Column)
+            VARIABLE area_width    : NATURAL range 1 to 24;
+            CONSTANT row_divider   : NATURAL := (Image_Height-Start_Row)/(MAX_Area-MIN_Area+1);
+            
+            --Calculate area to combine
+            If(iRow < Start_Row)
             {
-                If(row_count < MAX_Area-2)
-                {
-                    row_count := row_count + 1;
-                }
-                Else
-                {
-                    row_count := 0;
-                }
+                area_width := MAX_Area;
             }
-            last_col := iStream_buf.Column;
-            
-            If(iStream_buf.Row > 2 AND iStream_buf.Column > 3)
+            Else
             {
-                oStream_buf.Column <= iStream_buf.Column-2;
-                oStream_buf.Row    <= iStream_buf.Row-1;
-                VARIABLE r_add : NATURAL;
-                r_add := 0;
-                
-                VARIABLE area_width    : NATURAL range 1 to 24;
-                CONSTANT row_divider   : NATURAL := (Image_Height-Start_Row)/(MAX_Area-MIN_Area+1);
-                
-                If(oStream_buf.Row < Start_Row)
+                area_width := (iRow-Start_Row)/row_divider+MIN_Area;
+            }
+            
+            --Set Pixel for values that cannot be calculated
+            If(iRow <= area_width OR iColumn <= area_width+1)
+            {
+                oPixel <= (others => '0');
+            }
+            
+            VARIABLE r_add : matrix_add;
+            
+            VARIABLE sum_buf_i : col_add;
+            VARIABLE sum_buf_o : col_add;
+            
+            -- Add to column sum
+            sum_buf_i := sum_matrix(iColumn);
+            For(i IN 0 to Colors-1)
+            {
+                sum_buf_o(i) := sum_buf_i(i) + TO_INTEGER("0" & iPixel(i));
+            }
+            
+            If(add_r = area_width-1)
+            {
+                --Add columns
+                For(k IN 0 to Colors-1)
                 {
-                    area_width := MAX_Area;
+                    r_add(k) := r_add(k) + sum_buf_o(k);
                 }
-                Else
-                {
-                    area_width := (oStream_buf.Row-Start_Row)/row_divider+MIN_Area;
-                }
-
-                VARIABLE start_width : NATURAL range 0 to 24 := 0;
-                VARIABLE end_width   : NATURAL range 0 to 24 := 24;
-                start_width := (MAX_Area-area_width+1)/2; --0-5
-                end_width   := (MAX_Area+area_width+1)/2; --6-10
                 
-                For(i IN 0 to MAX_Area-1)
+                If(add_c = area_width-1)
                 {
-                    For(j IN 1 to MAX_Area)
+                    For(k IN 0 to Colors-1)
                     {
-                        r_add := r_add + TO_INTEGER(UNSIGNED(Buf_r(j)(i)));
+                        If(r_add(k) > (MAX_Area_O*area_width**2)/(MAX_Area**2))
+                        {
+                            oPixel(k) <= '1';
+                        }
+                        Else
+                        {
+                            oPixel(k) <= '0';
+                        }
                     }
+                    r_add := (others => 0);
                 }
-                If(r_add > (MAX_Area_O*area_width**2)/(MAX_Area**2))
+                
+                sum_buf_o := (others => 0);
+            }
+            
+            VARIABLE add_c : NATURAL range 0 to MAX_Area-1 := 0;
+            
+            If(add_c < area_width-1)
+            {
+                add_c := add_c + 1;
+            }
+            Else
+            {
+                add_c := 0;
+            }
+            
+            VARIABLE row_reg : NATURAL range 0 to Image_Height-1 := 0;
+            VARIABLE add_r   : NATURAL range 0 to MAX_Area-1 := 0;
+            
+            If(row_reg /= iRow)
+            {
+                If(add_r < area_width-1)
                 {
-                    oStream_buf.R <= (others => '1');
+                    add_r := add_r + 1;
                 }
                 Else
                 {
-                    oStream_buf.R <= (others => '0');
+                    add_r := 0;
                 }
             }
-
-            VARIABLE Buf_r : last_pixel_arr_type;
-
-            --| 20 | 10 |     00    |
-            --| 21 | 11 | row_count |
-            --| 22 | 12 | new pixel |
-            Buf_r(MAX_Area downto 1) := Buf_r(MAX_Area-1 downto 0);
-            If(start_width > 0)
-            {
-                Buf_r(start_width-1 downto 0) := (others => (others => (others => '0')));
-            }
-            If(end_width < MAX_Area)
-            {
-                Buf_r(MAX_Area-1 downto end_width) := (others => (others => (others => '0')));
-            }
-
-            For(i IN 0 to MAX_Area-2)
-            {
-                VARIABLE read_row : NATURAL range 0 to MAX_Area-2 := 0;
-                If(row_count >= i)
-                {
-                    read_row := row_count-i;
-                }
-                Else
-                {
-                    read_row := (MAX_Area-1)+row_count-i;
-                }
-                If(i < start_width OR i >= end_width)
-                {
-                    Buf_r(start_width)(i) := (others => '0');
-                }
-                Else
-                {
-                    Buf_r(start_width)(i) := RAM_r(read_row, iStream_buf.Column);
-                }
-            }
-
-            Buf_r(start_width)(end_width-1) := iStream_buf.R(7 downto 7);
-
-            RAM_r(row_count, iStream_buf.Column)   <= iStream_buf.R(7 downto 7);
+            row_reg := iRow;
+            
+            sum_matrix(iColumn) <= sum_buf_o;
         }
     }
 }

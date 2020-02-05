@@ -41,6 +41,30 @@ Main
 )
 {
 
+    --!!!Probieren Area Blur für beliebig viele Farben in einem Component zu realisieren, sodass nur ein RAM mit einer Adresse benötigt wird
+
+    CONSTANT MAX_Area    : NATURAL := 24; --area blur
+    CONSTANT MIN_Area    : NATURAL := 4;
+    
+    CONSTANT blob_number : NATURAL := 32; --max number in buffer
+    
+    CONSTANT capture_compression : NATURAL := 2;
+
+    SIGNAL color_select : NATURAL range 0 to 2;
+    
+    color_select <= TO_INTEGER(UNSIGNED(ISSP1_source));
+    
+    ISSP_probe  <= STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Detect_Blobs_Out, 32));
+    ISSP1_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Detect_Blob_X0_Out, 32));
+    ISSP2_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Detect_Blob_X1_Out, 32));
+    ISSP3_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Detect_Blob_Y0_Out, 32));
+    ISSP4_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Detect_Blob_Y1_Out, 32));
+    
+    Blob_Detect_Blob_Addr_Yellow <= TO_INTEGER(UNSIGNED(ISSP_source));
+    Blob_Detect_Blob_Addr_Black  <= TO_INTEGER(UNSIGNED(ISSP_source));
+    Blob_Detect_Blob_Addr_Blue   <= TO_INTEGER(UNSIGNED(ISSP_source));
+    Blob_Detect_Blob_Addr_White  <= TO_INTEGER(UNSIGNED(ISSP_source));
+    
     --Camera Interface-------------------------------------------------------------------
     
     Camera_Enable <= '1';
@@ -91,45 +115,28 @@ Main
     
     
     --Blur-------------------------------------------------------------------------------
-    
-    SIGNAL Gaussian_Filter_iStream    : rgb_stream;
-    SIGNAL Gaussian_Filter_oStream    : rgb_stream;
 
-    --Gaussian_Filter_iPixel <= Color_Correction_Filter_Stream when ISSP1_source(1) = '0' else RGB2HSV_oHSV;
-    --Gaussian_Filter_iStream <= RGB2HSV_oHSV;
-    Gaussian_Filter_oStream <= Color_Correction_Filter_Stream;
+    SIGNAL Compression_Filter_oStream    : rgb_stream;
+
+    Compression_Filter_oStream <= Color_Correction_Filter_Stream;
     /*
-    Gaussian_Filter_iStream <= Color_Correction_Filter_Stream;
-    NewComponent Gaussian_Filter2
+    SIGNAL Compression_Filter_iStream    : rgb_stream;
+    NewComponent Row_Compression
     (
-        Filter_Area => 3,--6,
-        Color_Depth => 8,--6,
-        Gaussian    => false,
-        Compression => 1,
-        HSV_Mode    => false,--true,
-        CLK_Edge    => false,
+        compression => compression,
+        Color_Depth => 8,
+        CLK_Edge    => true,
         
-        iStream => Gaussian_Filter_iStream,
-        oStream => Gaussian_Filter_oStream,
+        iStream     => Compression_Filter_iStream,
+        oStream     => Compression_Filter_oStream,
     );
      */
-    /*
-    NewComponent Gaussian_RGB_Filter
-    (
-        iStream   => Gaussian_Filter_iStream,
-        oStream   => Gaussian_Filter_oStream,
-    );
-     */
-    
     --Convert color space (for color detection)------------------------------------------
     
     SIGNAL RGB2HSV_oHSV       : rgb_stream;
     SIGNAL RGB2HSV_iRGB       : rgb_stream;
-    
-    --RGB2HSV_iRGB <= Color_Correction_Filter_Stream when ISSP1_source(0) = '0' else Gaussian_Filter_oPixel;
-    --RGB2HSV_iRGB <= Color_Correction_Filter_Stream;
-    --RGB2HSV_iRGB <= Camera_Stream;
-    RGB2HSV_iRGB <= Gaussian_Filter_oStream;
+
+    RGB2HSV_iRGB <= Compression_Filter_oStream;
     
     NewComponent RGB2HSV_Filter
     (
@@ -267,19 +274,157 @@ Main
     
     --Threshold Compression--------------------------------------------------------------
     
-    SIGNAL AreaCompression : rgb_stream;
+    SIGNAL Area_Compression_Pixel     : STD_LOGIC_VECTOR(3 downto 0);
+    SIGNAL Area_Compression_New_Pixel : STD_LOGIC;
+    SIGNAL Area_Compression_Column    : NATURAL range 0 to 639;
+    SIGNAL Area_Compression_Row       : NATURAL range 0 to 479;
     
     NewComponent AreaLimitedCompression
     (
         Image_Width => 640,
         MAX_Area_O  => 250,  --10x10 = 100 -> 60/100 = min 60% blue
-        MAX_Area    => 24,
-        MIN_Area    => 5,
+        MAX_Area    => MAX_Area,
+        MIN_Area    => MIN_Area,
         Start_Row   => 0,
+        Colors      => 4,
         CLK_Edge    => false,
         
-        iStream     => Blue_Filter_oStream,
-        oStream     => AreaCompression,
+        iNew_Pixel  => Yellow_Filter_oStream.New_Pixel,
+        iColumn     => Yellow_Filter_oStream.Column,
+        iRow        => Yellow_Filter_oStream.Row,
+        
+        iPixel(0)   => Yellow_Filter_oStream.R(0),
+        iPixel(1)   => Black_Filter_oStream.R(0),
+        iPixel(2)   => Blue_Filter_oStream.R(0),
+        iPixel(3)   => White_Filter_oStream.R(0),
+        
+        oNew_Pixel  => Area_Compression_New_Pixel,
+        oColumn     => Area_Compression_Column,
+        oRow        => Area_Compression_Row,
+        
+        oPixel      => Area_Compression_Pixel,
+    );
+    
+    --Blob detection---------------------------------------------------------------------
+    
+    SIGNAL Blob_Detect_Blobs_Yellow           : NATURAL   range 0 to 64-1;
+    SIGNAL Blob_Detect_Blob_Addr_Yellow       : NATURAL   range 0 to 64-1;
+    SIGNAL Blob_Detect_Blob_X0_Yellow         : NATURAL   range 0 to 640-1;
+    SIGNAL Blob_Detect_Blob_X1_Yellow         : NATURAL   range 0 to 640-1;
+    SIGNAL Blob_Detect_Blob_Y0_Yellow         : NATURAL   range 0 to 480-1;
+    SIGNAL Blob_Detect_Blob_Y1_Yellow         : NATURAL   range 0 to 480-1;
+    
+    NewComponent Blob_Detect
+    (
+        Blob_Number     => blob_number,
+        Blob_Buffer     => 8,
+        Width           => 640,
+        Height          => 480,
+        Min_Blob_Width  => 0,
+        Min_Blob_Height => 0,
+        Max_Blob_Width  => 640,
+        Max_Blob_Height => 480,
+        
+        New_Pixel       => Area_Compression_New_Pixel,
+        Pixel_In        => Area_Compression_Pixel(0),
+        Column          => Area_Compression_Column,
+        Row             => Area_Compression_Row,
+        Blobs           => Blob_Detect_Blobs_Yellow,
+        Blob_Addr       => Blob_Detect_Blob_Addr_Yellow,
+        Blob_X0         => Blob_Detect_Blob_X0_Yellow,
+        Blob_X1         => Blob_Detect_Blob_X1_Yellow,
+        Blob_Y0         => Blob_Detect_Blob_Y0_Yellow,
+        Blob_Y1         => Blob_Detect_Blob_Y1_Yellow,
+    );
+    
+    SIGNAL Blob_Detect_Blobs_Black           : NATURAL   range 0 to 64-1;
+    SIGNAL Blob_Detect_Blob_Addr_Black       : NATURAL   range 0 to 64-1;
+    SIGNAL Blob_Detect_Blob_X0_Black         : NATURAL   range 0 to 640-1;
+    SIGNAL Blob_Detect_Blob_X1_Black         : NATURAL   range 0 to 640-1;
+    SIGNAL Blob_Detect_Blob_Y0_Black         : NATURAL   range 0 to 480-1;
+    SIGNAL Blob_Detect_Blob_Y1_Black         : NATURAL   range 0 to 480-1;
+    
+    NewComponent Blob_Detect
+    (
+        Blob_Number     => blob_number,
+        Blob_Buffer     => 8,
+        Width           => 640,
+        Height          => 480,
+        Min_Blob_Width  => 0,
+        Min_Blob_Height => 0,
+        Max_Blob_Width  => 640,
+        Max_Blob_Height => 480,
+        
+        New_Pixel       => Area_Compression_New_Pixel,
+        Pixel_In        => Area_Compression_Pixel(1),
+        Column          => Area_Compression_Column,
+        Row             => Area_Compression_Row,
+        Blobs           => Blob_Detect_Blobs_Black,
+        Blob_Addr       => Blob_Detect_Blob_Addr_Black,
+        Blob_X0         => Blob_Detect_Blob_X0_Black,
+        Blob_X1         => Blob_Detect_Blob_X1_Black,
+        Blob_Y0         => Blob_Detect_Blob_Y0_Black,
+        Blob_Y1         => Blob_Detect_Blob_Y1_Black,
+    );
+    
+    SIGNAL Blob_Detect_Blobs_Blue           : NATURAL   range 0 to 64-1;
+    SIGNAL Blob_Detect_Blob_Addr_Blue       : NATURAL   range 0 to 64-1;
+    SIGNAL Blob_Detect_Blob_X0_Blue         : NATURAL   range 0 to 640-1;
+    SIGNAL Blob_Detect_Blob_X1_Blue         : NATURAL   range 0 to 640-1;
+    SIGNAL Blob_Detect_Blob_Y0_Blue         : NATURAL   range 0 to 480-1;
+    SIGNAL Blob_Detect_Blob_Y1_Blue         : NATURAL   range 0 to 480-1;
+    
+    NewComponent Blob_Detect
+    (
+        Blob_Number     => blob_number,
+        Blob_Buffer     => 8,
+        Width           => 640,
+        Height          => 480,
+        Min_Blob_Width  => 0,
+        Min_Blob_Height => 0,
+        Max_Blob_Width  => 640,
+        Max_Blob_Height => 480,
+        
+        New_Pixel       => Area_Compression_New_Pixel,
+        Pixel_In        => Area_Compression_Pixel(2),
+        Column          => Area_Compression_Column,
+        Row             => Area_Compression_Row,
+        Blobs           => Blob_Detect_Blobs_Blue,
+        Blob_Addr       => Blob_Detect_Blob_Addr_Blue,
+        Blob_X0         => Blob_Detect_Blob_X0_Blue,
+        Blob_X1         => Blob_Detect_Blob_X1_Blue,
+        Blob_Y0         => Blob_Detect_Blob_Y0_Blue,
+        Blob_Y1         => Blob_Detect_Blob_Y1_Blue,
+    );
+    
+    SIGNAL Blob_Detect_Blobs_White           : NATURAL   range 0 to 64-1;
+    SIGNAL Blob_Detect_Blob_Addr_White       : NATURAL   range 0 to 64-1;
+    SIGNAL Blob_Detect_Blob_X0_White         : NATURAL   range 0 to 640-1;
+    SIGNAL Blob_Detect_Blob_X1_White         : NATURAL   range 0 to 640-1;
+    SIGNAL Blob_Detect_Blob_Y0_White         : NATURAL   range 0 to 480-1;
+    SIGNAL Blob_Detect_Blob_Y1_White         : NATURAL   range 0 to 480-1;
+    
+    NewComponent Blob_Detect
+    (
+        Blob_Number     => blob_number,
+        Blob_Buffer     => 8,
+        Width           => 640,
+        Height          => 480,
+        Min_Blob_Width  => 0,
+        Min_Blob_Height => 0,
+        Max_Blob_Width  => 640,
+        Max_Blob_Height => 480,
+        
+        New_Pixel       => Area_Compression_New_Pixel,
+        Pixel_In        => Area_Compression_Pixel(3),
+        Column          => Area_Compression_Column,
+        Row             => Area_Compression_Row,
+        Blobs           => Blob_Detect_Blobs_White,
+        Blob_Addr       => Blob_Detect_Blob_Addr_White,
+        Blob_X0         => Blob_Detect_Blob_X0_White,
+        Blob_X1         => Blob_Detect_Blob_X1_White,
+        Blob_Y0         => Blob_Detect_Blob_Y0_White,
+        Blob_Y1         => Blob_Detect_Blob_Y1_White,
     );
     
     --Select camera output---------------------------------------------------------------
@@ -326,102 +471,7 @@ Main
         source => ISSP4_source,
         probe  => ISSP4_probe,
     );
-    
-    /*
-    ISSP 0:
-    00 = Camera
-    01 = After Color Correction
-    02 = After Blob detection (ISSP1_source 0-31 sets which blob in buffer)
-    03 = Hue (0 red => 30 yellow => 60 green => 90 turquoise => 120 Blue => 150 pink => 180 red)
-    04 = Yellow filter with Hue output (Red 150 - 30 Green 30 - 90 Blue 90 - 150)
-    05 = Yellow filter with RGB output
-    06 = Black filter with Hue output (Red 150 - 30 Green 30 - 90 Blue 90 - 150)
-    07 = Black filter with RGB output
-    08 = Blue filter with Hue output (Red 150 - 30 Green 30 - 90 Blue 90 - 150)
-    09 = Blue filter with RGB output
-    0A = White filter with Hue output (Red 150 - 30 Green 30 - 90 Blue 90 - 150)
-    0B = White filter with RGB output
-    
-    ISSP 1:
-    (0) = 0: Directly HSV
-    (0) = 1: First Gaussian then HSV
-    (1) = 0: Directly Gauss
-    (1) = 1: First HSV then Gauss
-    (2) = 0: Use HSV output for threshold
-    (2) = 1: Use Gauss output for threshold
-    
-    ISSP 2:
-    00 = Yellow Blob
-    01 = Black Blob
-    02 = Blue Blob
-    03 = White Blob
-     */
-    
-    --Select filter step
-    /*
-    SIGNAL oStream_buf : rgb_stream;
-    Camera_Capture_iStream.New_Pixel <= Camera_Stream.New_Pixel;
-    Process ()
-    {
-        If(falling_edge(Camera_Stream.New_Pixel))
-        {
-            Camera_Capture_iStream.R <= oStream_buf.R;
-            Camera_Capture_iStream.G <= oStream_buf.G;
-            Camera_Capture_iStream.B <= oStream_buf.B;
-            Camera_Capture_iStream.Column <= oStream_buf.Column;
-            Camera_Capture_iStream.Row <= oStream_buf.Row;
-            
-            If(ISSP_source = x"00")
-            {
-                oStream_buf <= Camera_Stream;
-            }
-            Elsif(ISSP_source = x"01")
-            {
-                oStream_buf <= Gaussian_Filter_oStream;
-            }
-            Elsif(ISSP_source = x"02")
-            {
-                oStream_buf <= (R => Gaussian_Filter_oStream.R, G => Gaussian_Filter_oStream.R, B => Gaussian_Filter_oStream.R, Column => Gaussian_Filter_oStream.Column, Row => Gaussian_Filter_oStream.Row, New_Pixel => Gaussian_Filter_oStream.New_Pixel);
-            }
-            Elsif(ISSP_source = x"03")
-            {
-                oStream_buf <= (R => RGB2HSV_oHSV.R, G => RGB2HSV_oHSV.R, B => RGB2HSV_oHSV.R, Column => RGB2HSV_oHSV.Column, Row => RGB2HSV_oHSV.Row, New_Pixel => RGB2HSV_oHSV.New_Pixel);
-            }
-            Elsif(ISSP_source = x"04")
-            {
-                oStream_buf <= Yellow_Filter_oStream;
-            }
-            Elsif(ISSP_source = x"04")
-            {
-                oStream_buf <= Black_Filter_oStream;
-            }
-            Elsif(ISSP_source = x"04")
-            {
-                oStream_buf <= Blue_Filter_oStream;
-            }
-            Elsif(ISSP_source = x"04")
-            {
-                oStream_buf <= White_Filter_oStream;
-            }
-        }
-    }
-     */
-    /*
-    Camera_Capture_iStream <= Camera_Stream   when ISSP_source = x"00" else
-    Gaussian_Filter_oStream                   when ISSP_source = x"01" else
-    (R => Gaussian_Filter_oStream.R, G => Gaussian_Filter_oStream.R, B => Gaussian_Filter_oStream.R, Column => Gaussian_Filter_oStream.Column, Row => Gaussian_Filter_oStream.Row, New_Pixel => Gaussian_Filter_oStream.New_Pixel) when ISSP_source = x"02" else
-    (R => RGB2HSV_oHSV.R, G => RGB2HSV_oHSV.R, B => RGB2HSV_oHSV.R, Column => RGB2HSV_oHSV.Column, Row => RGB2HSV_oHSV.Row, New_Pixel => RGB2HSV_oHSV.New_Pixel) when ISSP_source = x"03" else
-    Yellow_Filter_oStream                    when ISSP_source = x"04" else
-    Yellow_Filter_oStream                    when ISSP_source = x"05" else
-    Black_Filter_oStream                     when ISSP_source = x"06" else
-    Black_Filter_oStream                     when ISSP_source = x"07" else
-    Blue_Filter_oStream                      when ISSP_source = x"08" else
-    Blue_Filter_oStream                      when ISSP_source = x"09" else
-    White_Filter_oStream                     when ISSP_source = x"0A" else
-    White_Filter_oStream;
-    --Select color filter color space
-    Color_Threshold_Filter_iStream <= Gaussian_Filter_oStream;
-     */
+
     --Camera_Capture_iStream <= Camera_Stream;
     --Camera_Capture_iStream <= Color_Correction_Filter_Stream;
     --Camera_Capture_iStream <= Blue_Filter_oStream;
@@ -430,53 +480,47 @@ Main
     --Camera_Capture_iStream <= Gaussian_Filter_oStream;
     --Camera_Capture_iStream <= (R => RGB2HSV_oHSV.R, G => RGB2HSV_oHSV.R, B => RGB2HSV_oHSV.R, Column => RGB2HSV_oHSV.Column, Row => RGB2HSV_oHSV.Row, New_Pixel => RGB2HSV_oHSV.New_Pixel);
     --Camera_Capture_iStream <= (R => Gaussian_Filter_oStream.R, G => Gaussian_Filter_oStream.R, B => Gaussian_Filter_oStream.R, Column => Gaussian_Filter_oStream.Column, Row => Gaussian_Filter_oStream.Row, New_Pixel => Gaussian_Filter_oStream.New_Pixel);
-    --Color_Threshold_Filter_iStream <= (R => RGB2HSV_oHSV.R, G => RGB2HSV_oHSV.R, B => RGB2HSV_oHSV.R) when (ISSP_source = x"04" OR ISSP_source = x"06" OR ISSP_source = x"08" OR ISSP_source = x"0A")
-    --else Gaussian_Filter_oPixel;
-    
-    
-    --Blob detection---------------------------------------------------------------------
 
-    ISSP_probe  <= STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Detect_Blobs, 32));
-    ISSP1_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Detect_Blob_X0, 32));
-    ISSP2_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Detect_Blob_X1, 32));
-    ISSP3_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Detect_Blob_Y0, 32));
-    ISSP4_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Detect_Blob_Y1, 32));
+    --color_select <= 2;
     
-    Blob_Detect_Blob_Addr <= TO_INTEGER(UNSIGNED(ISSP_source));
+    SIGNAL Blob_Detect_Blobs_Out           : NATURAL   range 0 to 64-1;
+    SIGNAL Blob_Detect_Blob_X0_Out         : NATURAL   range 0 to 640-1;
+    SIGNAL Blob_Detect_Blob_X1_Out         : NATURAL   range 0 to 640-1;
+    SIGNAL Blob_Detect_Blob_Y0_Out         : NATURAL   range 0 to 480-1;
+    SIGNAL Blob_Detect_Blob_Y1_Out         : NATURAL   range 0 to 480-1;
+
+    Square_iStream.R(7)      <= Area_Compression_Pixel(color_select);
+    Square_iStream.Column    <= Area_Compression_Column;
+    Square_iStream.Row       <= Area_Compression_Row;
+    Square_iStream.New_Pixel <= Area_Compression_New_Pixel;
     
-    SIGNAL Blob_Detect_Blobs           : NATURAL   range 0 to 64-1;
-    SIGNAL Blob_Detect_Blob_Addr       : NATURAL   range 0 to 64-1;
-    SIGNAL Blob_Detect_Blob_X0         : NATURAL   range 0 to 640-1;
-    SIGNAL Blob_Detect_Blob_X1         : NATURAL   range 0 to 640-1;
-    SIGNAL Blob_Detect_Blob_Y0         : NATURAL   range 0 to 480-1;
-    SIGNAL Blob_Detect_Blob_Y1         : NATURAL   range 0 to 480-1;
+    Blob_Detect_Blobs_Out <= Blob_Detect_Blobs_Yellow when color_select = 0
+    else Blob_Detect_Blobs_Black when color_select = 1
+    else Blob_Detect_Blobs_Blue  when color_select = 2
+    else Blob_Detect_Blobs_White;
     
-    NewComponent Blob_Detect
-    (
-        Blob_Number     => 4,
-        Width           => 640,
-        Height          => 480,
-        Min_Blob_Width  => 0,
-        Min_Blob_Height => 0,
-        Max_Blob_Width  => 640,
-        Max_Blob_Height => 480,
-        
-        New_Pixel       => AreaCompression.New_Pixel,
-        Pixel_In        => AreaCompression.R(0),
-        Column          => AreaCompression.Column,
-        Row             => AreaCompression.Row,
-        Blobs           => Blob_Detect_Blobs,
-        Blob_Addr       => Blob_Detect_Blob_Addr,
-        Blob_X0         => Blob_Detect_Blob_X0,
-        Blob_X1         => Blob_Detect_Blob_X1,
-        Blob_Y0         => Blob_Detect_Blob_Y0,
-        Blob_Y1         => Blob_Detect_Blob_Y1,
-    );
+    Blob_Detect_Blob_X0_Out <= Blob_Detect_Blob_X0_Yellow when color_select = 0
+    else Blob_Detect_Blob_X0_Black when color_select = 1
+    else Blob_Detect_Blob_X0_Blue  when color_select = 2
+    else Blob_Detect_Blob_X0_White;
+    
+    Blob_Detect_Blob_X1_Out <= Blob_Detect_Blob_X1_Yellow when color_select = 0
+    else Blob_Detect_Blob_X1_Black when color_select = 1
+    else Blob_Detect_Blob_X1_Blue  when color_select = 2
+    else Blob_Detect_Blob_X1_White;
+    
+    Blob_Detect_Blob_Y0_Out <= Blob_Detect_Blob_Y0_Yellow when color_select = 0
+    else Blob_Detect_Blob_Y0_Black when color_select = 1
+    else Blob_Detect_Blob_Y0_Blue  when color_select = 2
+    else Blob_Detect_Blob_Y0_White;
+    
+    Blob_Detect_Blob_Y1_Out <= Blob_Detect_Blob_Y1_Yellow when color_select = 0
+    else Blob_Detect_Blob_Y1_Black when color_select = 1
+    else Blob_Detect_Blob_Y1_Blue  when color_select = 2
+    else Blob_Detect_Blob_Y1_White;
     
     SIGNAL Square_iStream : rgb_stream;
     SIGNAL Square_oStream : rgb_stream;
-    
-    Square_iStream <= AreaCompression;
     
     Square_oStream.New_Pixel <= Square_iStream.New_Pixel;
     Square_oStream.Column    <= Square_iStream.Column;
@@ -487,10 +531,10 @@ Main
         Width     => 4,
         Color     => x"FF0000",
         
-        Square_X0 => Blob_Detect_Blob_X0,
-        Square_X1 => Blob_Detect_Blob_X1,
-        Square_Y0 => Blob_Detect_Blob_Y0,
-        Square_Y1 => Blob_Detect_Blob_Y1,
+        Square_X0 => Blob_Detect_Blob_X0_Out,
+        Square_X1 => Blob_Detect_Blob_X1_Out,
+        Square_Y0 => Blob_Detect_Blob_Y0_Out,
+        Square_Y1 => Blob_Detect_Blob_Y1_Out,
         iColumn   => Square_iStream.Column,
         iRow      => Square_iStream.Row,
         iPixel_R  => Square_iStream.R,
@@ -501,159 +545,6 @@ Main
         oPixel_B  => Square_oStream.B,
     );
     
-    /*
-    SIGNAL CLK_150MHz : STD_LOGIC;
-    
-    NewComponent PLL
-    (
-        inclk0 => CLK,
-        c0     => CLK_150MHz,
-    );
-    
-    
-    SIGNAL blob_in : NATURAL range 0 to 255;
-    
-    blob_in <= (TO_INTEGER(UNSIGNED(Yellow_Filter_oStream.R)) + TO_INTEGER(UNSIGNED(Yellow_Filter_oStream.G)) + TO_INTEGER(UNSIGNED(Yellow_Filter_oStream.B)))/3 when ISSP2_source = x"00" else
-    (TO_INTEGER(UNSIGNED(Black_Filter_oStream.R)) + TO_INTEGER(UNSIGNED(Black_Filter_oStream.G)) + TO_INTEGER(UNSIGNED(Black_Filter_oStream.B)))/3 when ISSP2_source = x"01" else
-    (TO_INTEGER(UNSIGNED(Blue_Filter_oStream.R)) + TO_INTEGER(UNSIGNED(Blue_Filter_oStream.G)) + TO_INTEGER(UNSIGNED(Blue_Filter_oStream.B)))/3 when ISSP2_source = x"02" else
-    (TO_INTEGER(UNSIGNED(White_Filter_oStream.R)) + TO_INTEGER(UNSIGNED(White_Filter_oStream.G)) + TO_INTEGER(UNSIGNED(White_Filter_oStream.B)))/3;
-    
-    SIGNAL hsync : STD_LOGIC;
-    SIGNAL vsync : STD_LOGIC;
-    
-    hsync <= '1' when Gaussian_Filter_Column = 0 else '0';
-    vsync <= '1' when Gaussian_Filter_Row = 0 else '0';
-     */
-    
-    /*
-    SIGNAL hsync : STD_LOGIC;
-    SIGNAL vsync : STD_LOGIC;
-    
-    hsync <= '1' when AreaCompression.Column = 0 else '0';
-    vsync <= '1' when AreaCompression.Row = 0 else '0';
-    
-    NewComponent blob_detection
-    (
-        LINE_SIZE      => 640,
-        
-        clk            => CLK_150MHz,
-        resetn         => '1',
-        pixel_in_clk   => AreaCompression.New_Pixel,
-        pixel_in_hsync => hsync,
-        pixel_in_vsync => vsync,
-        pixel_in_data  => AreaCompression.R,
-        blob_data      => blob_detection_blob_data,
-        mem_addr       => blob_detection_mem_addr,
-        mem_data       => blob_detection_mem_data,
-        mem_wr         => blob_detection_mem_wr,
-    );
-    
-    TYPE blob_pos IS RECORD
-    x0 : NATURAL range 0 to 1024;
-    y0 : NATURAL range 0 to 1024;
-    x1 : NATURAL range 0 to 1024;
-    y1 : NATURAL range 0 to 1024;
-    END RECORD blob_pos;
-    
-    SIGNAL blob_detection_blob_data      : std_logic_vector (7 downto 0);
-    SIGNAL blob_detection_mem_addr       : std_logic_vector (15 downto 0);
-    SIGNAL blob_detection_mem_data       : std_logic_vector (15 downto 0);
-    SIGNAL blob_detection_mem_wr         : std_logic;
-    
-    CONSTANT blob_buf_width : NATURAL := 32;
-    
-    TYPE blob_buf_type IS ARRAY (0 to blob_buf_width-1) OF blob_pos;
-    SIGNAL blob_buf : blob_buf_type;
-    
-    SIGNAL blobs_in_buf : NATURAL range 0 to blob_buf_width-1 := 0;
-    
-    Process ()
-    {
-        If(rising_edge(CLK_150MHz))
-        {
-            VARIABLE wr_reg : STD_LOGIC;
-            VARIABLE receive_cnt : NATURAL range 0 to 2 := 0;
-            VARIABLE data_reg : STD_LOGIC_VECTOR(47 downto 0);
-            If((wr_reg = '0' AND blob_detection_mem_wr = '1') OR receive_cnt > 0)
-            {
-                data_reg(16*receive_cnt + 15 downto 16*receive_cnt) := blob_detection_mem_data;
-                
-                If(receive_cnt < 2)
-                {
-                    receive_cnt := receive_cnt + 1;
-                }
-                Else
-                {
-                    --ISSP_probe <= data_reg(31 downto 0);
-                    --ISSP1_probe(15 downto 0) <= data_reg(47 downto 32);
-                    
-                    VARIABLE blob_reg : blob_pos;
-                    blob_reg.y0 := TO_INTEGER(UNSIGNED(data_reg(9 downto 0)));
-                    blob_reg.x0 := TO_INTEGER(UNSIGNED(data_reg(19 downto 10)));
-                    blob_reg.y1 := TO_INTEGER(UNSIGNED(data_reg(29 downto 20)));
-                    blob_reg.x1 := TO_INTEGER(UNSIGNED(data_reg(39 downto 30)));
-                    
-                    --If(blob_reg.x0 - blob_reg.x1m> 2)
-                    --{
-                    --blob_buf(blobs_in_buf) <= blob_reg;
-                    --blobs_in_buf <= blobs_in_buf + 1;
-                    --}
-                    
-                    blob_buf(blobs_in_buf) <= blob_reg;
-                    blobs_in_buf <= blobs_in_buf + 1;
-                    receive_cnt := 0;
-                }
-            }
-            wr_reg := blob_detection_mem_wr;
-        }
-    }
-    
-    ISSP1_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(blob_buf(TO_INTEGER(UNSIGNED(ISSP_source))).x0, 32));
-    ISSP2_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(blob_buf(TO_INTEGER(UNSIGNED(ISSP_source))).x1, 32));
-    ISSP3_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(blob_buf(TO_INTEGER(UNSIGNED(ISSP_source))).y0, 32));
-    ISSP4_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(blob_buf(TO_INTEGER(UNSIGNED(ISSP_source))).y1, 32));
-     */
-    /*
-    CONSTANT Square_Number : NATURAL := 4;
-    
-    Square_oPixel(0).R <= Color_Correction_Filter_Stream.R;
-    Square_oPixel(0).G <= Color_Correction_Filter_Stream.G;
-    Square_oPixel(0).B <= Color_Correction_Filter_Stream.B;
-
-    TYPE Square_oPixel_type IS ARRAY (0 to Square_Number) OF rgb_data;
-    SIGNAL Square_oPixel : Square_oPixel_type;
-    
-    SIGNAL Square_oStream : rgb_stream;
-    Square_oStream.R <= Square_oPixel(Square_Number).R;
-    Square_oStream.G <= Square_oPixel(Square_Number).G;
-    Square_oStream.B <= Square_oPixel(Square_Number).B;
-    Square_oStream.Column    <= Color_Threshold_Filter_iStream.Column;
-    Square_oStream.Row       <= Color_Threshold_Filter_iStream.Row;
-    Square_oStream.New_Pixel <= Color_Threshold_Filter_iStream.New_Pixel;
-    
-    Generate (for i in 0 to Square_Number-1)
-    {
-        NewComponent Draw_Square
-        (
-            Width     => 4,
-            Color     => x"FF0000",
-            
-            Square_X0 => blob_buf(i).X0,
-            Square_X1 => blob_buf(i).X1,
-            Square_Y0 => blob_buf(i).Y0,
-            Square_Y1 => blob_buf(i).Y1,
-            iColumn   => Color_Correction_Filter_Stream.Column,
-            iRow      => Color_Correction_Filter_Stream.Row,
-            iPixel_R  => Square_oPixel(i).R,
-            iPixel_G  => Square_oPixel(i).G,
-            iPixel_B  => Square_oPixel(i).B,
-            oPixel_R  => Square_oPixel(i+1).R,
-            oPixel_G  => Square_oPixel(i+1).G,
-            oPixel_B  => Square_oPixel(i+1).B,
-        );
-    }
-     */
-
     --Output image with HDMI-------------------------------------------------------------
 
     --Save images in RAM
@@ -664,7 +555,7 @@ Main
 
     NewComponent Camera_Capture
     (
-        Compression => 2,--4,
+        Compression => capture_compression,--4,
         Width       => 1,--8,--4,
         Full_Image  => true,
         RGB         => false,
@@ -682,7 +573,7 @@ Main
         Read_Data   => Camera_Capture_Read_Data,
     );
 
-
+    
     --Read images from RAM to create video stream
     NewComponent CRT_Controller
     (

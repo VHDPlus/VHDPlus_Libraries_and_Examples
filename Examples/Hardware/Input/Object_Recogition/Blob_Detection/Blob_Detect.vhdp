@@ -2,7 +2,8 @@ Component Blob_Detect
 (
     Generic
     (
-        Blob_Number     : NATURAL := 64;
+        Blob_Number     : NATURAL := 32;
+        Blob_Buffer     : NATURAL := 8;
         
         Width           : NATURAL := 640;
         Height          : NATURAL := 480;
@@ -24,6 +25,8 @@ Component Blob_Detect
     Blob_Y1   : OUT NATURAL range 0 to Height-1;
 )
 {
+    --Needed for 9bit RAM input
+    CONSTANT Compression : NATURAL := 2;
     
     --  ->000011111100000
     --  00001111100111000
@@ -40,28 +43,66 @@ Component Blob_Detect
     y1 : NATURAL range 0 to Height-1;
     END RECORD blob_type;
     
-    TYPE blob_array IS ARRAY (0 to Blob_Number-1) OF blob_type;
-    SIGNAL blob_reg : blob_array;
+    TYPE blob_array IS ARRAY (natural range <>) OF blob_type;
+    SIGNAL blob_reg : blob_array(0 to Blob_Buffer-1);
+
+    --ALLES MIT STD_LOGIC MACHEM DAMIT RAM
+
+    SIGNAL blob_ram_data_in  : STD_LOGIC_VECTOR (35 downto 0);
+    SIGNAL blob_ram_data_out : STD_LOGIC_VECTOR (35 downto 0);
     
-    SIGNAL blob_num : NATURAL range 0 to Blob_Number;
+    SIGNAL blob_in      : blob_type;
+    SIGNAL in_blob_num  : NATURAL range 0 to Blob_Number-1;
     
-    SIGNAL blob_reg_out : blob_array;
+    Function log2 (return natural; x : positive)
+    {
+        variable i : natural;
+        i := 0;
+        While(2**i < x and i < 31)
+        {
+            i := i + 1;
+        }
+        return i;
+    }
     
-    Blob_X0 <= blob_reg_out(blob_addr).x0;
-    Blob_X1 <= blob_reg_out(blob_addr).x1;
-    Blob_Y0 <= blob_reg_out(blob_addr).y0;
-    Blob_Y1 <= blob_reg_out(blob_addr).y1;
+    NewComponent ALTSYNCRAM
+    (
+        address_reg_b => "CLOCK0",
+        clock_enable_input_a => "BYPASS",
+        clock_enable_input_b => "BYPASS",
+        clock_enable_output_b => "BYPASS",
+        intended_device_family => "Cyclone 10 LP",
+        numwords_a => Blob_Number,
+        numwords_b => Blob_Number,
+        operation_mode => "DUAL_PORT",
+        outdata_reg_b => "CLOCK0",
+        widthad_a => log2(Blob_Number),
+        widthad_b => log2(Blob_Number),
+        width_a => 36,
+        width_b => 36,
+        width_byteena_a => 1,
+        
+        address_a => STD_LOGIC_VECTOR(TO_UNSIGNED(in_blob_num,log2(Blob_Number))),
+        address_b => STD_LOGIC_VECTOR(TO_UNSIGNED(blob_addr,log2(Blob_Number))),
+        clock0 => New_Pixel,
+        data_a => blob_ram_data_in,
+        wren_a => '1',
+        q_b => blob_ram_data_out,
+    );
+
+    blob_ram_data_in <= STD_LOGIC_VECTOR(TO_UNSIGNED(blob_in.y1, 9)) & STD_LOGIC_VECTOR(TO_UNSIGNED(blob_in.y0, 9)) &
+    STD_LOGIC_VECTOR(TO_UNSIGNED(blob_in.x1/Compression, 9)) & STD_LOGIC_VECTOR(TO_UNSIGNED(blob_in.x0/Compression, 9));
+    
+    Blob_X0 <= TO_INTEGER(UNSIGNED(blob_ram_data_out(8 downto 0)))*Compression;
+    Blob_X1 <= TO_INTEGER(UNSIGNED(blob_ram_data_out(17 downto 9)))*Compression;
+    Blob_Y0 <= TO_INTEGER(UNSIGNED(blob_ram_data_out(26 downto 18)));
+    Blob_Y1 <= TO_INTEGER(UNSIGNED(blob_ram_data_out(35 downto 27)));
+    
+    SIGNAL used_blobs : STD_LOGIC_VECTOR (0 to Blob_Buffer-1) := (others => '0');
+    SIGNAL next_blob : NATURAL range 0 to Blob_Buffer;
     
     --!!!!!
     --Es müssen blobs die abgeschlossen sind (ya1 < yn1-1) in Buffer geschrieben werden und die zu bearbeitenden jeden CLK Zyklus geprüft werden, um LEs zu spaaren
-    
-    SIGNAL ISSP_source : std_logic_vector (7 downto 0);
-    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0);
-    NewComponent ISSP
-    (
-        source => ISSP_source,
-        probe  => ISSP_probe,
-    );
     
     Process ()
     {
@@ -71,74 +112,146 @@ Component Blob_Detect
             VARIABLE Column_Reg   : NATURAL range 0 to Width-1 := 0;
             
             VARIABLE start_x : NATURAL range 0 to Width-1 := 0;
+            VARIABLE start_x_reg : NATURAL range 0 to Width-1 := 0;
             VARIABLE end_x   : NATURAL range 0 to Width-1 := 0;
-            
-            VARIABLE Pixel_In_Reg : STD_LOGIC;
             
             VARIABLE cur_blob : NATURAL range 0 to Blob_Number-1;
             
+            VARIABLE Pixel_In_Reg : STD_LOGIC;
+            
             If(Row < Row_Reg and Column < Column_Reg)
             {
-                For(i IN 0 to Blob_Number-1)
-                {
-                    If(i < blob_num AND blob_reg(i).x1-blob_reg(i).x0 >= Min_Blob_Width AND blob_reg(i).y1-blob_reg(i).y0 >= Min_Blob_Height
-                        AND blob_reg(i).x1-blob_reg(i).x0 <= Max_Blob_Width AND blob_reg(i).y1-blob_reg(i).y0 <= Max_Blob_Height)
-                    {
-                        blob_reg_out(cur_blob) <= blob_reg(i);
-                        cur_blob := cur_blob + 1;
-                    }
-                }
-                
-                ISSP_probe(23 downto 16) <= STD_LOGIC_VECTOR(TO_UNSIGNED(blob_num, 8));
-                ISSP_probe(31 downto 24) <= STD_LOGIC_VECTOR(TO_UNSIGNED(cur_blob, 8));
-                
-                Blobs    <= cur_blob;
-                blob_num <= 0;
+                VARIABLE copy : BOOLEAN;
+                copy := true;
+                find_i := 0;
             }
             Row_Reg := Row;
             Column_Reg := Column;
-            
-            ISSP_probe(15 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(blob_num, 16));
-            
+
             If(Pixel_In = '1' AND Pixel_In_Reg = '0')
             {
-                start_x := Column;
+                start_x_reg := Column;
             }
             
-            If(Pixel_In = '0' AND Pixel_In_Reg = '1')
+            If(Pixel_In = '0' AND Pixel_In_Reg = '1' AND found)
             {
                 end_x := Column;
+                start_x := start_x_reg;
                 
-                VARIABLE found : BOOLEAN;
-                found := false;
-                For(i IN 0 to Blob_Number-1)
+                VARIABLE found  : BOOLEAN;
+                VARIABLE find_i : NATURAL range 0 to Blob_Buffer;
+                found  := false;
+                find_i := 0;
+            }
+
+            If(not found or copy)
+            {
+                If(find_i < Blob_Buffer)
                 {
-                    If(i < blob_num)
+                    If(used_blobs(find_i) = '1')
                     {
+                        VARIABLE x0_reg : NATURAL range 0 to Width-1;
+                        VARIABLE x1_reg : NATURAL range 0 to Width-1;
+                        VARIABLE y0_reg : NATURAL range 0 to Height-1;
+                        VARIABLE y1_reg : NATURAL range 0 to Height-1;
+                        x0_reg := blob_reg(find_i).x0;
+                        x1_reg := blob_reg(find_i).x1;
+                        y0_reg := blob_reg(find_i).y0;
+                        y1_reg := blob_reg(find_i).y1;
                         --Muss zwei Blobs verbinden wenn für 2 Blobs geht
-                        If(blob_reg(i).x0 <= end_x AND blob_reg(i).x1 >= start_x AND blob_reg(i).y1 >= Row-1)
+                        If(NOT copy AND x0_reg <= end_x AND x1_reg >= start_x AND y1_reg >= Row-1)
                         {
                             found := true;
-                            blob_reg(i).y1 <= Row;
-                            If(blob_reg(i).x0 > start_x)
+                            blob_reg(find_i).y1 <= Row;
+                            
+                            If(x0_reg > start_x)
                             {
-                                blob_reg(i).x0 <= start_x;
+                                x0_reg := start_x;
                             }
-                            If(blob_reg(i).x1 < end_x)
+                            If(x1_reg < end_x)
                             {
-                                blob_reg(i).x1 <= end_x;
+                                x1_reg := end_x;
                             }
-                            exit;
+                            
+                            --Delete if too big
+                            If(x1_reg-x0_reg > Max_Blob_Width OR y0_reg > Max_Blob_Height)
+                            {
+                                used_blobs(find_i) <= '0';
+                                If(find_i < next_blob)
+                                {
+                                    next_blob <= find_i;
+                                }
+                            }
+                            Else
+                            {
+                                blob_reg(find_i).x0 <= x0_reg;
+                                blob_reg(find_i).x1 <= x1_reg;
+                            }
+                            
+                        }
+                        Elsif(y1_reg < Row-1 OR copy)
+                        {
+                            --Delete in buffer and copy to main buffer if big enoght
+                            If(y1_reg-y0_reg >= Min_Blob_Height AND x1_reg-x0_reg >= Min_Blob_Width)
+                            {
+                                blob_in <= blob_reg(find_i);
+                                in_blob_num <= cur_blob;
+                                cur_blob := cur_blob + 1;
+                            }
+                            used_blobs(find_i) <= '0';
+                            If(find_i < next_blob)
+                            {
+                                next_blob <= find_i;
+                            }
+                        }
+                    }
+
+                    For(i IN 0 to Blob_Buffer-1)
+                    {
+                        If(used_blobs(i) = '1' AND i > find_i)
+                        {
+                            find_i := i;
+                        }
+                        Elsif(i = Blob_Buffer-1)
+                        {
+                            find_i := Blob_Buffer;
                         }
                     }
                 }
-                If(not found AND blob_num < Blob_Number)
+                Elsif(copy)
                 {
-                    blob_reg(blob_num).x0 <= start_x;
-                    blob_reg(blob_num).x1 <= end_x;
-                    blob_reg(blob_num).y0 <= Row;
-                    blob_reg(blob_num).y1 <= Row;
-                    blob_num <= blob_num + 1;
+                    copy       := false;
+                    Blobs      <= cur_blob;
+                    cur_blob   := 0;
+                    next_blob  <= 0;
+                    used_blobs <= (others => '0');
+                }
+                Else
+                {
+                    If(next_blob < Blob_Buffer)
+                    {
+                        blob_reg(next_blob).x0 <= start_x;
+                        blob_reg(next_blob).x1 <= end_x;
+                        blob_reg(next_blob).y0 <= Row;
+                        blob_reg(next_blob).y1 <= Row;
+                        used_blobs(next_blob) <= '1';
+                        For(i IN 0 to Blob_Buffer-1)
+                        {
+                            If(used_blobs(i) = '0' AND i /= next_blob)
+                            {
+                                next_blob <= i;
+                            }
+                            Elsif(i = Blob_Buffer-1)
+                            {
+                                next_blob <= Blob_Buffer;
+                            }
+                        }
+                    }
+                    Else
+                    {
+                        --Gucken ob aktueller Blob wichtiger sein könnte?
+                    }
+                    found := true;
                 }
             }
             

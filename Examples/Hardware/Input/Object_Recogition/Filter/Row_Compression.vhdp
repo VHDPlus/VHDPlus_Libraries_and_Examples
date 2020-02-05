@@ -1,0 +1,48 @@
+Component Row_Compression
+(
+    Generic
+    (
+        compression : NATURAL := 4;
+        Color_Depth : NATURAL := 8;
+        CLK_Edge    : BOOLEAN := true; --true = rising edge
+    );
+    iStream    : in   rgb_stream;
+    oStream    : out  rgb_stream;
+)
+{
+    oStream.New_Pixel <= iStream.New_Pixel;
+    oStream.Column    <= ((iStream.Column-3)/compression);
+    oStream.Row       <= iStream.Row;
+    
+    SIGNAL New_Pixel_Buf : STD_LOGIC;
+    New_Pixel_Buf <= iStream.New_Pixel when CLK_Edge else NOT iStream.New_Pixel;
+    
+    SIGNAL compress_count : NATURAL range 0 to compression-1 := 0;
+    
+    Process ()
+    {
+        If(rising_edge(New_Pixel_Buf))
+        {
+            VARIABLE sum_r : NATURAL range 0 to ((Color_Depth**2)*compression) := 0;
+            VARIABLE sum_g : NATURAL range 0 to ((Color_Depth**2)*compression) := 0;
+            VARIABLE sum_b : NATURAL range 0 to ((Color_Depth**2)*compression) := 0;
+            sum_r := sum_r + TO_INTEGER(UNSIGNED(iStream.R));
+            sum_g := sum_g + TO_INTEGER(UNSIGNED(iStream.G));
+            sum_b := sum_b + TO_INTEGER(UNSIGNED(iStream.B));
+            If(compress_count < compression-1)
+            {
+                compress_count <= compress_count + 1;
+            }
+            Else
+            {
+                oStream.R <= STD_LOGIC_VECTOR(TO_UNSIGNED(sum_r/compression, oStream.R'LENGTH));
+                oStream.G <= STD_LOGIC_VECTOR(TO_UNSIGNED(sum_g/compression, oStream.G'LENGTH));
+                oStream.B <= STD_LOGIC_VECTOR(TO_UNSIGNED(sum_b/compression, oStream.B'LENGTH));
+                sum_r := 0;
+                sum_g := 0;
+                sum_b := 0;
+                compress_count <= 0;
+            }
+        }
+    }
+}
