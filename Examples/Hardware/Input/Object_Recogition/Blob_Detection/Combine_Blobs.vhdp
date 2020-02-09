@@ -1,0 +1,289 @@
+--  Dist1 = sqrt(B1_XC^2 + B3_XC^2)
+--      _______
+--      |Color|     /\   Dist3 < (Blob_1_Height * Max_11Dist_Mult) / Max_11Dist_Div  <- Height = y1-y0 if y1-y0 < x1-x0 else x1-x0
+--      |__1__|3    ||   Width_3 < Width_1 <- Width = x1-x0 if x1-x0 > y1-y0 else y1-y0
+--     _________    ||
+--     | Color |    --   Dist2 < (Blob_1_Height * Max_12Dist_Mult) / Max_12Dist_Div
+--     |___2___|2   ||   Width_2 < Width_1
+--  ______________  ||
+--  |    Color   |  \/   B1_XC = (B1_x1+B1_x0)/2
+--  |______1_____|1      abs(B3_XC - B1_XC) < Dist/2 if not flipped
+--
+--  Blob_1_y1 > Blob_2/3_y1
+
+Component Cone_Detection
+(
+    Generic
+    (
+        Blob_Number     : NATURAL := 32;
+        Cone_Number     : NATURAL := 16;
+        Width           : NATURAL := 640;
+        Height          : NATURAL := 480;
+        
+        Max_11Dist_Mult : NATURAL := 2;  --Coimbines blobs with color 1 if this far apart
+        Max_11Dist_Div  : NATURAL := 1;
+        Max_12Dist_Mult : NATURAL := 1;  --Coimbines blob with color 1 and color 2 if this far apart
+        Max_12Dist_Div  : NATURAL := 1;
+    );
+    
+    Blob_Busy_1  : IN STD_LOGIC;
+    iBlobs_1     : IN NATURAL range 0 to Blob_Number-1;
+    iBlob_Addr_1 : OUT  NATURAL range 0 to Blob_Number-1;
+    iBlob_X0_1   : IN NATURAL range 0 to Width-1;
+    iBlob_X1_1   : IN NATURAL range 0 to Width-1;
+    iBlob_Y0_1   : IN NATURAL range 0 to Height-1;
+    iBlob_Y1_1   : IN NATURAL range 0 to Height-1;
+    
+    Blob_Busy_2  : IN STD_LOGIC;
+    iBlobs_2     : IN NATURAL range 0 to Blob_Number-1;
+    iBlob_Addr_2 : OUT  NATURAL range 0 to Blob_Number-1;
+    iBlob_X0_2   : IN NATURAL range 0 to Width-1;
+    iBlob_X1_2   : IN NATURAL range 0 to Width-1;
+    iBlob_Y0_2   : IN NATURAL range 0 to Height-1;
+    iBlob_Y1_2   : IN NATURAL range 0 to Height-1;
+    
+    oCones       : OUT NATURAL range 0 to Cone_Number;
+    oCones_Addr  : IN  NATURAL range 0 to Cone_Number-1;
+    oCones_X     : OUT NATURAL range 0 to Width-1;
+    oCones_Y     : OUT NATURAL range 0 to Height-1;
+)
+{
+    
+    TYPE cone_type IS RECORD
+    x : NATURAL range 0 to Width-1;  --center x
+    y : NATURAL range 0 to Height-1; --y1
+    END RECORD cone_type;
+    
+    TYPE cones_type IS ARRAY (0 to Cone_Number-1) OF cone_type;
+
+    SIGNAL cones_c : NATURAL range 0 to Cone_Number;
+    
+    oCones <= cones_c;
+    
+    Function log2 (return natural; x : positive)
+    {
+        variable i : natural;
+        i := 0;
+        While(2**i < x and i < 31)
+        {
+            i := i + 1;
+        }
+        return i;
+    }
+    
+    SIGNAL blob_ram_data_in  : STD_LOGIC_VECTOR (17 downto 0);
+    SIGNAL blob_ram_data_out : STD_LOGIC_VECTOR (17 downto 0);
+    
+    SIGNAL blob_ram_addr_in  : NATURAL range 0 to Cone_Number-1;
+
+    NewComponent ALTSYNCRAM
+    (
+        address_reg_b => "CLOCK0",
+        clock_enable_input_a => "BYPASS",
+        clock_enable_input_b => "BYPASS",
+        clock_enable_output_b => "BYPASS",
+        intended_device_family => "Cyclone 10 LP",
+        numwords_a => Cone_Number,
+        numwords_b => Cone_Number,
+        operation_mode => "DUAL_PORT",
+        outdata_reg_b => "CLOCK0",
+        widthad_a => log2(Cone_Number),
+        widthad_b => log2(Cone_Number),
+        width_a => 18,
+        width_b => 18,
+        width_byteena_a => 1,
+        
+        address_a => STD_LOGIC_VECTOR(TO_UNSIGNED(blob_ram_addr_in,log2(Cone_Number))),
+        address_b => STD_LOGIC_VECTOR(TO_UNSIGNED(oCones_Addr,log2(Cone_Number))),
+        clock0 => CLK,
+        data_a => blob_ram_data_in,
+        wren_a => '1',
+        q_b => blob_ram_data_out,
+    );
+
+    oCones_X <= TO_INTEGER(UNSIGNED(blob_ram_data_out(8 downto 0)))*2;
+    oCones_Y <= TO_INTEGER(UNSIGNED(blob_ram_data_out(17 downto 9)));
+    
+    Process()
+    {
+        VARIABLE run_combine : BOOLEAN := false;
+        VARIABLE New_Image_Reg : STD_LOGIC;
+        
+        VARIABLE new_cone : cone_type;
+        
+        If((Blob_Busy_1 OR Blob_Busy_2) = '0' AND New_Image_Reg = '1')
+        {
+            run_combine := true;
+            cones_c     <= 0;
+        }
+        New_Image_Reg := (Blob_Busy_1 OR Blob_Busy_2);
+        
+        If(run_combine)
+        {
+            VARIABLE Cur_Blob_Addr1 : NATURAL range 0 to Blob_Number-1;  --Blob color_1
+            VARIABLE Cur_Blob_Addr2 : NATURAL range 0 to Blob_Number-1;  --Blob color_2
+            VARIABLE Cur_Blob1_Addr : NATURAL range 0 to Blob_Number-1;  --Big Blob color_1
+            
+            iBlob_Addr_2 <= Cur_Blob_Addr2;
+            
+            VARIABLE main_blob : BOOLEAN := false;
+            
+            If(main_blob)
+            {
+                iBlob_Addr_1 <= Cur_Blob1_Addr;
+            }
+            Else
+            {
+                iBlob_Addr_1 <= Cur_Blob_Addr1;
+            }
+            
+            Thread
+            {
+                StepFor(Cur_Blob1_Addr := 0; Cur_Blob1_Addr < iBlobs_1; Cur_Blob1_Addr := Cur_Blob1_Addr + 1)
+                {
+                    VARIABLE Blob1_X0  : NATURAL range 0 to Width-1;
+                    VARIABLE Blob1_X1  : NATURAL range 0 to Width-1;
+                    VARIABLE Blob1_Y0  : NATURAL range 0 to Height-1;
+                    VARIABLE Blob1_Y1  : NATURAL range 0 to Height-1;
+                    
+                    VARIABLE Blob1_XC  : NATURAL range 0 to Width-1;
+                    
+                    VARIABLE Blob1_Flp : BOOLEAN; -- true if higher than wider -> has to be flipped to the side -> check angle
+                    VARIABLE Blob1_H   : NATURAL range 0 to Height-1;
+                    VARIABLE Blob1_W   : NATURAL range 0 to Width-1;
+                    
+                    VARIABLE Max_Dist2 : NATURAL range 0 to Height-1;
+                    VARIABLE Max_Dist3 : NATURAL range 0 to Height-1;
+
+                    main_blob := true;
+                    iBlob_Addr_1 <= Cur_Blob1_Addr;
+                    
+                    Wait(1);
+                    
+                    main_blob := false;
+                    
+                    Blob1_X0 := iBlob_X0_1;
+                    Blob1_X1 := iBlob_X1_1;
+                    Blob1_Y0 := iBlob_Y0_1;
+                    Blob1_Y1 := iBlob_Y1_1;
+                    
+                    Blob1_XC := (Blob1_X1+Blob1_X0)/2;
+                    
+                    If(Blob1_Y1 - Blob1_Y0 < Blob1_X1 - Blob1_X0)
+                    {
+                        Blob1_Flp := false;
+                        Blob1_H := Blob1_Y1 - Blob1_Y0;
+                        Blob1_W := Blob1_X1 - Blob1_X0;
+                    }
+                    Else
+                    {
+                        Blob1_Flp := true;
+                        Blob1_H := Blob1_X1 - Blob1_X0;
+                        Blob1_W := Blob1_Y1 - Blob1_Y0;
+                    }
+                    
+                    Max_Dist2 := (Blob1_H * Max_12Dist_Mult) / Max_12Dist_Div;
+                    Max_Dist3 := (Blob1_H * Max_11Dist_Mult) / Max_11Dist_Div;
+                    
+                    VARIABLE found : BOOLEAN := false;
+                    found := false;
+
+                    StepFor(Cur_Blob_Addr1 := 0; Cur_Blob_Addr1 < iBlobs_1 AND NOT found; Cur_Blob_Addr1 := Cur_Blob_Addr1 + 1)
+                    {
+                        --1. B3_Y1 < B1_Y1
+                        --2. Dist3 < MaxDist3
+                        --3. Width_3 < Width_1
+                        --4. abs(B3_XC - B1_XC) < Dist/2 if not flipped
+
+                        If(Blob1_Y1 > iBlob_Y1_1)
+                        {
+                            VARIABLE Blob3_XC  : NATURAL range 0 to Width-1;
+                            Blob3_XC := (iBlob_X1_1+iBlob_X0_1)/2;
+                            
+                            VARIABLE Dist3 : NATURAL range 0 to Height-1;
+                            Dist3 := abs(Blob3_XC-Blob1_XC)+abs(iBlob_Y1_1-Blob1_Y1);
+                            
+                            If(Dist3 < Max_Dist3)
+                            {
+                                VARIABLE Blob3_W   : NATURAL range 0 to Width-1;
+                                VARIABLE Blob3_Flp : BOOLEAN;
+                                If(iBlob_Y1_1 - iBlob_Y0_1 < iBlob_X1_1 - iBlob_X0_1)
+                                {
+                                    Blob3_Flp := false;
+                                    Blob3_W := iBlob_X1_1 - iBlob_X0_1;
+                                }
+                                Else
+                                {
+                                    Blob3_Flp := true;
+                                    Blob3_W := iBlob_Y1_1 - iBlob_Y0_1;
+                                }
+                                
+                                If(Blob3_W < Blob1_W AND Blob1_Flp = Blob3_Flp)
+                                {
+                                    If(abs(Blob3_XC-Blob1_XC) > Dist3/2 XNOR Blob3_Flp)
+                                    {
+                                        new_cone.x := Blob1_XC;
+                                        new_cone.y := Blob1_Y1;
+                                        cones_c <= cones_c + 1;
+                                        found := true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    StepFor(Cur_Blob_Addr2 := 0; Cur_Blob_Addr2 < iBlobs_2 AND NOT found; Cur_Blob_Addr2 := Cur_Blob_Addr2 + 1)
+                    {
+                        --1. B2_Y1 < B1_Y1
+                        --2. Dist2 < MaxDist2
+                        --3. Width_2 < Width_1
+                        --4. abs(B2_XC - B1_XC) < Dist/2 if not flipped
+
+                        If(Blob1_Y1 > iBlob_Y1_2)
+                        {
+                            VARIABLE Blob2_XC  : NATURAL range 0 to Width-1;
+                            Blob2_XC := (iBlob_X1_2+iBlob_X0_2)/2;
+                            
+                            VARIABLE Dist2 : NATURAL range 0 to Height-1;
+                            Dist2 := abs(Blob2_XC-Blob1_XC)+abs(iBlob_Y1_2-Blob1_Y1);
+                            
+                            If(Dist2 < Max_Dist2)
+                            {
+                                VARIABLE Blob2_W   : NATURAL range 0 to Width-1;
+                                VARIABLE Blob2_Flp : BOOLEAN;
+                                If(iBlob_Y1_2 - iBlob_Y0_2 < iBlob_X1_2 - iBlob_X0_2)
+                                {
+                                    Blob2_Flp := false;
+                                    Blob2_W := iBlob_X1_2 - iBlob_X0_2;
+                                }
+                                Else
+                                {
+                                    Blob2_Flp := true;
+                                    Blob2_W := iBlob_Y1_2 - iBlob_Y0_2;
+                                }
+                                
+                                If(Blob2_W < Blob1_W AND Blob1_Flp = Blob2_Flp)
+                                {
+                                    If(abs(Blob2_XC-Blob1_XC) > Dist2/2 XNOR Blob2_Flp)
+                                    {
+                                        new_cone.x := Blob1_XC;
+                                        new_cone.y := Blob1_Y1;
+                                        cones_c <= cones_c + 1;
+                                        found := true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    If(found)
+                    {
+                        blob_ram_addr_in <= cones_c;
+                        blob_ram_data_in <= STD_LOGIC_VECTOR(TO_UNSIGNED(new_cone.y, 9)) & STD_LOGIC_VECTOR(TO_UNSIGNED(new_cone.x/2, 9));
+                    }
+                }
+            }
+        }
+    }
+
+}

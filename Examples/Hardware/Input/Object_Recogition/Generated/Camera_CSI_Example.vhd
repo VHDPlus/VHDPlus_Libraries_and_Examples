@@ -23,17 +23,25 @@ END Camera_CSI_Example;
 
 ARCHITECTURE BEHAVIORAL OF Camera_CSI_Example IS
 
-  CONSTANT MAX_Area    : NATURAL := 24;
-  CONSTANT MIN_Area    : NATURAL := 4;
+  CONSTANT MAX_Area    : NATURAL := 6;
+  CONSTANT MIN_Area    : NATURAL := 2;
+  CONSTANT MAX_Area_O  : NATURAL := ((MAX_Area**2)/2)*1;
+  CONSTANT Start_Row   : NATURAL := 100;
   CONSTANT blob_number : NATURAL := 32;
-  CONSTANT capture_compression : NATURAL := 2;
-  SIGNAL color_select : NATURAL range 0 to 2;
+  CONSTANT capture_compression : NATURAL :=  1;
+  CONSTANT Blob_Min_H  : NATURAL := 2;
+  CONSTANT Blob_Min_W  : NATURAL := 2;
+  CONSTANT Blob_Max_H  : NATURAL := 40;
+  CONSTANT Blob_Max_W  : NATURAL := 80;
+  CONSTANT RGB        : BOOLEAN := false;
+  CONSTANT Full_Image : BOOLEAN := true;
+  SIGNAL color_select : NATURAL range 0 to 3 := 2;
+  SIGNAL cone_select : NATURAL range 0 to 1 := 1;
   SIGNAL Camera_Stream         : rgb_stream;
   SIGNAL Color_Correction_Filter_Stream     : rgb_stream;
   SIGNAL Compression_Filter_oStream    : rgb_stream;
   SIGNAL RGB2HSV_oHSV       : rgb_stream;
   SIGNAL RGB2HSV_iRGB       : rgb_stream;
-  SIGNAL Color_Threshold_Filter_iStream    : rgb_stream;
   SIGNAL Color_Threshold_Filter_iHSV       : rgb_stream;
   SIGNAL Yellow_Filter_oStream             : rgb_stream;
   SIGNAL Black_Filter_oStream     : rgb_stream;
@@ -43,30 +51,42 @@ ARCHITECTURE BEHAVIORAL OF Camera_CSI_Example IS
   SIGNAL Area_Compression_New_Pixel : STD_LOGIC;
   SIGNAL Area_Compression_Column    : NATURAL range 0 to 639;
   SIGNAL Area_Compression_Row       : NATURAL range 0 to 479;
+  SIGNAL Blob_Detect_Busy_Yellow            : STD_LOGIC;
   SIGNAL Blob_Detect_Blobs_Yellow           : NATURAL   range 0 to 64-1;
   SIGNAL Blob_Detect_Blob_Addr_Yellow       : NATURAL   range 0 to 64-1;
   SIGNAL Blob_Detect_Blob_X0_Yellow         : NATURAL   range 0 to 640-1;
   SIGNAL Blob_Detect_Blob_X1_Yellow         : NATURAL   range 0 to 640-1;
   SIGNAL Blob_Detect_Blob_Y0_Yellow         : NATURAL   range 0 to 480-1;
   SIGNAL Blob_Detect_Blob_Y1_Yellow         : NATURAL   range 0 to 480-1;
+  SIGNAL Blob_Detect_Busy_Black            : STD_LOGIC;
   SIGNAL Blob_Detect_Blobs_Black           : NATURAL   range 0 to 64-1;
   SIGNAL Blob_Detect_Blob_Addr_Black       : NATURAL   range 0 to 64-1;
   SIGNAL Blob_Detect_Blob_X0_Black         : NATURAL   range 0 to 640-1;
   SIGNAL Blob_Detect_Blob_X1_Black         : NATURAL   range 0 to 640-1;
   SIGNAL Blob_Detect_Blob_Y0_Black         : NATURAL   range 0 to 480-1;
   SIGNAL Blob_Detect_Blob_Y1_Black         : NATURAL   range 0 to 480-1;
+  SIGNAL Blob_Detect_Busy_Blue            : STD_LOGIC;
   SIGNAL Blob_Detect_Blobs_Blue           : NATURAL   range 0 to 64-1;
   SIGNAL Blob_Detect_Blob_Addr_Blue       : NATURAL   range 0 to 64-1;
   SIGNAL Blob_Detect_Blob_X0_Blue         : NATURAL   range 0 to 640-1;
   SIGNAL Blob_Detect_Blob_X1_Blue         : NATURAL   range 0 to 640-1;
   SIGNAL Blob_Detect_Blob_Y0_Blue         : NATURAL   range 0 to 480-1;
   SIGNAL Blob_Detect_Blob_Y1_Blue         : NATURAL   range 0 to 480-1;
+  SIGNAL Blob_Detect_Busy_White            : STD_LOGIC;
   SIGNAL Blob_Detect_Blobs_White           : NATURAL   range 0 to 64-1;
   SIGNAL Blob_Detect_Blob_Addr_White       : NATURAL   range 0 to 64-1;
   SIGNAL Blob_Detect_Blob_X0_White         : NATURAL   range 0 to 640-1;
   SIGNAL Blob_Detect_Blob_X1_White         : NATURAL   range 0 to 640-1;
   SIGNAL Blob_Detect_Blob_Y0_White         : NATURAL   range 0 to 480-1;
   SIGNAL Blob_Detect_Blob_Y1_White         : NATURAL   range 0 to 480-1;
+  SIGNAL Cone_Detection_oCones_Blue          : NATURAL   range 0 to 16;
+  SIGNAL Cone_Detection_oCones_Addr_Blue     : NATURAL   range 0 to 16-1;
+  SIGNAL Cone_Detection_oCones_X_Blue        : NATURAL   range 0 to 640-1;
+  SIGNAL Cone_Detection_oCones_Y_Blue        : NATURAL   range 0 to 480-1;
+  SIGNAL Cone_Detection_oCones_Yellow          : NATURAL   range 0 to 16;
+  SIGNAL Cone_Detection_oCones_Addr_Yellow     : NATURAL   range 0 to 16-1;
+  SIGNAL Cone_Detection_oCones_X_Yellow        : NATURAL   range 0 to 640-1;
+  SIGNAL Cone_Detection_oCones_Y_Yellow        : NATURAL   range 0 to 480-1;
   SIGNAL Camera_Capture_iStream     : rgb_stream;
   SIGNAL ISSP_source  : std_logic_vector (7 downto 0) := "00000000";
   SIGNAL ISSP1_source : std_logic_vector (7 downto 0) := "01001000";
@@ -78,6 +98,10 @@ ARCHITECTURE BEHAVIORAL OF Camera_CSI_Example IS
   SIGNAL ISSP2_probe  : std_logic_vector (31 downto 0);
   SIGNAL ISSP3_probe  : std_logic_vector (31 downto 0);
   SIGNAL ISSP4_probe  : std_logic_vector (31 downto 0);
+  SIGNAL Cone_Detection_oCones_Out          : NATURAL   range 0 to 16;
+  SIGNAL Cone_Detection_oCones_Addr_Out     : NATURAL   range 0 to 16-1;
+  SIGNAL Cone_Detection_oCones_X_Out        : NATURAL   range 0 to 640-1;
+  SIGNAL Cone_Detection_oCones_Y_Out        : NATURAL   range 0 to 480-1;
   SIGNAL Blob_Detect_Blobs_Out           : NATURAL   range 0 to 64-1;
   SIGNAL Blob_Detect_Blob_X0_Out         : NATURAL   range 0 to 640-1;
   SIGNAL Blob_Detect_Blob_X1_Out         : NATURAL   range 0 to 640-1;
@@ -153,7 +177,7 @@ ARCHITECTURE BEHAVIORAL OF Camera_CSI_Example IS
   END COMPONENT;
   COMPONENT Color_Threshold_HSV_Filter IS
   GENERIC (
-      BW_Out : BOOLEAN := false
+      CLK_Edge    : BOOLEAN := true 
 
   );
   PORT (
@@ -164,16 +188,8 @@ ARCHITECTURE BEHAVIORAL OF Camera_CSI_Example IS
     S_Max : IN NATURAL := 255; 
     V_Min : IN NATURAL := 0;   
     V_Max : IN NATURAL := 255; 
-    Relace : IN STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
-    iPixel_R   : IN STD_LOGIC_VECTOR (7 downto 0);
-    iPixel_G   : IN STD_LOGIC_VECTOR (7 downto 0);
-    iPixel_B   : IN STD_LOGIC_VECTOR (7 downto 0);
-    iHSV_H     : IN STD_LOGIC_VECTOR (7 downto 0);
-    iHSV_S     : IN STD_LOGIC_VECTOR (7 downto 0);
-    iHSV_V     : IN STD_LOGIC_VECTOR (7 downto 0);
-    oPixel_R   : OUT STD_LOGIC_VECTOR (7 downto 0);
-    oPixel_G   : OUT STD_LOGIC_VECTOR (7 downto 0);
-    oPixel_B   : OUT STD_LOGIC_VECTOR (7 downto 0)
+    iStream    : in   rgb_stream;
+    oStream    : out  rgb_stream
 
   );
   END COMPONENT;
@@ -209,9 +225,11 @@ ARCHITECTURE BEHAVIORAL OF Camera_CSI_Example IS
     Width           : NATURAL := 640;
     Height          : NATURAL := 480;
     Min_Blob_Width  : NATURAL := 4;
-    Min_Blob_Height : NATURAL := 4;
-    Max_Blob_Width  : NATURAL := 200;
-    Max_Blob_Height : NATURAL := 200
+    Min_Blob_Height : NATURAL := 2;
+    Max_Blob_Width  : NATURAL := 20;
+    Max_Blob_Height : NATURAL := 15;
+    Upscale_Mult    : NATURAL := 4;
+    Upscale_Start   : NATURAL := 100 
 
   );
   PORT (
@@ -220,12 +238,48 @@ ARCHITECTURE BEHAVIORAL OF Camera_CSI_Example IS
     Pixel_In  : IN STD_LOGIC; 
     Column    : IN NATURAL range 0 to 639;
     Row       : IN NATURAL range 0 to 479;
-    Blobs     : OUT NATURAL range 0 to Blob_Number-1;
+    Blob_Busy : OUT STD_LOGIC := '0';
+    Blobs     : BUFFER NATURAL range 0 to Blob_Number-1;
     Blob_Addr : IN  NATURAL range 0 to Blob_Number-1;
     Blob_X0   : OUT NATURAL range 0 to Width-1;
     Blob_X1   : OUT NATURAL range 0 to Width-1;
     Blob_Y0   : OUT NATURAL range 0 to Height-1;
     Blob_Y1   : OUT NATURAL range 0 to Height-1
+
+  );
+  END COMPONENT;
+  COMPONENT Cone_Detection IS
+  GENERIC (
+      Blob_Number     : NATURAL := 32;
+    Cone_Number     : NATURAL := 16;
+    Width           : NATURAL := 640;
+    Height          : NATURAL := 480;
+    Max_11Dist_Mult : NATURAL := 2;  
+    Max_11Dist_Div  : NATURAL := 1;
+    Max_12Dist_Mult : NATURAL := 1;  
+    Max_12Dist_Div  : NATURAL := 1
+
+  );
+  PORT (
+    CLK : IN STD_LOGIC;
+    Blob_Busy_1  : IN STD_LOGIC;
+    iBlobs_1     : IN NATURAL range 0 to Blob_Number-1;
+    iBlob_Addr_1 : OUT  NATURAL range 0 to Blob_Number-1;
+    iBlob_X0_1   : IN NATURAL range 0 to Width-1;
+    iBlob_X1_1   : IN NATURAL range 0 to Width-1;
+    iBlob_Y0_1   : IN NATURAL range 0 to Height-1;
+    iBlob_Y1_1   : IN NATURAL range 0 to Height-1;
+    Blob_Busy_2  : IN STD_LOGIC;
+    iBlobs_2     : IN NATURAL range 0 to Blob_Number-1;
+    iBlob_Addr_2 : OUT  NATURAL range 0 to Blob_Number-1;
+    iBlob_X0_2   : IN NATURAL range 0 to Width-1;
+    iBlob_X1_2   : IN NATURAL range 0 to Width-1;
+    iBlob_Y0_2   : IN NATURAL range 0 to Height-1;
+    iBlob_Y1_2   : IN NATURAL range 0 to Height-1;
+    oCones       : OUT NATURAL range 0 to Cone_Number;
+    oCones_Addr  : IN  NATURAL range 0 to Cone_Number-1;
+    oCones_X     : OUT NATURAL range 0 to Width-1;
+    oCones_Y     : OUT NATURAL range 0 to Height-1
 
   );
   END COMPONENT;
@@ -249,14 +303,8 @@ ARCHITECTURE BEHAVIORAL OF Camera_CSI_Example IS
     Square_X1  : IN NATURAL range 0 to 639;
     Square_Y0  : IN NATURAL range 0 to 479;
     Square_Y1  : IN NATURAL range 0 to 479;
-    iColumn    : IN NATURAL range 0 to 639;
-    iRow       : IN NATURAL range 0 to 479;
-    iPixel_R   : IN STD_LOGIC_VECTOR (7 downto 0);
-    iPixel_G   : IN STD_LOGIC_VECTOR (7 downto 0);
-    iPixel_B   : IN STD_LOGIC_VECTOR (7 downto 0);
-    oPixel_R   : OUT STD_LOGIC_VECTOR (7 downto 0);
-    oPixel_G   : OUT STD_LOGIC_VECTOR (7 downto 0);
-    oPixel_B   : OUT STD_LOGIC_VECTOR (7 downto 0)
+    iStream    : in   rgb_stream;
+    oStream    : out  rgb_stream
 
   );
   END COMPONENT;
@@ -326,16 +374,6 @@ ARCHITECTURE BEHAVIORAL OF Camera_CSI_Example IS
   
 BEGIN
 
-  color_select <= TO_INTEGER(UNSIGNED(ISSP1_source));
-  ISSP_probe  <= STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Detect_Blobs_Out, 32));
-  ISSP1_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Detect_Blob_X0_Out, 32));
-  ISSP2_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Detect_Blob_X1_Out, 32));
-  ISSP3_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Detect_Blob_Y0_Out, 32));
-  ISSP4_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Detect_Blob_Y1_Out, 32));
-  Blob_Detect_Blob_Addr_Yellow <= TO_INTEGER(UNSIGNED(ISSP_source));
-  Blob_Detect_Blob_Addr_Black  <= TO_INTEGER(UNSIGNED(ISSP_source));
-  Blob_Detect_Blob_Addr_Blue   <= TO_INTEGER(UNSIGNED(ISSP_source));
-  Blob_Detect_Blob_Addr_White  <= TO_INTEGER(UNSIGNED(ISSP_source));
   Camera_Enable <= '1';
 
   Compression_Filter_oStream <= Color_Correction_Filter_Stream;
@@ -343,31 +381,24 @@ BEGIN
 
   RGB2HSV_iRGB <= Compression_Filter_oStream;
 
-
   Color_Threshold_Filter_iHSV  <= RGB2HSV_oHSV;
+  Camera_Capture_iStream <= Square_iStream;
 
-  Yellow_Filter_oStream.Column    <= Color_Threshold_Filter_iHSV.Column;
-  Yellow_Filter_oStream.Row       <= Color_Threshold_Filter_iHSV.Row;
-  Yellow_Filter_oStream.New_Pixel <= Color_Threshold_Filter_iHSV.New_Pixel;
 
-  Black_Filter_oStream.Column    <= Color_Threshold_Filter_iHSV.Column;
-  Black_Filter_oStream.Row       <= Color_Threshold_Filter_iHSV.Row;
-  Black_Filter_oStream.New_Pixel <= Color_Threshold_Filter_iHSV.New_Pixel;
 
-  Blue_Filter_oStream.Column    <= Color_Threshold_Filter_iHSV.Column;
-  Blue_Filter_oStream.Row       <= Color_Threshold_Filter_iHSV.Row;
-  Blue_Filter_oStream.New_Pixel <= Color_Threshold_Filter_iHSV.New_Pixel;
 
-  White_Filter_oStream.Column    <= Color_Threshold_Filter_iHSV.Column;
-  White_Filter_oStream.Row       <= Color_Threshold_Filter_iHSV.Row;
-  White_Filter_oStream.New_Pixel <= Color_Threshold_Filter_iHSV.New_Pixel;
-  Camera_Capture_iStream <= Square_oStream;
+  Cone_Detection_oCones_Out <= Cone_Detection_oCones_Yellow when cone_select = 0 else Cone_Detection_oCones_Blue;
+  Cone_Detection_oCones_Addr_Out <= Cone_Detection_oCones_Addr_Yellow when cone_select = 0 else Cone_Detection_oCones_Addr_Blue;
+  Cone_Detection_oCones_X_Out <= Cone_Detection_oCones_X_Yellow when cone_select = 0 else Cone_Detection_oCones_X_Blue;
+  Cone_Detection_oCones_Y_Out <= Cone_Detection_oCones_Y_Yellow when cone_select = 0 else Cone_Detection_oCones_Y_Blue;
 
 
 
 
 
-  Square_iStream.R(7)      <= Area_Compression_Pixel(color_select);
+  Square_iStream.R         <= (others => Area_Compression_Pixel(color_select));
+  Square_iStream.G         <= (others => Area_Compression_Pixel(color_select));
+  Square_iStream.B         <= (others => Area_Compression_Pixel(color_select));
   Square_iStream.Column    <= Area_Compression_Column;
   Square_iStream.Row       <= Area_Compression_Row;
   Square_iStream.New_Pixel <= Area_Compression_New_Pixel;
@@ -391,11 +422,6 @@ BEGIN
   else Blob_Detect_Blob_Y1_Black when color_select = 1
   else Blob_Detect_Blob_Y1_Blue  when color_select = 2
   else Blob_Detect_Blob_Y1_White;
-
-
-  Square_oStream.New_Pixel <= Square_iStream.New_Pixel;
-  Square_oStream.Column    <= Square_iStream.Column;
-  Square_oStream.Row       <= Square_iStream.Row;
   CSI_Camera1 : CSI_Camera
   GENERIC MAP (
       CLK_Frequency => 48000000
@@ -449,7 +475,7 @@ BEGIN
   );
   Color_Threshold_HSV_Filter1 : Color_Threshold_HSV_Filter
   GENERIC MAP (
-      BW_Out     => true
+      CLK_Edge   => false
 
   ) PORT MAP (
     CLK => CLK,
@@ -459,21 +485,14 @@ BEGIN
     S_Max      => 255, 
     V_Min      => 60,  
     V_Max      => 255, 
-    iPixel_R   => Color_Threshold_Filter_iStream.R,
-    iPixel_G   => Color_Threshold_Filter_iStream.G,
-    iPixel_B   => Color_Threshold_Filter_iStream.B,
-    iHSV_H     => Color_Threshold_Filter_iHSV.R,
-    iHSV_S     => Color_Threshold_Filter_iHSV.G,
-    iHSV_V     => Color_Threshold_Filter_iHSV.B,
-    oPixel_R   => Yellow_Filter_oStream.R,
-    oPixel_G   => Yellow_Filter_oStream.G,
-    oPixel_B   => Yellow_Filter_oStream.B
+    iStream    => Color_Threshold_Filter_iHSV,
+    oStream    => Yellow_Filter_oStream
 
     
   );
   Color_Threshold_HSV_Filter2 : Color_Threshold_HSV_Filter
   GENERIC MAP (
-      BW_Out     => true
+      CLK_Edge   => false
 
   ) PORT MAP (
     CLK => CLK,
@@ -483,21 +502,14 @@ BEGIN
     S_Max      => 255,
     V_Min      => 0,
     V_Max      => 40,
-    iPixel_R   => Color_Threshold_Filter_iStream.R,
-    iPixel_G   => Color_Threshold_Filter_iStream.G,
-    iPixel_B   => Color_Threshold_Filter_iStream.B,
-    iHSV_H     => Color_Threshold_Filter_iHSV.R,
-    iHSV_S     => Color_Threshold_Filter_iHSV.G,
-    iHSV_V     => Color_Threshold_Filter_iHSV.B,
-    oPixel_R   => Black_Filter_oStream.R,
-    oPixel_G   => Black_Filter_oStream.G,
-    oPixel_B   => Black_Filter_oStream.B
+    iStream    => Color_Threshold_Filter_iHSV,
+    oStream    => Black_Filter_oStream
 
     
   );
   Color_Threshold_HSV_Filter3 : Color_Threshold_HSV_Filter
   GENERIC MAP (
-      BW_Out     => true
+      CLK_Edge   => false
 
   ) PORT MAP (
     CLK => CLK,
@@ -507,21 +519,14 @@ BEGIN
     S_Max      => 255,
     V_Min      => 60,
     V_Max      => 255,
-    iPixel_R   => Color_Threshold_Filter_iStream.R,
-    iPixel_G   => Color_Threshold_Filter_iStream.G,
-    iPixel_B   => Color_Threshold_Filter_iStream.B,
-    iHSV_H     => Color_Threshold_Filter_iHSV.R,
-    iHSV_S     => Color_Threshold_Filter_iHSV.G,
-    iHSV_V     => Color_Threshold_Filter_iHSV.B,
-    oPixel_R   => Blue_Filter_oStream.R,
-    oPixel_G   => Blue_Filter_oStream.G,
-    oPixel_B   => Blue_Filter_oStream.B
+    iStream    => Color_Threshold_Filter_iHSV,
+    oStream    => Blue_Filter_oStream
 
     
   );
   Color_Threshold_HSV_Filter4 : Color_Threshold_HSV_Filter
   GENERIC MAP (
-      BW_Out     => true
+      CLK_Edge   => false
 
   ) PORT MAP (
     CLK => CLK,
@@ -531,27 +536,20 @@ BEGIN
     S_Max      => 120,
     V_Min      => 150,
     V_Max      => 255,
-    iPixel_R   => Color_Threshold_Filter_iStream.R,
-    iPixel_G   => Color_Threshold_Filter_iStream.G,
-    iPixel_B   => Color_Threshold_Filter_iStream.B,
-    iHSV_H     => Color_Threshold_Filter_iHSV.R,
-    iHSV_S     => Color_Threshold_Filter_iHSV.G,
-    iHSV_V     => Color_Threshold_Filter_iHSV.B,
-    oPixel_R   => White_Filter_oStream.R,
-    oPixel_G   => White_Filter_oStream.G,
-    oPixel_B   => White_Filter_oStream.B
+    iStream    => Color_Threshold_Filter_iHSV,
+    oStream    => White_Filter_oStream
 
     
   );
   AreaLimitedCompression1 : AreaLimitedCompression
   GENERIC MAP (
       Image_Width => 640,
-    MAX_Area_O  => 250,  
+    MAX_Area_O  => MAX_Area_O,  
     MAX_Area    => MAX_Area,
     MIN_Area    => MIN_Area,
-    Start_Row   => 0,
+    Start_Row   => Start_Row,
     Colors      => 4,
-    CLK_Edge    => false
+    CLK_Edge    => true
 
   ) PORT MAP (
     CLK => CLK,
@@ -575,10 +573,12 @@ BEGIN
     Blob_Buffer     => 8,
     Width           => 640,
     Height          => 480,
-    Min_Blob_Width  => 0,
-    Min_Blob_Height => 0,
-    Max_Blob_Width  => 640,
-    Max_Blob_Height => 480
+    Min_Blob_Width  => Blob_Min_W,
+    Min_Blob_Height => Blob_Min_H,
+    Max_Blob_Width  => Blob_Max_W,
+    Max_Blob_Height => Blob_Max_H,
+    Upscale_Mult    => MAX_Area/MIN_Area,
+    Upscale_Start   => Start_Row
 
   ) PORT MAP (
     CLK => CLK,
@@ -586,6 +586,7 @@ BEGIN
     Pixel_In        => Area_Compression_Pixel(0),
     Column          => Area_Compression_Column,
     Row             => Area_Compression_Row,
+    Blob_Busy       => Blob_Detect_Busy_Yellow,
     Blobs           => Blob_Detect_Blobs_Yellow,
     Blob_Addr       => Blob_Detect_Blob_Addr_Yellow,
     Blob_X0         => Blob_Detect_Blob_X0_Yellow,
@@ -601,10 +602,12 @@ BEGIN
     Blob_Buffer     => 8,
     Width           => 640,
     Height          => 480,
-    Min_Blob_Width  => 0,
-    Min_Blob_Height => 0,
-    Max_Blob_Width  => 640,
-    Max_Blob_Height => 480
+    Min_Blob_Width  => Blob_Min_W,
+    Min_Blob_Height => Blob_Min_H,
+    Max_Blob_Width  => Blob_Max_W,
+    Max_Blob_Height => Blob_Max_H,
+    Upscale_Mult    => MAX_Area/MIN_Area,
+    Upscale_Start   => Start_Row
 
   ) PORT MAP (
     CLK => CLK,
@@ -612,6 +615,7 @@ BEGIN
     Pixel_In        => Area_Compression_Pixel(1),
     Column          => Area_Compression_Column,
     Row             => Area_Compression_Row,
+    Blob_Busy       => Blob_Detect_Busy_Black,
     Blobs           => Blob_Detect_Blobs_Black,
     Blob_Addr       => Blob_Detect_Blob_Addr_Black,
     Blob_X0         => Blob_Detect_Blob_X0_Black,
@@ -627,10 +631,12 @@ BEGIN
     Blob_Buffer     => 8,
     Width           => 640,
     Height          => 480,
-    Min_Blob_Width  => 0,
-    Min_Blob_Height => 0,
-    Max_Blob_Width  => 640,
-    Max_Blob_Height => 480
+    Min_Blob_Width  => Blob_Min_W,
+    Min_Blob_Height => Blob_Min_H,
+    Max_Blob_Width  => Blob_Max_W,
+    Max_Blob_Height => Blob_Max_H,
+    Upscale_Mult    => MAX_Area/MIN_Area,
+    Upscale_Start   => Start_Row
 
   ) PORT MAP (
     CLK => CLK,
@@ -638,6 +644,7 @@ BEGIN
     Pixel_In        => Area_Compression_Pixel(2),
     Column          => Area_Compression_Column,
     Row             => Area_Compression_Row,
+    Blob_Busy       => Blob_Detect_Busy_Blue,
     Blobs           => Blob_Detect_Blobs_Blue,
     Blob_Addr       => Blob_Detect_Blob_Addr_Blue,
     Blob_X0         => Blob_Detect_Blob_X0_Blue,
@@ -653,10 +660,12 @@ BEGIN
     Blob_Buffer     => 8,
     Width           => 640,
     Height          => 480,
-    Min_Blob_Width  => 0,
-    Min_Blob_Height => 0,
-    Max_Blob_Width  => 640,
-    Max_Blob_Height => 480
+    Min_Blob_Width  => Blob_Min_W,
+    Min_Blob_Height => Blob_Min_H,
+    Max_Blob_Width  => Blob_Max_W,
+    Max_Blob_Height => Blob_Max_H,
+    Upscale_Mult    => MAX_Area/MIN_Area,
+    Upscale_Start   => Start_Row
 
   ) PORT MAP (
     CLK => CLK,
@@ -664,12 +673,81 @@ BEGIN
     Pixel_In        => Area_Compression_Pixel(3),
     Column          => Area_Compression_Column,
     Row             => Area_Compression_Row,
+    Blob_Busy       => Blob_Detect_Busy_White,
     Blobs           => Blob_Detect_Blobs_White,
     Blob_Addr       => Blob_Detect_Blob_Addr_White,
     Blob_X0         => Blob_Detect_Blob_X0_White,
     Blob_X1         => Blob_Detect_Blob_X1_White,
     Blob_Y0         => Blob_Detect_Blob_Y0_White,
     Blob_Y1         => Blob_Detect_Blob_Y1_White
+
+    
+  );
+  Cone_Detection1 : Cone_Detection
+  GENERIC MAP (
+      Blob_Number     => 32,
+    Cone_Number     => 16,
+    Width           => 640,
+    Height          => 480,
+    Max_11Dist_Mult => 2,
+    Max_11Dist_Div  => 1,
+    Max_12Dist_Mult => 1,
+    Max_12Dist_Div  => 1
+
+  ) PORT MAP (
+    CLK => CLK,
+    Blob_Busy_1     => Blob_Detect_Busy_Blue,
+    iBlobs_1        => Blob_Detect_Blobs_Blue,
+    iBlob_Addr_1    => Blob_Detect_Blob_Addr_Blue,
+    iBlob_X0_1      => Blob_Detect_Blob_X0_Blue,
+    iBlob_X1_1      => Blob_Detect_Blob_X1_Blue,
+    iBlob_Y0_1      => Blob_Detect_Blob_Y0_Blue,
+    iBlob_Y1_1      => Blob_Detect_Blob_Y1_Blue,
+    Blob_Busy_2     => Blob_Detect_Busy_White,
+    iBlobs_2        => Blob_Detect_Blobs_White,
+    iBlob_Addr_2    => Blob_Detect_Blob_Addr_White,
+    iBlob_X0_2      => Blob_Detect_Blob_X0_White,
+    iBlob_X1_2      => Blob_Detect_Blob_X1_White,
+    iBlob_Y0_2      => Blob_Detect_Blob_Y0_White,
+    iBlob_Y1_2      => Blob_Detect_Blob_Y1_White,
+    oCones          => Cone_Detection_oCones_Blue,
+    oCones_Addr     => Cone_Detection_oCones_Addr_Blue,
+    oCones_X        => Cone_Detection_oCones_X_Blue,
+    oCones_Y        => Cone_Detection_oCones_Y_Blue
+
+    
+  );
+  Cone_Detection2 : Cone_Detection
+  GENERIC MAP (
+      Blob_Number     => 32,
+    Cone_Number     => 16,
+    Width           => 640,
+    Height          => 480,
+    Max_11Dist_Mult => 2,
+    Max_11Dist_Div  => 1,
+    Max_12Dist_Mult => 1,
+    Max_12Dist_Div  => 1
+
+  ) PORT MAP (
+    CLK => CLK,
+    Blob_Busy_1     => Blob_Detect_Busy_Yellow,
+    iBlobs_1        => Blob_Detect_Blobs_Yellow,
+    iBlob_Addr_1    => Blob_Detect_Blob_Addr_Yellow,
+    iBlob_X0_1      => Blob_Detect_Blob_X0_Yellow,
+    iBlob_X1_1      => Blob_Detect_Blob_X1_Yellow,
+    iBlob_Y0_1      => Blob_Detect_Blob_Y0_Yellow,
+    iBlob_Y1_1      => Blob_Detect_Blob_Y1_Yellow,
+    Blob_Busy_2     => Blob_Detect_Busy_Black,
+    iBlobs_2        => Blob_Detect_Blobs_Black,
+    iBlob_Addr_2    => Blob_Detect_Blob_Addr_Black,
+    iBlob_X0_2      => Blob_Detect_Blob_X0_Black,
+    iBlob_X1_2      => Blob_Detect_Blob_X1_Black,
+    iBlob_Y0_2      => Blob_Detect_Blob_Y0_Black,
+    iBlob_Y1_2      => Blob_Detect_Blob_Y1_Black,
+    oCones          => Cone_Detection_oCones_Yellow,
+    oCones_Addr     => Cone_Detection_oCones_Addr_Yellow,
+    oCones_X        => Cone_Detection_oCones_X_Yellow,
+    oCones_Y        => Cone_Detection_oCones_Y_Yellow
 
     
   );
@@ -705,7 +783,7 @@ BEGIN
   );
   Draw_Square1 : Draw_Square
   GENERIC MAP (
-      Width     => 4,
+      Width     => 8,
     Color     => x"FF0000"
 
   ) PORT MAP (
@@ -714,14 +792,8 @@ BEGIN
     Square_X1 => Blob_Detect_Blob_X1_Out,
     Square_Y0 => Blob_Detect_Blob_Y0_Out,
     Square_Y1 => Blob_Detect_Blob_Y1_Out,
-    iColumn   => Square_iStream.Column,
-    iRow      => Square_iStream.Row,
-    iPixel_R  => Square_iStream.R,
-    iPixel_G  => Square_iStream.G,
-    iPixel_B  => Square_iStream.B,
-    oPixel_R  => Square_oStream.R,
-    oPixel_G  => Square_oStream.G,
-    oPixel_B  => Square_oStream.B
+    iStream   => Square_iStream,
+    oStream   => Square_oStream
 
     
   );
@@ -729,9 +801,9 @@ BEGIN
   GENERIC MAP (
       Compression => capture_compression,
     Width       => 1,
-    Full_Image  => true,
-    RGB         => false,
-    CLK_Edge    => true
+    Full_Image  => Full_Image,
+    RGB         => RGB,
+    CLK_Edge    => false
 
   ) PORT MAP (
     CLK => CLK,

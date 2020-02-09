@@ -12,9 +12,11 @@ ENTITY Blob_Detect IS
     Width           : NATURAL := 640;
     Height          : NATURAL := 480;
     Min_Blob_Width  : NATURAL := 4;
-    Min_Blob_Height : NATURAL := 4;
-    Max_Blob_Width  : NATURAL := 200;
-    Max_Blob_Height : NATURAL := 200
+    Min_Blob_Height : NATURAL := 2;
+    Max_Blob_Width  : NATURAL := 20;
+    Max_Blob_Height : NATURAL := 15;
+    Upscale_Mult    : NATURAL := 4;
+    Upscale_Start   : NATURAL := 100 
 
   );
 PORT (
@@ -23,7 +25,8 @@ PORT (
   Pixel_In  : IN STD_LOGIC; 
   Column    : IN NATURAL range 0 to 639;
   Row       : IN NATURAL range 0 to 479;
-  Blobs     : OUT NATURAL range 0 to Blob_Number-1;
+  Blob_Busy : OUT STD_LOGIC := '0';
+  Blobs     : BUFFER NATURAL range 0 to Blob_Number-1;
   Blob_Addr : IN  NATURAL range 0 to Blob_Number-1;
   Blob_X0   : OUT NATURAL range 0 to Width-1;
   Blob_X1   : OUT NATURAL range 0 to Width-1;
@@ -46,6 +49,10 @@ ARCHITECTURE BEHAVIORAL OF Blob_Detect IS
   SIGNAL blob_reg : blob_array(0 to Blob_Buffer-1);
   SIGNAL blob_ram_data_in  : STD_LOGIC_VECTOR (35 downto 0);
   SIGNAL blob_ram_data_out : STD_LOGIC_VECTOR (35 downto 0);
+  SIGNAL blob_ram_copy_in  : STD_LOGIC_VECTOR (35 downto 0);
+  SIGNAL blob_ram_copy_out : STD_LOGIC_VECTOR (35 downto 0);
+  SIGNAL blob_ram_copy_addr_in  : NATURAL range 0 to Blob_Number-1;
+  SIGNAL blob_ram_copy_addr_out : NATURAL range 0 to Blob_Number-1;
   SIGNAL blob_in      : blob_type;
   SIGNAL in_blob_num  : NATURAL range 0 to Blob_Number-1;
   FUNCTION log2 ( x : positive) RETURN  natural IS
@@ -164,21 +171,52 @@ BEGIN
     width_byteena_a => 1
 
   ) PORT MAP (
+    address_a => STD_LOGIC_VECTOR(TO_UNSIGNED(blob_ram_copy_addr_in,log2(Blob_Number))),
+    address_b => STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Addr,log2(Blob_Number))),
+    clock0 => New_Pixel,
+    data_a => blob_ram_copy_in,
+    wren_a => '1',
+    q_b => blob_ram_data_out
+
+    
+  );
+  ALTSYNCRAM2 : ALTSYNCRAM
+  GENERIC MAP (
+      address_reg_b => "CLOCK0",
+    clock_enable_input_a => "BYPASS",
+    clock_enable_input_b => "BYPASS",
+    clock_enable_output_b => "BYPASS",
+    intended_device_family => "Cyclone 10 LP",
+    numwords_a => Blob_Number,
+    numwords_b => Blob_Number,
+    operation_mode => "DUAL_PORT",
+    outdata_reg_b => "CLOCK0",
+    widthad_a => log2(Blob_Number),
+    widthad_b => log2(Blob_Number),
+    width_a => 36,
+    width_b => 36,
+    width_byteena_a => 1
+
+  ) PORT MAP (
     address_a => STD_LOGIC_VECTOR(TO_UNSIGNED(in_blob_num,log2(Blob_Number))),
-    address_b => STD_LOGIC_VECTOR(TO_UNSIGNED(blob_addr,log2(Blob_Number))),
+    address_b => STD_LOGIC_VECTOR(TO_UNSIGNED(blob_ram_copy_addr_out,log2(Blob_Number))),
     clock0 => New_Pixel,
     data_a => blob_ram_data_in,
     wren_a => '1',
-    q_b => blob_ram_data_out
+    q_b => blob_ram_copy_out
   );
   PROCESS (New_Pixel)
     VARIABLE Row_Reg      : NATURAL range 0 to Height-1 := 0;
-    VARIABLE Column_Reg   : NATURAL range 0 to Width-1 := 0;
     VARIABLE start_x : NATURAL range 0 to Width-1 := 0;
     VARIABLE start_x_reg : NATURAL range 0 to Width-1 := 0;
     VARIABLE end_x   : NATURAL range 0 to Width-1 := 0;
     VARIABLE cur_blob : NATURAL range 0 to Blob_Number-1;
     VARIABLE Pixel_In_Reg : STD_LOGIC;
+    VARIABLE calc_max_h : NATURAL range 0 to Height-1;
+    VARIABLE calc_max_w : NATURAL range 0 to Width-1;
+    VARIABLE calc_min_h : NATURAL range 0 to Height-1;
+    VARIABLE calc_min_w : NATURAL range 0 to Width-1;
+    VARIABLE scale : NATURAL range 1 to Upscale_Mult+1 := 1;
     VARIABLE copy : BOOLEAN;
     VARIABLE found  : BOOLEAN;
     VARIABLE find_i : NATURAL range 0 to Blob_Buffer;
@@ -188,13 +226,18 @@ BEGIN
     VARIABLE y1_reg : NATURAL range 0 to Height-1;
   BEGIN
     IF (rising_edge(New_Pixel)) THEN
-      IF (Row < Row_Reg and Column < Column_Reg) THEN
+      IF (copy) THEN
+        Blob_Busy <= '1';
+      ELSE
+        Blob_Busy <= '0';
+      END IF;
+      IF (Row < Row_Reg) THEN
         copy := true;
+        Blobs <= 0;
         find_i := 0;
       
       END IF;
       Row_Reg := Row;
-      Column_Reg := Column;
       IF (Pixel_In = '1' AND Pixel_In_Reg = '0') THEN
         start_x_reg := Column;
       
@@ -208,6 +251,19 @@ BEGIN
         find_i := 0;
       
       END IF;
+      IF (Row > Upscale_Start) THEN
+        scale := (((Row-Upscale_Start)*Upscale_Mult) / (Height-Upscale_Start))+1;
+      ELSE
+        scale := 1;
+      END IF;
+      IF (scale > Upscale_Mult) THEN
+        scale := Upscale_Mult;
+      
+      END IF;
+      calc_max_h := Max_Blob_Height * scale;
+      calc_max_w := Max_Blob_Width * scale;
+      calc_min_h := Min_Blob_Height * scale;
+      calc_min_w := Min_Blob_Width * scale;
       IF (not found or copy) THEN
         IF (find_i < Blob_Buffer) THEN
           IF (used_blobs(find_i) = '1') THEN
@@ -226,7 +282,7 @@ BEGIN
                 x1_reg := end_x;
               
               END IF;
-              IF (x1_reg-x0_reg > Max_Blob_Width OR y0_reg > Max_Blob_Height) THEN
+              IF (x1_reg-x0_reg > calc_max_w OR y1_reg-y0_reg > calc_max_h) THEN
                 used_blobs(find_i) <= '0';
                 IF (find_i < next_blob) THEN
                   next_blob <= find_i;
@@ -236,7 +292,7 @@ BEGIN
                 blob_reg(find_i).x1 <= x1_reg;
               END IF;
             ELSIF (y1_reg < Row-1 OR copy) THEN
-              IF (y1_reg-y0_reg >= Min_Blob_Height AND x1_reg-x0_reg >= Min_Blob_Width) THEN
+              IF (y1_reg-y0_reg >= calc_min_h AND x1_reg-x0_reg >= calc_min_w) THEN
                 blob_in <= blob_reg(find_i);
                 in_blob_num <= cur_blob;
                 cur_blob := cur_blob + 1;
@@ -259,11 +315,20 @@ BEGIN
             END IF;
           END LOOP;
         ELSIF (copy) THEN
-          copy       := false;
-          Blobs      <= cur_blob;
-          cur_blob   := 0;
-          next_blob  <= 0;
-          used_blobs <= (others => '0');
+          IF (Blobs > 0) THEN
+            blob_ram_copy_addr_in  <= Blobs-1;
+            blob_ram_copy_in <= blob_ram_copy_out;
+          
+          END IF;
+          IF (cur_blob > 0) THEN
+            blob_ram_copy_addr_out <= Blobs;
+            Blobs <= Blobs + 1;
+            cur_blob := cur_blob - 1;
+          ELSE
+            copy       := false;
+            next_blob  <= 0;
+            used_blobs <= (others => '0');
+          END IF;
         ELSE
           IF (next_blob < Blob_Buffer) THEN
             blob_reg(next_blob).x0 <= start_x;
@@ -279,6 +344,8 @@ BEGIN
               END IF;
             END LOOP;
           ELSE
+            next_blob  <= 0;
+            used_blobs <= (others => '0');
           END IF;
           found := true;
         END IF;

@@ -8,6 +8,9 @@
     <Items xsi:type="ProjectFileVHDP">
       <Header>Blob_Detect.vhdp</Header>
     </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Combine_Blobs.vhdp</Header>
+    </Items>
   </Items>
   <Items xsi:type="ProjectFolder">
     <Header>Camera</Header>
@@ -35,28 +38,15 @@
     <Header>Drawing</Header>
     <fileWatcherIgnore />
     <Items xsi:type="ProjectFileVHDP">
+      <Header>Cross.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
       <Header>Square.vhdp</Header>
     </Items>
   </Items>
   <Items xsi:type="ProjectFolder">
     <Header>Filter</Header>
     <fileWatcherIgnore />
-    <Items xsi:type="ProjectFolder">
-      <Header>Gaussian</Header>
-      <fileWatcherIgnore />
-      <Items xsi:type="ProjectFileVHDP">
-        <Header>Gaussian.vhdp</Header>
-      </Items>
-      <Items xsi:type="ProjectFileVHDP">
-        <Header>Gaussian_RGB.vhdp</Header>
-      </Items>
-      <Items xsi:type="ProjectFileVHDP">
-        <Header>Line_Buffer.vhdp</Header>
-      </Items>
-      <Items xsi:type="ProjectFileVHDP">
-        <Header>Shift_Register.vhdp</Header>
-      </Items>
-    </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>AreaLimitedCompression.vhdp</Header>
     </Items>
@@ -116,6 +106,9 @@
       <Header>Color_Threshold_HSV_Filter.vhd</Header>
     </Items>
     <Items xsi:type="ProjectFile">
+      <Header>Cone_Detection.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
       <Header>Contrast_Filter.vhd</Header>
     </Items>
     <Items xsi:type="ProjectFile">
@@ -125,19 +118,16 @@
       <Header>CSI_Camera.vhd</Header>
     </Items>
     <Items xsi:type="ProjectFile">
+      <Header>Draw_Cross.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
       <Header>Draw_Square.vhd</Header>
     </Items>
     <Items xsi:type="ProjectFile">
       <Header>Dual_Port_RAM.vhd</Header>
     </Items>
     <Items xsi:type="ProjectFile">
-      <Header>Gaussian_Filter.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
       <Header>Gaussian_Filter2.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>Gaussian_RGB_Filter.vhd</Header>
     </Items>
     <Items xsi:type="ProjectFile">
       <Header>HDMI_Out.vhd</Header>
@@ -147,12 +137,6 @@
     </Items>
     <Items xsi:type="ProjectFile">
       <Header>Image_Data_Package.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>LineBuffer.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>RamShiftRegister.vhd</Header>
     </Items>
     <Items xsi:type="ProjectFile">
       <Header>RGB2FakeLAB_Filter.vhd</Header>
@@ -203,6 +187,13 @@
     </Items>
     <Items xsi:type="ProjectFile">
       <Header>PLL.vhd</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Header>Simulation</Header>
+    <fileWatcherIgnore />
+    <Items xsi:type="ProjectFileGHDP">
+      <Header>Sim_ArLiComp.ghdp</Header>
     </Items>
   </Items>
   <Items xsi:type="ProjectFileVHDP">

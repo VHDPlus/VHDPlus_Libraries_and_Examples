@@ -1,0 +1,76 @@
+Component tb_Sim_ArLiComp ()
+{
+    SIGNAL iPixel       : STD_LOGIC_VECTOR (8-1 downto 0);
+    SIGNAL iColumn      : NATURAL          range 0 to 640-1;
+    SIGNAL iRow         : NATURAL          range 0 to 480-1;
+    SIGNAL iNew_Pixel   : STD_LOGIC;
+    SIGNAL oPixel       : STD_LOGIC_VECTOR (8-1 downto 0);
+    SIGNAL oColumn      : NATURAL          range 0 to 640-1;
+    SIGNAL oRow         : NATURAL          range 0 to 480-1;
+    SIGNAL oNew_Pixel   : STD_LOGIC;
+    
+    SIGNAL CLK : STD_LOGIC;
+    NewComponent AreaLimitedCompression 
+    (
+        Image_Width  => 160,
+        Image_Height => 120,
+        MAX_Area_O   => 8,
+        MAX_Area     => 4,
+        MIN_Area     => 2,
+        Colors       => 8,
+        Start_Row    => 0,
+        CLK_Edge     => true,
+    
+        iPixel       => iPixel,
+        iColumn      => iColumn,
+        iRow         => iRow,
+        iNew_Pixel   => iNew_Pixel,
+        oPixel       => oPixel,
+        oColumn      => oColumn,
+        oRow         => oRow,
+        oNew_Pixel   => oNew_Pixel,
+    );
+    
+    Process ()
+    {
+        While(true)
+        {
+            iNew_Pixel <= '1';
+            wait for 20 ns;
+            iNew_Pixel <= '0';
+            wait for 20 ns;
+        }
+    }
+    
+    Process ()
+    {
+        While(true)
+        {
+            For(i IN 0 to 119)
+            {
+                iRow <= i;
+                For(j IN 0 to 159)
+                {
+                    iColumn <= j;
+                    wait for 40 ns;
+                }
+            }
+        }
+    }
+    
+    Process ()
+    {
+        While(true)
+        {
+            For(i IN 0 to 255)
+            {
+                iPixel <= STD_LOGIC_VECTOR(TO_UNSIGNED(i, iPixel'LENGTH));
+                wait for 40 ns;
+                If(iColumn = 159)
+                {
+                    exit;
+                }
+            }
+        }
+    }
+}
