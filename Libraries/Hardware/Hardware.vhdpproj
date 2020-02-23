@@ -8,6 +8,13 @@
     <Items xsi:type="ProjectFolder">
       <Header>Camera</Header>
       <fileWatcherIgnore />
+	  <Items xsi:type="ProjectFolder">
+        <Header>Blob_Detection</Header>
+        <fileWatcherIgnore />
+        <Items xsi:type="ProjectFileVHDP">
+          <Header>Blob_Detect.vhdp</Header>
+        </Items>
+      </Items>
       <Items xsi:type="ProjectFolder">
         <Header>CSI_Camera</Header>
         <fileWatcherIgnore />

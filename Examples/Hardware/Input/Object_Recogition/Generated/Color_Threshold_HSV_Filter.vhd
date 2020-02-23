@@ -13,7 +13,7 @@ ENTITY Color_Threshold_HSV_Filter IS
 PORT (
   CLK : IN STD_LOGIC;
   H_Min : IN NATURAL := 0;   
-  H_Max : IN NATURAL := 180; 
+  H_Max : IN NATURAL := 255; 
   S_Min : IN NATURAL := 0;   
   S_Max : IN NATURAL := 255; 
   V_Min : IN NATURAL := 0;   

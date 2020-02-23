@@ -46,7 +46,7 @@ ARCHITECTURE BEHAVIORAL OF I2C_Master_Interface IS
   
 BEGIN
   I2C_Timing_Generator : PROCESS (CLK)  
-    VARIABLE count  :  INTEGER RANGE 0 TO divider*4;    
+    VARIABLE count  :  INTEGER RANGE 0 TO divider*4;  	
 
     
   BEGIN
@@ -62,24 +62,25 @@ BEGIN
         count := count + 1;
       
       END IF;
-      IF (count < divider) THEN
-        scl_clk <= '0';
-        data_clk <= '0';
-      ELSIF (count < divider*2) THEN
-        scl_clk <= '0';
-        data_clk <= '1';
-      ELSIF (count < divider*3) THEN
-        scl_clk <= '1';
-        IF (SCL = '0') THEN
-          stretch <= '1';
-        ELSE
-          stretch <= '0';
-        END IF;
-        data_clk <= '1';
-      ELSE
-        scl_clk <= '1';
-        data_clk <= '0';
-      END IF;
+      CASE (count) IS
+        WHEN 0 TO divider-1 =>
+          scl_clk <= '0';
+          data_clk <= '0';
+        WHEN divider TO divider*2-1 =>
+          scl_clk <= '0';
+          data_clk <= '1';
+        WHEN divider*2 TO divider*3-1 =>
+          scl_clk <= '1';
+          IF (SCL = '0') THEN
+            stretch <= '1';
+          ELSE
+            stretch <= '0';
+          END IF;
+          data_clk <= '1';
+        WHEN others =>
+          scl_clk <= '1';
+          data_clk <= '0';
+      END CASE;
     END IF;
   END IF;
   END PROCESS;
@@ -99,45 +100,45 @@ BEGIN
         CASE (state) IS
           WHEN ready =>
             IF (Enable = '1') THEN
-              Busy <= '1';                    
+              Busy <= '1';                   	
               addr_rw <= Address & RW;        
-              data_tx <= Data_WR;             
+              data_tx <= Data_WR;            	
               state <= start;
             ELSE
-              Busy <= '0';                    
+              Busy <= '0';                   	
               state <= ready;
             END IF;
           WHEN start =>
-            Busy <= '1';                        
-            sda_int <= addr_rw(bit_cnt);        
+            Busy <= '1';                     	
+            sda_int <= addr_rw(bit_cnt);     	
             state <= command;
           WHEN command =>
             IF (bit_cnt = 0) THEN
-              sda_int <= '1';                 
-              bit_cnt <= 7;                   
+              sda_int <= '1';                	
+              bit_cnt <= 7;                  	
               state <= slv_ack1;
             ELSE
-              bit_cnt <= bit_cnt - 1;         
-              sda_int <= addr_rw(bit_cnt-1);  
+              bit_cnt <= bit_cnt - 1;        	
+              sda_int <= addr_rw(bit_cnt-1); 	
               state <= command;
             END IF;
           WHEN slv_ack1 =>
             IF (addr_rw(0) = '0') THEN
-              sda_int <= data_tx(bit_cnt);    
+              sda_int <= data_tx(bit_cnt);   	
               state <= wr;
             ELSE
-              sda_int <= '1';                 
+              sda_int <= '1';                	
               state <= rd;
             END IF;
           WHEN wr =>
             Busy <= '1';
             IF (bit_cnt = 0) THEN
-              sda_int <= '1';                 
-              bit_cnt <= 7;                   
+              sda_int <= '1';                	
+              bit_cnt <= 7;                  	
               state <= slv_ack2;
             ELSE
-              bit_cnt <= bit_cnt - 1;         
-              sda_int <= data_tx(bit_cnt-1);  
+              bit_cnt <= bit_cnt - 1;        	
+              sda_int <= data_tx(bit_cnt-1); 	
               state <= wr;
             END IF;
           WHEN rd =>
@@ -148,16 +149,16 @@ BEGIN
               ELSE
                 sda_int <= '1';
               END IF;
-              bit_cnt <= 7;                   
-              Data_RD <= data_rx;             
+              bit_cnt <= 7;                  	
+              Data_RD <= data_rx;            	
               state <= mstr_ack;
             ELSE
-              bit_cnt <= bit_cnt - 1;         
+              bit_cnt <= bit_cnt - 1;        	
               state <= rd;
             END IF;
           WHEN slv_ack2 =>
             IF (Enable = '1') THEN
-              Busy <= '0';                    
+              Busy <= '0';                   	
               addr_rw <= Address & RW;        
               data_tx <= Data_WR;
               IF (addr_rw = Address & RW) THEN
@@ -171,7 +172,7 @@ BEGIN
             END IF;
           WHEN mstr_ack =>
             IF (Enable = '1') THEN
-              Busy <= '0';                    
+              Busy <= '0';                   	
               addr_rw <= Address & RW;        
               data_tx <= Data_WR;
               IF (addr_rw = Address & RW) THEN
@@ -184,7 +185,7 @@ BEGIN
               state <= stop;
             END IF;
           WHEN stop =>
-            Busy <= '0';                        
+            Busy <= '0';                     	
             state <= ready;
           
         END CASE;
@@ -218,9 +219,9 @@ BEGIN
   END PROCESS;
 
   WITH state SELECT
-  sda_ena_n <= data_clk_prev WHEN start,      
-  NOT data_clk_prev WHEN stop,   
-  sda_int WHEN OTHERS;           
+  sda_ena_n <= data_clk_prev WHEN start,     	
+  NOT data_clk_prev WHEN stop,  	
+  sda_int WHEN OTHERS;          	
   SCL <= '0' WHEN (scl_ena = '1' AND scl_clk = '0') ELSE 'Z';
   SDA <= '0' WHEN sda_ena_n = '0' ELSE 'Z';
   

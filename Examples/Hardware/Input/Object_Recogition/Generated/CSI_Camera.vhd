@@ -7,7 +7,8 @@ use work.Image_Data_Package.all;
 
 ENTITY CSI_Camera IS
   GENERIC (
-      CLK_Frequency : NATURAL := 12000000
+      CLK_Frequency : NATURAL := 12000000;
+    Row_Buf       : BOOLEAN := false 
 
   );
 PORT (
@@ -17,12 +18,7 @@ PORT (
   Data_Lane : IN STD_LOGIC_VECTOR(1 downto 0);    
   SCL       : INOUT STD_LOGIC;
   SDA       : INOUT STD_LOGIC;
-  Pixel_R   : OUT STD_LOGIC_VECTOR (7 downto 0);
-  Pixel_G   : OUT STD_LOGIC_VECTOR (7 downto 0);
-  Pixel_B   : OUT STD_LOGIC_VECTOR (7 downto 0);
-  Column    : BUFFER NATURAL range 0 to 639 := 0;
-  Row       : BUFFER NATURAL range 0 to 479 := 0;
-  New_Pixel : BUFFER STD_LOGIC
+  oStream   : OUT rgb_stream
 
 );
 END CSI_Camera;
@@ -38,6 +34,23 @@ ARCHITECTURE BEHAVIORAL OF CSI_Camera IS
   SIGNAL I2C_Master_Interface_Busy          : STD_LOGIC;
   SIGNAL I2C_Master_Interface_Data_RD       : STD_LOGIC_VECTOR (7 DOWNTO 0);
   SIGNAL I2C_Master_Interface_Ack_Error     : STD_LOGIC;
+  SIGNAL Pixel_R_Reg   : STD_LOGIC_VECTOR (7 downto 0);
+  SIGNAL Pixel_G_Reg   : STD_LOGIC_VECTOR (7 downto 0);
+  SIGNAL Pixel_B_Reg   : STD_LOGIC_VECTOR (7 downto 0);
+  SIGNAL New_Pixel_Reg : STD_LOGIC;
+  SIGNAL Pixel_R_Reg_O   : STD_LOGIC_VECTOR (7 downto 0);
+  SIGNAL Pixel_G_Reg_O   : STD_LOGIC_VECTOR (7 downto 0);
+  SIGNAL Pixel_B_Reg_O   : STD_LOGIC_VECTOR (7 downto 0);
+  SIGNAL New_Pixel_Reg_O : STD_LOGIC;
+  SIGNAL New_Pixel : STD_LOGIC;
+  SIGNAL Cur_Pixel_Reg_I : STD_LOGIC_VECTOR(23 downto 0);
+  SIGNAL Cur_Pixel_Reg : STD_LOGIC_VECTOR(23 downto 0);
+  SIGNAL RAM_Addr_A : STD_LOGIC_VECTOR(9 downto 0);
+  SIGNAL RAM_Addr_B : STD_LOGIC_VECTOR(9 downto 0);
+  SIGNAL Pixel_Clk_Enable : BOOLEAN := false;
+  SIGNAL Pixel_Clk_Start : BOOLEAN := false;
+  SIGNAL New_Pixel_Div : STD_LOGIC;
+  CONSTANT pixel_clk_divider : NATURAL := CLK_Frequency/(Image_FPS*1200*Image_Width);
   SIGNAL Data_H          : STD_LOGIC_VECTOR(1 downto 0) := (others => '0');
   SIGNAL Data_L          : STD_LOGIC_VECTOR(1 downto 0) := (others => '0');
   SIGNAL RAM_Addr          : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
@@ -45,6 +58,8 @@ ARCHITECTURE BEHAVIORAL OF CSI_Camera IS
   SIGNAL RAM_Data_Out      : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
   SIGNAL Received_Byte     : STD_LOGIC := '0';
   SIGNAL Combine_Bytes     : STD_LOGIC := '0';
+  SIGNAL RAM_DATA_A        : STD_LOGIC_VECTOR(31 downto 0);
+  SIGNAL RAM_WREN_A        : STD_LOGIC;
   TYPE Pixel_Value_type IS ARRAY (1 downto 0) OF UNSIGNED(7 downto 0);
   TYPE Pixel_RGB_type IS RECORD
   R : Pixel_Value_type;
@@ -53,6 +68,10 @@ ARCHITECTURE BEHAVIORAL OF CSI_Camera IS
   END RECORD Pixel_RGB_type;
   SIGNAL Pixel1 : Pixel_RGB_type := (others => (others => (others => '0')));
   SIGNAL Pixel2 : Pixel_RGB_type := (others => (others => (others => '0')));
+  SIGNAL Column : NATURAL range 0 to Image_Width-1 := 0;
+  SIGNAL Row    : NATURAL range 0 to Image_Height-1 := 0;
+  Signal buf_col : NATURAL range 0 to Image_Width-1;
+  SIGNAL start_buf : STD_LOGIC := '0';
   SIGNAL Byte_Start_Phase : BOOLEAN := false;
   SIGNAL First_Byte_Reg, Second_Byte_Reg : STD_LOGIC_VECTOR(11 downto 0) := (others => '0');
   SIGNAL Zero_Count          : NATURAL range 0 to 4 := 0;
@@ -81,30 +100,6 @@ ARCHITECTURE BEHAVIORAL OF CSI_Camera IS
     Ack_Error : BUFFER STD_LOGIC := '0';                                
     SDA       : INOUT  STD_LOGIC := 'Z';                                
     SCL       : INOUT  STD_LOGIC := 'Z'                                
-
-  );
-  END COMPONENT;
-  COMPONENT ALTDDIO_IN IS
-  GENERIC (
-      intended_device_family   : String := "MAX 10";
-    implement_input_in_lcell : String := "ON";
-    invert_input_clocks      : String := "OFF";
-    lpm_hint                 : String := "UNUSED";
-    lpm_type                 : String := "altddio_in";
-    power_up_high            : String := "OFF";
-    width                    : NATURAL
-
-  );
-  PORT (
-    datain    : IN  STD_LOGIC_VECTOR (width-1 downto 0);
-    inclock   : IN  STD_LOGIC;
-    dataout_h : OUT STD_LOGIC_VECTOR (width-1 downto 0);
-    dataout_l : OUT STD_LOGIC_VECTOR (width-1 downto 0);
-    aclr      : IN STD_LOGIC := '0';
-    aset      : IN STD_LOGIC := '0';
-    inclocken : IN STD_LOGIC := '1';
-    sclr      : IN STD_LOGIC := '0';
-    sset      : IN STD_LOGIC := '0'
 
   );
   END COMPONENT;
@@ -186,12 +181,74 @@ ARCHITECTURE BEHAVIORAL OF CSI_Camera IS
 
   );
   END COMPONENT;
+  COMPONENT ALTDDIO_IN IS
+  GENERIC (
+      intended_device_family   : String := "MAX 10";
+    implement_input_in_lcell : String := "ON";
+    invert_input_clocks      : String := "OFF";
+    lpm_hint                 : String := "UNUSED";
+    lpm_type                 : String := "altddio_in";
+    power_up_high            : String := "OFF";
+    width                    : NATURAL
+
+  );
+  PORT (
+    datain    : IN  STD_LOGIC_VECTOR (width-1 downto 0);
+    inclock   : IN  STD_LOGIC;
+    dataout_h : OUT STD_LOGIC_VECTOR (width-1 downto 0);
+    dataout_l : OUT STD_LOGIC_VECTOR (width-1 downto 0);
+    aclr      : IN STD_LOGIC := '0';
+    aset      : IN STD_LOGIC := '0';
+    inclocken : IN STD_LOGIC := '1';
+    sclr      : IN STD_LOGIC := '0';
+    sset      : IN STD_LOGIC := '0'
+
+  );
+  END COMPONENT;
   
 BEGIN
-  Pixel_R  <= STD_LOGIC_VECTOR(Pixel1.R(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.R(Convert_Type));
-  Pixel_G  <= STD_LOGIC_VECTOR(Pixel1.G(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.G(Convert_Type));
-  Pixel_B  <= STD_LOGIC_VECTOR(Pixel1.B(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.B(Convert_Type));
-  New_Pixel <= '0' when Start_Reg(1) = '1' else First_New_Pixel(0) OR Second_New_Pixel;
+
+
+
+
+
+
+
+
+
+  New_Pixel <= New_Pixel_Reg_O when Row_Buf else New_Pixel_Reg;
+  oStream.R <= Pixel_R_Reg_O when Row_Buf else Pixel_R_Reg;
+  oStream.G <= Pixel_G_Reg_O when Row_Buf else Pixel_G_Reg;
+  oStream.B <= Pixel_B_Reg_O when Row_Buf else Pixel_B_Reg;
+  oStream.New_Pixel <= New_Pixel;
+  oStream.Column <= Column;
+  oStream.Row <= Row;
+  Pixel_R_Reg  <= STD_LOGIC_VECTOR(Pixel1.R(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.R(Convert_Type));
+  Pixel_G_Reg  <= STD_LOGIC_VECTOR(Pixel1.G(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.G(Convert_Type));
+  Pixel_B_Reg  <= STD_LOGIC_VECTOR(Pixel1.B(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.B(Convert_Type));
+  New_Pixel_Reg <= '0' when Start_Reg(1) = '1' else First_New_Pixel(0) OR Second_New_Pixel;
+
+
+  Pixel_R_Reg_O <= Cur_Pixel_Reg(23 downto 16);
+  Pixel_G_Reg_O <= Cur_Pixel_Reg(15 downto 8);
+  Pixel_B_Reg_O <= Cur_Pixel_Reg(7 downto 0);
+
+
+  RAM_Addr_A <= STD_LOGIC_VECTOR(TO_UNSIGNED(buf_col,10));
+  RAM_Addr_B <= STD_LOGIC_VECTOR(TO_UNSIGNED(Column,10));
+
+  Pixel_Clk_Start <= true when buf_col = 1 else false when Column = 0 else Pixel_Clk_Start;
+
+  New_Pixel_Reg_O <= New_Pixel_Div when Pixel_Clk_Enable else '0';
+
+
+
+
+
+
+  RAM_DATA_A <= (RAM_Data(15 downto 0) & Second_Byte_Reg(7 downto 0) & First_Byte_Reg(7 downto 0));
+
+  RAM_WREN_A <= (Received_Byte AND Combine_Bytes);
   RAM_Data <= (others => '0') when Start_Reg(1) = '1' else RAM_Data_Out;
   Cam_Init : PROCESS (CLK)  
     VARIABLE state  : NATURAL range 0 to 7 := 7;
@@ -242,7 +299,7 @@ BEGIN
         END IF;
       ELSIF (state = 6) THEN
         IF (I2C_Master_Interface_Busy = '0') THEN
-          IF (address /= x"5F") THEN
+          IF (address /= x"61") THEN
             address <= STD_LOGIC_VECTOR(UNSIGNED(address)+1);
             state   := 7;
           
@@ -261,6 +318,8 @@ BEGIN
   END IF;
   END PROCESS;
   Cam_Init_Register : PROCESS (CLK)  
+    VARIABLE Image_Width_Reg : STD_LOGIC_VECTOR (11 downto 0);
+    VARIABLE Image_Height_Reg : STD_LOGIC_VECTOR (11 downto 0);
     
   BEGIN
   IF RISING_EDGE(CLK) THEN
@@ -342,13 +401,15 @@ BEGIN
       WHEN x"25" =>
         sreg <=  x"370952";
       WHEN x"26" =>
-        sreg <=  x"380802";
+        Image_Width_Reg := STD_LOGIC_VECTOR(TO_UNSIGNED(Image_Width, 12));
+        sreg <=  x"38080" & Image_Width_Reg(11 downto 8);
       WHEN x"27" =>
-        sreg <=  x"380980";
+        sreg <=  x"3809" & Image_Width_Reg(7 downto 0);
       WHEN x"28" =>
-        sreg <=  x"380a01";
+        Image_Height_Reg := STD_LOGIC_VECTOR(TO_UNSIGNED(Image_Height, 12));
+        sreg <=  x"380a0" & Image_Height_Reg(11 downto 8);
       WHEN x"29" =>
-        sreg <=  x"380be0";
+        sreg <=  x"380b" & Image_Height_Reg(7 downto 0);
       WHEN x"2A" =>
         sreg <=  x"380000";
       WHEN x"2B" =>
@@ -444,18 +505,22 @@ BEGIN
       WHEN x"58" =>
         sreg <=  x"503d00";
       WHEN x"59" =>
-        sreg <=  x"010001";
+        sreg <=  x"303701";
       WHEN x"5A" =>
-        sreg <=  x"010001";
+        sreg <=  x"3036" & STD_LOGIC_VECTOR(TO_UNSIGNED((32 * Image_FPS)/26, 8));
       WHEN x"5B" =>
-        sreg <=  x"480004";
+        sreg <=  x"010001";
       WHEN x"5C" =>
-        sreg <=  x"420200";
+        sreg <=  x"010001";
       WHEN x"5D" =>
-        sreg <=  x"300D00";
+        sreg <=  x"480004";
       WHEN x"5E" =>
         sreg <=  x"420200";
       WHEN x"5F" =>
+        sreg <=  x"300D00";
+      WHEN x"60" =>
+        sreg <=  x"420200";
+      WHEN x"61" =>
         sreg <=  x"300D00";
       WHEN others =>
         sreg <=  x"FFFFFF";
@@ -483,26 +548,106 @@ BEGIN
     
   );
   Cam_RX : PROCESS (New_Pixel)
+    VARIABLE start_buf_reg : STD_LOGIC;
     
   BEGIN
     IF (rising_edge(New_Pixel)) THEN
-      IF (Start_Reg(0) = '1') THEN
+      IF (start_buf /= start_buf_reg) THEN
         Column <= 0;
         Row    <= 0;
       ELSE
-        IF (Column < 639) THEN
+        IF (Column < Image_Width-1) THEN
           Column <= Column + 1;
         ELSE
-          IF (Row < 479) THEN
+          IF (Row < Image_Height-1) THEN
             Row    <= Row + 1;
             Column <= 0;
           
           END IF;
         END IF;
       END IF;
+      start_buf_reg := start_buf;
     
     END IF;
   END PROCESS;
+  ALTSYNCRAM1 : ALTSYNCRAM
+  GENERIC MAP (
+      address_reg_b => "CLOCK1",
+    clock_enable_input_a => "BYPASS",
+    clock_enable_input_b => "BYPASS",
+    clock_enable_output_b => "BYPASS",
+    intended_device_family => "unused",
+    lpm_type => "altsyncram",
+    numwords_a => 1024,
+    numwords_b => 1024,
+    operation_mode => "DUAL_PORT",
+    outdata_reg_b => "CLOCK1",
+    widthad_a => 10,
+    widthad_b => 10,
+    width_a => 24,
+    width_b => 24
+
+  ) PORT MAP (
+    address_a => RAM_Addr_A,
+    address_b => RAM_Addr_B,
+    clock0 => New_Pixel_Reg,
+    clock1 => New_Pixel_Reg_O,
+    data_a => Cur_Pixel_Reg_I,
+    wren_a => '1',
+    q_b => Cur_Pixel_Reg
+
+    
+  );
+  PROCESS (New_Pixel_Reg)
+    
+  BEGIN
+    IF (rising_edge(New_Pixel_Reg)) THEN
+      IF (Start_Reg(0) = '1') THEN
+        buf_col <= 0;
+
+        start_buf <= not start_buf;
+      ELSE
+        IF (buf_col < Image_Width-1) THEN
+          buf_col <= buf_col + 1;
+        ELSE
+          buf_col <= 0;
+        END IF;
+      END IF;
+      Cur_Pixel_Reg_I <= Pixel_R_Reg & Pixel_G_Reg & Pixel_B_Reg;
+    
+    END IF;
+  END PROCESS;
+  PROCESS (New_Pixel_Div)
+    
+  BEGIN
+    IF (falling_edge(New_Pixel_Div)) THEN
+      Pixel_Clk_Enable <= Column < Image_Width-1 OR Pixel_Clk_Start;
+    
+    END IF;
+  END PROCESS;
+  Generate1 : if pixel_clk_divider < 2 GENERATE
+    New_Pixel_Div <= CLK;
+  END GENERATE Generate1;
+  Generate2 : if pixel_clk_divider > 1 GENERATE
+    PROCESS (CLK)  
+      VARIABLE div_count  : NATURAL range 0 to pixel_clk_divider-1 := 0;
+
+      
+    BEGIN
+    IF RISING_EDGE(CLK) THEN
+      IF (div_count < pixel_clk_divider-1) THEN
+        div_count := div_count + 1;
+      ELSE
+        div_count := 0;
+      END IF;
+      IF (div_count < pixel_clk_divider/2) THEN
+        New_Pixel_Div <= '1';
+      ELSE
+        New_Pixel_Div <= '0';
+      END IF;
+    END IF;
+    END PROCESS;
+  END GENERATE Generate2;
   ALTDDIO_IN1 : ALTDDIO_IN
   GENERIC MAP (
       intended_device_family => "unused",
@@ -516,7 +661,7 @@ BEGIN
 
     
   );
-  ALTSYNCRAM1 : ALTSYNCRAM
+  ALTSYNCRAM2 : ALTSYNCRAM
   GENERIC MAP (
       address_reg_b                      => "CLOCK0",
     clock_enable_input_a               => "BYPASS",
@@ -536,9 +681,9 @@ BEGIN
     address_a                          => RAM_Addr(9 downto 0),
     address_b                          => RAM_Addr(9 downto 0),
     clock0                             => CLK_Lane,
-    data_a                             => (RAM_Data(15 downto 0) & Second_Byte_Reg(7 downto 0) & First_Byte_Reg(7 downto 0)),
+    data_a                             => RAM_DATA_A,
     q_b                                => RAM_Data_Out,
-    wren_a                             => (Received_Byte AND Combine_Bytes)
+    wren_a                             => RAM_WREN_A
   );
   PROCESS (CLK_Lane)
     VARIABLE First_Byte_Data, Second_Byte_Data : STD_LOGIC_VECTOR(7 downto 0);

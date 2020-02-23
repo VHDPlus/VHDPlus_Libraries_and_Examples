@@ -1,19 +1,70 @@
 /*
-Compresses image depending on image area
--> closer objects are lower on the image and farther objects higher -> compresses lower parts and keeps higher parts
-Only works with BW and 1 Bit images
+    Name: Area Limited Compression
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 23.02.2020
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important:   -This component is made for the black or white output of the threshold filter
+    
+    Description: -This component combines multiple pixels into one to reduce noise. 
+                 -If objects on the bottom are bigger, you can set the MAX_Area higher than the MIN_Area
+                  so the image is compressed more on the bottom. With Start_Row you can set the Row to start
+                  increasing the compression
+                 -If you have filtered different colors, you can use one component for all:
+                  Colors => 2, iPixel(0) => Blue_Threshold_oStream.R(0), iPixel(1) => Green_Threshold_oStream.R(0), 
+                  
+                  _______________________________________________________
+                 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+                 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+                 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+                 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+                 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+                 |-------------------------------------------------------| <- Start_Row
+                 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||| <- MIN_Area
+                 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+                 |-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|
+                 |-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|
+                 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|-|
+                 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|-|
+                 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+                 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+                 |----|----|----|----|----|----|----|----|----|----|----||
+                 |----|----|----|----|----|----|----|----|----|----|----|| <- MAX_Area
+                 |_______________________________________________________|
+                 
+    
+    Insertion:   -Right click on the file -> Add to active project
+                 -Add NewComponent of this component into your code
+                 -Set the parameters according to your application
+                 -Connect the camera stream
+                    
+    Example:     Camera_CSI_Example
  */
 
---!!!Bildbreite vierteln indem vor HSV 4 Pixel in einer Reihe zusammengefasst werden (braucht keinen RAM)
---Danach überall mit voller Höhe aber 1/4 Breite arbeiten
 
 Component AreaLimitedCompression
 (
     Generic
     (
-        Image_Width : NATURAL := 640;
-        Image_Height: NATURAL := 480;
-        MAX_Area_O  : NATURAL := 4;  --Maximum number of pixels in area
+        Min_Pixel_Num  : NATURAL := 4;  --Minimum number of '1' pixels in area (MAX_Area x MAX_Area pixels) to get '1' as output
         MAX_Area    : NATURAL range 1 to 24 := 10; --3 = 3x3 pixels used to create one blurred pixel
         MIN_Area    : NATURAL range 1 to 24 := 1;
         Colors      : NATURAL := 1;
@@ -141,7 +192,7 @@ Component AreaLimitedCompression
                     --Check if number of '1' pixels is above the threshold
                     For(k IN 0 to Colors-1)
                     {
-                        If(r_add(k) > (MAX_Area_O*area_width**2)/(MAX_Area**2))
+                        If(r_add(k) > (Min_Pixel_Num*area_width**2)/(MAX_Area**2))
                         {
                             last_row_out(k) := '1';
                         }

@@ -7,9 +7,7 @@ use work.Image_Data_Package.all;
 
 ENTITY AreaLimitedCompression IS
   GENERIC (
-      Image_Width : NATURAL := 640;
-    Image_Height: NATURAL := 480;
-    MAX_Area_O  : NATURAL := 4;  
+      Min_Pixel_Num  : NATURAL := 4;  
     MAX_Area    : NATURAL range 1 to 24 := 10; 
     MIN_Area    : NATURAL range 1 to 24 := 1;
     Colors      : NATURAL := 1;
@@ -114,7 +112,7 @@ BEGIN
         END LOOP;
         IF (add_c = area_width-1) THEN
           FOR k IN 0 to Colors-1 LOOP
-            IF (r_add(k) > (MAX_Area_O*area_width**2)/(MAX_Area**2)) THEN
+            IF (r_add(k) > (Min_Pixel_Num*area_width**2)/(MAX_Area**2)) THEN
               last_row_out(k) := '1';
             ELSE
               last_row_out(k) := '0';

@@ -1,0 +1,63 @@
+set_global_assignment -name FAMILY "Cyclone 10 LP"
+set_global_assignment -name DEVICE 10CL016YU256C8G
+set_global_assignment -name TOP_LEVEL_ENTITY Object_Recognition
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 1
+set_global_assignment -name ENABLE_OCT_DONE OFF
+set_global_assignment -name USE_CONFIGURATION_DEVICE ON
+set_global_assignment -name CRC_ERROR_OPEN_DRAIN OFF
+set_global_assignment -name ENABLE_BOOT_SEL_PIN OFF
+set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -rise
+set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -fall
+set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -rise
+set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -fall
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name LAST_QUARTUS_VERSION "18.1.0 Lite Edition"
+set_location_assignment PIN_L1 -to "Camera_Data_Lane[0](n)"
+set_location_assignment PIN_J1 -to "Camera_Data_Lane[1](n)"
+set_location_assignment PIN_M1 -to "Camera_CLK_Lane(n)"
+set_location_assignment PIN_P16 -to "oHDMI_TX[2](n)"
+set_location_assignment PIN_K16 -to "oHDMI_TX[1](n)"
+set_location_assignment PIN_J16 -to "oHDMI_TX[0](n)"
+set_location_assignment PIN_N16 -to "oHDMI_CLK(n)"
+set_instance_assignment -name IO_STANDARD LVDS -to Camera_Data_Lane[0]
+set_instance_assignment -name IO_STANDARD LVDS -to Camera_Data_Lane[1]
+set_instance_assignment -name IO_STANDARD LVDS -to Camera_CLK_Lane
+set_instance_assignment -name IO_STANDARD LVDS -to oHDMI_TX*
+set_instance_assignment -name IO_STANDARD LVDS -to oHDMI_CLK
+set_global_assignment -name INTERNAL_FLASH_UPDATE_MODE "SINGLE IMAGE WITH ERAM"
+set_global_assignment -name NUM_PARALLEL_PROCESSORS 8
+set_global_assignment -name VHDL_FILE Generated/AreaLimitedCompression.vhd
+set_global_assignment -name VHDL_FILE Generated/Blob_Detect.vhd
+set_global_assignment -name VHDL_FILE Generated/Camera_Capture.vhd
+set_global_assignment -name VHDL_FILE Generated/Color_Correction_Filter.vhd
+set_global_assignment -name VHDL_FILE Generated/Color_Threshold_HSV_Filter.vhd
+set_global_assignment -name VHDL_FILE Generated/Cone_Detection.vhd
+set_global_assignment -name VHDL_FILE Generated/CRT_Controller.vhd
+set_global_assignment -name VHDL_FILE Generated/CSI_Camera.vhd
+set_global_assignment -name VHDL_FILE Generated/Draw_Crosses.vhd
+set_global_assignment -name VHDL_FILE Generated/Draw_Squares.vhd
+set_global_assignment -name VHDL_FILE Generated/HDMI_Out.vhd
+set_global_assignment -name VHDL_FILE Generated/I2C_Master_Interface.vhd
+set_global_assignment -name VHDL_FILE Generated/Image_Data_Package.vhd
+set_global_assignment -name VHDL_FILE Generated/Object_Recognition.vhd
+set_global_assignment -name VHDL_FILE Generated/RGB2HSV_Filter.vhd
+set_global_assignment -name VERILOG_FILE HDMI/DVI_OUT.v
+set_global_assignment -name VERILOG_FILE HDMI/TMDS_ENCODE.v
+set_global_assignment -name QIP_FILE HDMI/VS_PLL.qip
+set_global_assignment -name VHDL_FILE HDMI/VS_PLL.vhd
+set_location_assignment PIN_E2 -to CLK
+set_location_assignment PIN_L2 -to Camera_Data_Lane[0]
+set_location_assignment PIN_J2 -to Camera_Data_Lane[1]
+set_location_assignment PIN_M2 -to Camera_CLK_Lane
+set_location_assignment PIN_P2 -to Camera_SDA
+set_location_assignment PIN_P1 -to Camera_SCL
+set_location_assignment PIN_M7 -to Camera_Enable
+set_location_assignment PIN_R16 -to oHDMI_TX[2]
+set_location_assignment PIN_K15 -to oHDMI_TX[1]
+set_location_assignment PIN_J15 -to oHDMI_TX[0]
+set_location_assignment PIN_N15 -to oHDMI_CLK
+set_location_assignment PIN_M16 -to iHDMI_HPD

@@ -1,0 +1,145 @@
+/*
+    Name: Crosses
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 22.02.2020
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+    Description: -This Component draws crosses at points that are saved in a RAM.
+	
+							  | |  /\
+							  | |  ||  <- Length
+						 -------------
+						 -------------
+							  | |  ||
+							  | |  \/
+							  <->  <- Width
+    
+    Insertion:   -Right click on the file -> Add to active project
+                 -Add NewComponent of this component into your code
+                 -Set the parameters according to your application
+				 -Connect the camera stream
+				 -Connect the address input and data output of your RAM with this component
+				 
+	Function     -Write your points in a RAM
+				 -Set the number of crosses to draw
+
+    Example:     Camera_CSI_Example
+ */
+
+Component Draw_Crosses
+(
+    Generic
+    (
+        Max_Cross_Number  : NATURAL := 32;
+        Width             : NATURAL := 4;
+        Length            : NATURAL := 8;
+        Color             : STD_LOGIC_VECTOR(23 downto 0) := x"FF0000"; --FF <- R, 00 <- G, 00 <- B
+    );
+
+    Crosses     : IN  NATURAL range 0 to Max_Cross_Number;
+    Cross_Addr  : BUFFER NATURAL range 0 to Max_Cross_Number-1;
+    Cross_X     : IN NATURAL range 0 to Image_Width-1;
+    Cross_Y     : IN NATURAL range 0 to Image_Height-1;
+    
+    iStream    : in   rgb_stream;
+    oStream    : out  rgb_stream;
+)
+{
+    
+    oStream.New_Pixel <= iStream.New_Pixel;
+
+    Process ()
+    {
+        If(rising_edge(iStream.New_Pixel))
+        {
+			VARIABLE X   : NATURAL range 0 to Image_Width-1;
+			VARIABLE Y   : NATURAL range 0 to Image_Height-1;
+
+			VARIABLE r : NATURAL range 0 to Image_Height-1;
+			VARIABLE c : NATURAL range 0 to Image_Width-1;
+
+			r := iStream.Row;
+			c := iStream.Column;
+			
+			--Save range in that the current blob should be saved
+			VARIABLE r_s : NATURAL range 0 to Image_Height-1;
+			VARIABLE r_e : NATURAL range 0 to Image_Height-1;
+			
+			If(Cross_Y > Length/2) { r_s := Cross_Y-Length/2; }
+			Else { r_s := 0; }
+			
+			If(Cross_Y < Image_Height-1-Length/2) { r_e := Cross_Y+Length/2; }
+			Else { r_e := Image_Height-1; }
+			
+			VARIABLE c_s : NATURAL range 0 to Image_Width-1;
+			VARIABLE c_e : NATURAL range 0 to Image_Width-1;
+			
+			If(Cross_X > Length/2+Crosses*2) { c_s := Cross_X-Length/2-Crosses*2; }
+			Else { c_s := 0; }
+			
+			If(Cross_X < Image_Width-1-Length/2) { c_e := Cross_X+Length/2; }
+			Else { c_e := Image_Width-1; }
+			
+			--Check if the current blob should be displayed or the next blob should be checked
+			VARIABLE save_cross : BOOLEAN := false;
+			If(r >= r_s AND r <= r_e AND c >= c_s AND c <= c_e)
+			{
+				If(NOT save_cross)
+				{
+					X := Cross_X;
+					Y := Cross_Y;
+					save_cross := true;
+				}
+			}
+			Else
+			{
+				save_cross := false;
+				If(Cross_Addr < Crosses)
+				{
+					Cross_Addr <= Cross_Addr + 1;
+				}
+				Else
+				{
+					Cross_Addr <= 0;
+				}
+			}
+			
+			oStream.Column    <= iStream.Column;
+			oStream.Row       <= iStream.Row;
+			
+			--Draw square
+			If(((iStream.Column >= X - Width/2 AND iStream.Column <= X + Width/2) AND (iStream.Row >= Y - Length/2 AND iStream.Row <= Y + Length/2)) OR
+				((iStream.Column >= X - Length/2 AND iStream.Column <= X + Length/2) AND (iStream.Row >= Y - Width/2 AND iStream.Row <= Y + Width/2)))
+			{
+				oStream.R <= Color(23 downto 16);
+				oStream.G <= Color(15 downto 8);
+				oStream.B <= Color(7 downto 0);
+			}
+			Else
+			{
+				oStream.R <= iStream.R;
+				oStream.G <= iStream.G;
+				oStream.B <= iStream.B;
+			}
+		}
+    }
+
+}
