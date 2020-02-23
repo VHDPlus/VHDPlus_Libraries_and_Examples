@@ -1,0 +1,272 @@
+/*
+    Name: Area Limited Compression
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 23.02.2020
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important:   -This component is made for the black or white output of the threshold filter
+    
+    Description: -This component combines multiple pixels into one to reduce noise. 
+	             -If objects on the bottom are bigger, you can set the MAX_Area higher than the MIN_Area
+				  so the image is compressed more on the bottom. With Start_Row you can set the Row to start
+				  increasing the compression
+				 -If you have filtered different colors, you can use one component for all:
+				  Colors => 2, iPixel(0) => Blue_Threshold_oStream.R(0), iPixel(1) => Green_Threshold_oStream.R(0), 
+				  
+				  _______________________________________________________
+				 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+				 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+				 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+				 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+				 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+				 |-------------------------------------------------------| <- Start_Row
+				 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||| <- MIN_Area
+				 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+				 |-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|
+				 |-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|
+				 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|-|
+				 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|-|
+				 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+				 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+				 |----|----|----|----|----|----|----|----|----|----|----||
+				 |----|----|----|----|----|----|----|----|----|----|----|| <- MAX_Area
+				 |_______________________________________________________|
+				 
+    
+    Insertion:   -Right click on the file -> Add to active project
+                 -Add NewComponent of this component into your code
+                 -Set the parameters according to your application
+				 -Connect the camera stream
+                    
+    Example:     Camera_CSI_Example
+ */
+
+
+Component AreaLimitedCompression
+(
+    Generic
+    (
+        Min_Pixel_Num  : NATURAL := 4;  --Minimum number of '1' pixels in area (MAX_Area x MAX_Area pixels) to get '1' as output
+        MAX_Area    : NATURAL range 1 to 24 := 10; --3 = 3x3 pixels used to create one blurred pixel
+        MIN_Area    : NATURAL range 1 to 24 := 1;
+        Colors      : NATURAL := 1;
+        Start_Row   : NATURAL := 0;
+        CLK_Edge    : BOOLEAN := true; --true = rising edge
+    );
+    iPixel     : IN STD_LOGIC_VECTOR(Colors-1 downto 0);
+    iColumn    : IN NATURAL range 0 to Image_Width-1;
+    iRow       : IN NATURAL range 0 to Image_Height-1;
+    iNew_Pixel : IN STD_LOGIC;
+    
+    oPixel     : OUT STD_LOGIC_VECTOR(Colors-1 downto 0);
+    oColumn    : OUT NATURAL range 0 to Image_Width-1;
+    oRow       : OUT NATURAL range 0 to Image_Height-1;
+    oNew_Pixel : OUT STD_LOGIC;
+)
+{
+    SIGNAL iPixel_buf    : STD_LOGIC_VECTOR(Colors-1 downto 0);
+    SIGNAL oPixel_buf    : STD_LOGIC_VECTOR(Colors-1 downto 0);
+
+    oNew_Pixel <= iNew_Pixel;
+
+    TYPE last_pixel_sub_row_type IS ARRAY (NATURAL range <>) OF STD_LOGIC_VECTOR(Colors-1 downto 0);
+    TYPE last_pixel_row_type IS ARRAY (NATURAL range <>) OF last_pixel_sub_row_type(MAX_Area-1 downto 0);
+    
+    SIGNAL New_Pixel_Buf : STD_LOGIC;
+    New_Pixel_Buf <= iNew_Pixel when CLK_Edge else NOT iNew_Pixel;
+    
+    --!!!! In Buffer immer Summe von einer Spalte speichern, da man so das summieren der Reihen spart
+    
+    TYPE col_add IS ARRAY (Colors-1 downto 0) OF NATURAL range 0 to MAX_Area*2;
+    TYPE matrix_add IS ARRAY (Colors-1 downto 0) OF NATURAL range 0 to MAX_Area**2;
+    
+    TYPE sum_matrix_type IS ARRAY (NATURAL range <>) OF col_add;
+    SIGNAL sum_matrix : sum_matrix_type(Image_Width-1 downto 0);
+    
+    TYPE last_row_type IS ARRAY (Image_Width/MIN_Area-1 downto 0) OF STD_LOGIC_VECTOR (Colors-1 downto 0);
+    SIGNAL last_Row : last_row_type;
+    
+    TYPE area_shift_type IS ARRAY (MAX_Area-1 downto 0) OF NATURAL range 1 to 24;
+    SIGNAL area_shift : area_shift_type;
+
+    Process ()
+    {
+        If(rising_edge(New_Pixel_Buf))
+        {
+            --Create buffer for in and output data
+            VARIABLE oColumn_buf   : NATURAL range 0 to Image_Width-1;
+            VARIABLE oRow_buf      : NATURAL range 0 to Image_Height-1;
+            iPixel_buf <= iPixel;
+            oPixel     <= oPixel_buf;
+            oColumn    <= oColumn_buf;
+            oRow       <= oRow_buf;
+
+            VARIABLE r_add : matrix_add;
+            VARIABLE sum_buf_o : col_add;
+            
+            --Save last area_width for last pixel row with last width
+            VARIABLE area_width_reg    : NATURAL range 1 to 24 := MIN_Area;
+            area_width_reg := area_shift(area_width-1);
+            --Create row buffer address for that row
+            VARIABLE last_row_addr_reg : NATURAL range 0 to Image_Width/MIN_Area;
+            last_row_addr_reg := (last_row_addr * area_width) / area_width_reg;
+            
+            -- Add current pixel to column sum
+            sum_buf_o := sum_matrix(iColumn);
+            For(k IN 0 to Colors-1)
+            {
+                If(iPixel(k) = '1')
+                {
+                    sum_buf_o(k) := sum_buf_o(k) + 1;
+                }
+            }
+            
+            --Row = current row - 1, because the data from the last_Row buffer is used
+            If(iColumn > area_width+1)
+            {
+                oColumn_buf := iColumn-area_width-1;
+            }
+            Else
+            {
+                oColumn_buf := Image_Width-area_width+iColumn-1;
+            }
+            
+            If(iRow > 0)
+            {
+                oRow_buf    := iRow-1;
+            }
+            Else
+            {
+                oRow_buf    := Image_Height-1;
+            }
+
+            --Get data at position for current column
+            VARIABLE last_row_out  : STD_LOGIC_VECTOR (Colors-1 downto 0);
+            VARIABLE last_row_in   : STD_LOGIC_VECTOR (Colors-1 downto 0);
+            last_row_out  := last_Row(last_row_addr);
+            last_row_in   := last_Row(last_row_addr_reg);
+
+            --Output pixel data
+            --oPixel_buf <= last_row_in;
+            
+            If(oRow_buf > area_width AND oColumn_buf > 0)
+            {
+                oPixel_buf <= last_row_in;
+            }
+            Else
+            {
+                oPixel_buf <= (others => '0');
+            }
+            
+
+            --Check if this is the last column of one pixel to combine
+            If(add_r = area_width-1)
+            {
+                --Add up columns of this pixel
+                For(k IN 0 to Colors-1)
+                {
+                    r_add(k) := r_add(k) + sum_buf_o(k);
+                }
+
+                --Checl if this is the last column
+                If(add_c = area_width-1)
+                {
+                    --Check if number of '1' pixels is above the threshold
+                    For(k IN 0 to Colors-1)
+                    {
+                        If(r_add(k) > (Min_Pixel_Num*area_width**2)/(MAX_Area**2))
+                        {
+                            last_row_out(k) := '1';
+                        }
+                        Else
+                        {
+                            last_row_out(k) := '0';
+                        }
+                    }
+                    
+                    --IMMER BEI WECHEL VON add_c last_Row addresse einen hochzählen
+                    --MIT ECHTEM RAM
+                    last_Row(last_row_addr) <= last_row_out;
+
+                    r_add := (others => 0);
+                }
+                
+                sum_buf_o := (others => 0);
+            }
+            
+            --Save column sum for pixel
+            sum_matrix(iColumn) <= sum_buf_o;
+            
+            --Calculate current column of pixel
+            VARIABLE column_reg : NATURAL range 0 to Image_Width-1 := 0;
+            SIGNAL add_c     : NATURAL range 0 to MAX_Area-1 := 0;
+            SIGNAL last_row_addr : NATURAL range 0 to Image_Width/MIN_Area;
+            
+            If(add_c < area_width-1 AND iColumn > column_reg)
+            {
+                add_c <= add_c + 1;
+            }
+            Else
+            {
+                add_c <= 0;
+                last_row_addr <= last_row_addr + 1;
+            }
+            column_reg := iColumn;
+            
+            --Calculate current row of pixel
+            VARIABLE row_reg : NATURAL range 0 to Image_Height-1 := 0;
+            SIGNAL add_r   : NATURAL range 0 to MAX_Area-1 := 0;
+            
+            If(row_reg /= iRow)
+            {
+                area_shift(MAX_Area-1 downto 1) <= area_shift(MAX_Area-2 downto 0);
+                area_shift(0) <= area_width;
+                
+                last_row_addr <= 0;
+
+                If(add_r < area_width-1 AND iRow > row_reg)
+                {
+                    add_r <= add_r + 1;
+                }
+                Else
+                {
+                    add_r <= 0;
+                    add_c <= 0;
+
+                    --Calculate new area width depending on current row
+                    SIGNAL area_width       : NATURAL range 1 to 24 := MIN_Area;
+                    CONSTANT row_divider    : NATURAL := (Image_Height-Start_Row)/(MAX_Area-MIN_Area+1);
+                    
+                    --Calculate area to combine
+                    If(iRow < Start_Row)
+                    {
+                        area_width <= MIN_Area;
+                    }
+                    Else
+                    {
+                        area_width <= (iRow-Start_Row)/row_divider+MIN_Area;
+                    }
+                }
+            }
+            row_reg := iRow;
+        }
+    }
+}

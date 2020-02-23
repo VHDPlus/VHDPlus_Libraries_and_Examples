@@ -48,6 +48,7 @@ Component CSI_Camera
     Generic
     (
         CLK_Frequency : NATURAL := 12000000;
+        Row_Buf       : BOOLEAN := false; --true = saves last row in buffer, creates own Pixel CLK and spreads pixels even
     );
     
     Reset     : IN STD_LOGIC := '0';                --Initialized on falling edge (or on startup if Reset = '0')
@@ -58,12 +59,7 @@ Component CSI_Camera
     SCL       : INOUT STD_LOGIC;
     SDA       : INOUT STD_LOGIC;
     
-    Pixel_R   : OUT STD_LOGIC_VECTOR (7 downto 0);
-    Pixel_G   : OUT STD_LOGIC_VECTOR (7 downto 0);
-    Pixel_B   : OUT STD_LOGIC_VECTOR (7 downto 0);
-    Column    : BUFFER NATURAL range 0 to 639 := 0;
-    Row       : BUFFER NATURAL range 0 to 479 := 0;
-    New_Pixel : BUFFER STD_LOGIC;
+    oStream   : OUT rgb_stream;
 )
 {
     Connections
@@ -140,7 +136,7 @@ Component CSI_Camera
             {
                 If(I2C_Master_Interface_Busy = '0')
                 {
-                    If(address /= x"5F")
+                    If(address /= x"61")
                     {
                         address <= STD_LOGIC_VECTOR(UNSIGNED(address)+1);
                         state   := 7;
@@ -172,19 +168,19 @@ Component CSI_Camera
         {
             When(x"00"){ sreg <=  x"010000"; } --Standby
             When(x"01"){ sreg <=  x"010301"; }
-            When(x"02"){ sreg <=  x"303408"; }
-            When(x"03"){ sreg <=  x"303541"; }
-            When(x"04"){ sreg <=  x"303646"; }
-            When(x"05"){ sreg <=  x"303c11"; }
+            When(x"02"){ sreg <=  x"303408"; } --MIPI 8-bit mode
+            When(x"03"){ sreg <=  x"303541"; } --Clk / 4 + MIPI CLK / 1
+            When(x"04"){ sreg <=  x"303646"; } --PLL * 70
+            When(x"05"){ sreg <=  x"303c11"; } --PLL change pump = 1 + PLL / 1
             When(x"06"){ sreg <=  x"3106f5"; }
-            When(x"07"){ sreg <=  x"382107"; }
-            When(x"08"){ sreg <=  x"382041"; }
+            When(x"07"){ sreg <=  x"382107"; } --Horizontal binning enable, Sensor mirror & ISP mirror
+            When(x"08"){ sreg <=  x"382041"; } --Sensor vflip + debug mode = 4
             When(x"09"){ sreg <=  x"3827ec"; }
             When(x"0A"){ sreg <=  x"370c0f"; }
             When(x"0B"){ sreg <=  x"361259"; }
             When(x"0C"){ sreg <=  x"361800"; }
-            When(x"0D"){ sreg <=  x"500006"; }
-            When(x"0E"){ sreg <=  x"500100"; }
+            When(x"0D"){ sreg <=  x"500006"; } --White pixel cancellation enable + Black pixel cancellation
+            When(x"0E"){ sreg <=  x"500100"; } --Effects and auto white disable
             When(x"0F"){ sreg <=  x"500240"; }
             When(x"10"){ sreg <=  x"500308"; }
             When(x"11"){ sreg <=  x"5a0008"; }
@@ -208,20 +204,32 @@ Component CSI_Camera
             When(x"23"){ sreg <=  x"381531"; }
             When(x"24"){ sreg <=  x"370864"; }
             When(x"25"){ sreg <=  x"370952"; }
-            When(x"26"){ sreg <=  x"380802"; }
-            When(x"27"){ sreg <=  x"380980"; }
-            When(x"28"){ sreg <=  x"380a01"; }
-            When(x"29"){ sreg <=  x"380be0"; }
-            When(x"2A"){ sreg <=  x"380000"; }
+            When(x"26"){
+                VARIABLE Image_Width_Reg : STD_LOGIC_VECTOR (11 downto 0);
+                Image_Width_Reg := STD_LOGIC_VECTOR(TO_UNSIGNED(Image_Width, 12));
+                sreg <=  x"38080" & Image_Width_Reg(11 downto 8);
+            } --DVP output horizontal width = 320 (0x2 & 0x80)
+            When(x"27"){ sreg <=  x"3809" & Image_Width_Reg(7 downto 0); }
+            When(x"28"){
+                VARIABLE Image_Height_Reg : STD_LOGIC_VECTOR (11 downto 0);
+                Image_Height_Reg := STD_LOGIC_VECTOR(TO_UNSIGNED(Image_Height, 12));
+                sreg <=  x"380a0" & Image_Height_Reg(11 downto 8);
+            } --DVP output vertical height = 240 (0x1 & 0xE0)
+            When(x"29"){ sreg <=  x"380b" & Image_Height_Reg(7 downto 0); }
+            When(x"2A"){ sreg <=  x"380000"; } --X address start = 0
             When(x"2B"){ sreg <=  x"380100"; }
-            When(x"2C"){ sreg <=  x"380200"; }
+            When(x"2C"){ sreg <=  x"380200"; } --Y address start = 0
             When(x"2D"){ sreg <=  x"380300"; }
-            When(x"2E"){ sreg <=  x"38040a"; }
+            When(x"2E"){ sreg <=  x"38040a"; } --X address end = 2624 (0xa & 0x3f)
             When(x"2F"){ sreg <=  x"38053f"; }
-            When(x"30"){ sreg <=  x"380607"; }
+            When(x"30"){ sreg <=  x"380607"; } --Y address end = 1952 (0x7 & 0xA1)
             When(x"31"){ sreg <=  x"3807a1"; }
-            When(x"32"){ sreg <=  x"381108"; }
-            When(x"33"){ sreg <=  x"381302"; }
+            --When(x"2E"){ sreg <=  x"380403"; } --X address end = 2624 (0xa & 0x3f)
+            --When(x"2F"){ sreg <=  x"380520"; }
+            --When(x"30"){ sreg <=  x"380602"; } --Y address end = 1952 (0x7 & 0xA1)
+            --When(x"31"){ sreg <=  x"38070D"; }
+            When(x"32"){ sreg <=  x"381108"; } --ISP horizontal offset = 8
+            When(x"33"){ sreg <=  x"381302"; } --ISP vertical offset = 2
             When(x"34"){ sreg <=  x"36302e"; }
             When(x"35"){ sreg <=  x"3632e2"; }
             When(x"36"){ sreg <=  x"363323"; }
@@ -259,17 +267,19 @@ Component CSI_Camera
             When(x"56"){ sreg <=  x"40506e"; }
             When(x"57"){ sreg <=  x"40518f"; }
             When(x"58"){ sreg <=  x"503d00"; }
-            When(x"59"){ sreg <=  x"010001"; }
-            When(x"5A"){ sreg <=  x"010001"; }
-            When(x"5B"){ sreg <=  x"480004"; }
-            When(x"5C"){ sreg <=  x"420200"; }
-            When(x"5D"){ sreg <=  x"300D00"; }
+            When(x"59"){ sreg <=  x"303701"; } --CLK / 1
+            When(x"5A"){ sreg <=  x"3036" & STD_LOGIC_VECTOR(TO_UNSIGNED((32 * Image_FPS)/26, 8)); } --CLK * 96   / 0x40 (64) = 52fps 0x30 (48) = 40fps 0x20 (32) = 26fps
+            When(x"5B"){ sreg <=  x"010001"; }
+            When(x"5C"){ sreg <=  x"010001"; }
+            When(x"5D"){ sreg <=  x"480004"; }
             When(x"5E"){ sreg <=  x"420200"; }
             When(x"5F"){ sreg <=  x"300D00"; }
+            When(x"60"){ sreg <=  x"420200"; }
+            When(x"61"){ sreg <=  x"300D00"; }
             When(others){sreg <=  x"FFFFFF"; }
         }
     }
-    
+
     SIGNAL I2C_Master_Interface_Enable        : STD_LOGIC := '0';
     SIGNAL I2C_Master_Interface_Address       : STD_LOGIC_VECTOR (6 DOWNTO 0) := (others => '0');
     SIGNAL I2C_Master_Interface_RW            : STD_LOGIC := '0';
@@ -277,7 +287,7 @@ Component CSI_Camera
     SIGNAL I2C_Master_Interface_Busy          : STD_LOGIC;
     SIGNAL I2C_Master_Interface_Data_RD       : STD_LOGIC_VECTOR (7 DOWNTO 0);
     SIGNAL I2C_Master_Interface_Ack_Error     : STD_LOGIC;
-    
+
     NewComponent I2C_Master_Interface
     (
         CLK_Frequency => CLK_Frequency,
@@ -294,44 +304,186 @@ Component CSI_Camera
         SDA           => SDA,
         SCL           => SCL,
     );
+
+    SIGNAL Pixel_R_Reg   : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Pixel_G_Reg   : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Pixel_B_Reg   : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL New_Pixel_Reg : STD_LOGIC;
+
+    SIGNAL Pixel_R_Reg_O   : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Pixel_G_Reg_O   : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Pixel_B_Reg_O   : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL New_Pixel_Reg_O : STD_LOGIC;
     
+    SIGNAL New_Pixel : STD_LOGIC;
+    
+    New_Pixel <= New_Pixel_Reg_O when Row_Buf else New_Pixel_Reg;
+
     --Output current data
-    Pixel_R  <= STD_LOGIC_VECTOR(Pixel1.R(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.R(Convert_Type));
-    Pixel_G  <= STD_LOGIC_VECTOR(Pixel1.G(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.G(Convert_Type));
-    Pixel_B  <= STD_LOGIC_VECTOR(Pixel1.B(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.B(Convert_Type));
-    New_Pixel <= '0' when Start_Reg(1) = '1' else First_New_Pixel(0) OR Second_New_Pixel;
+    oStream.R <= Pixel_R_Reg_O when Row_Buf else Pixel_R_Reg;
+    oStream.G <= Pixel_G_Reg_O when Row_Buf else Pixel_G_Reg;
+    oStream.B <= Pixel_B_Reg_O when Row_Buf else Pixel_B_Reg;
+    oStream.New_Pixel <= New_Pixel;
+    oStream.Column <= Column;
+    oStream.Row <= Row;
+
+    Pixel_R_Reg  <= STD_LOGIC_VECTOR(Pixel1.R(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.R(Convert_Type));
+    Pixel_G_Reg  <= STD_LOGIC_VECTOR(Pixel1.G(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.G(Convert_Type));
+    Pixel_B_Reg  <= STD_LOGIC_VECTOR(Pixel1.B(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.B(Convert_Type));
+    New_Pixel_Reg <= '0' when Start_Reg(1) = '1' else First_New_Pixel(0) OR Second_New_Pixel;
 
     --Keep track of current row and column
     Process Cam_RX ()
     {
         If(rising_edge(New_Pixel))
         {
-            If(Start_Reg(0) = '1')
+            SIGNAL Column : NATURAL range 0 to Image_Width-1 := 0;
+            SIGNAL Row    : NATURAL range 0 to Image_Height-1 := 0;
+            
+            If(start_buf /= start_buf_reg)
             {
                 Column <= 0;
                 Row    <= 0;
             }
             Else
             {
-                If(Column < 639)
+                If(Column < Image_Width-1)
                 {
                     Column <= Column + 1;
                 }
                 Else
                 {
-                    If(Row < 479)
+                    If(Row < Image_Height-1)
                     {
                         Row    <= Row + 1;
                         Column <= 0;
                     }
                 }
             }
+            start_buf_reg := start_buf;
+            VARIABLE start_buf_reg : STD_LOGIC;
+        }
+    }
+
+    --30 - 30k 50 - 50k
+    SIGNAL Cur_Pixel_Reg_I : STD_LOGIC_VECTOR(23 downto 0);
+    SIGNAL Cur_Pixel_Reg : STD_LOGIC_VECTOR(23 downto 0);
+    Pixel_R_Reg_O <= Cur_Pixel_Reg(23 downto 16);
+    Pixel_G_Reg_O <= Cur_Pixel_Reg(15 downto 8);
+    Pixel_B_Reg_O <= Cur_Pixel_Reg(7 downto 0);
+    
+    SIGNAL RAM_Addr_A : STD_LOGIC_VECTOR(9 downto 0);
+    SIGNAL RAM_Addr_B : STD_LOGIC_VECTOR(9 downto 0);
+    RAM_Addr_A <= STD_LOGIC_VECTOR(TO_UNSIGNED(buf_col,10));
+    RAM_Addr_B <= STD_LOGIC_VECTOR(TO_UNSIGNED(Column,10));
+    
+    --Row Buffer
+    NewComponent ALTSYNCRAM
+    (
+        address_reg_b => "CLOCK1",
+        clock_enable_input_a => "BYPASS",
+        clock_enable_input_b => "BYPASS",
+        clock_enable_output_b => "BYPASS",
+        intended_device_family => "unused",
+        lpm_type => "altsyncram",
+        numwords_a => 1024,
+        numwords_b => 1024,
+        operation_mode => "DUAL_PORT",
+        outdata_reg_b => "CLOCK1",
+        widthad_a => 10,
+        widthad_b => 10,
+        width_a => 24,
+        width_b => 24,
+        
+        address_a => RAM_Addr_A,
+        address_b => RAM_Addr_B,
+        clock0 => New_Pixel_Reg,
+        clock1 => New_Pixel_Reg_O,
+        data_a => Cur_Pixel_Reg_I,
+        wren_a => '1',
+        q_b => Cur_Pixel_Reg,
+    );
+
+    Process ()
+    {
+        If(rising_edge(New_Pixel_Reg))
+        {
+            Signal buf_col : NATURAL range 0 to Image_Width-1;
+            If(Start_Reg(0) = '1')
+            {
+                buf_col <= 0;
+                SIGNAL start_buf : STD_LOGIC := '0';
+                start_buf <= not start_buf;
+            }
+            Else
+            {
+                If(buf_col < Image_Width-1)
+                {
+                    buf_col <= buf_col + 1;
+                }
+                Else
+                {
+                    buf_col <= 0;
+                }
+            }
+            
+            Cur_Pixel_Reg_I <= Pixel_R_Reg & Pixel_G_Reg & Pixel_B_Reg;
+        }
+    }
+    
+    SIGNAL Pixel_Clk_Enable : BOOLEAN := false;
+    Process ()
+    {
+        If(falling_edge(New_Pixel_Div))
+        {
+            Pixel_Clk_Enable <= Column < Image_Width-1 OR Pixel_Clk_Start;
+        }
+    }
+
+    SIGNAL Pixel_Clk_Start : BOOLEAN := false;
+    Pixel_Clk_Start <= true when buf_col = 1 else false when Column = 0 else Pixel_Clk_Start;
+    
+    SIGNAL New_Pixel_Div : STD_LOGIC;
+    
+    New_Pixel_Reg_O <= New_Pixel_Div when Pixel_Clk_Enable else '0';
+    
+    --2624x1952 -> 640x480
+    CONSTANT pixel_clk_divider : NATURAL := CLK_Frequency/(Image_FPS*1200*Image_Width);
+    Generate (if pixel_clk_divider < 2)
+    {
+        New_Pixel_Div <= CLK;
+    }
+    
+    Generate (if pixel_clk_divider > 1)
+    {
+        Process
+        (
+            VARIABLE div_count  : NATURAL range 0 to pixel_clk_divider-1 := 0;
+        )
+        {
+            If(div_count < pixel_clk_divider-1)
+            {
+                div_count := div_count + 1;
+            }
+            Else
+            {
+                div_count := 0;
+            }
+            
+            If(div_count < pixel_clk_divider/2)
+            {
+                New_Pixel_Div <= '1';
+            }
+            Else
+            {
+                New_Pixel_Div <= '0';
+            }
         }
     }
 
     SIGNAL Data_H          : STD_LOGIC_VECTOR(1 downto 0) := (others => '0');
     SIGNAL Data_L          : STD_LOGIC_VECTOR(1 downto 0) := (others => '0');
-    
+
     NewComponent ALTDDIO_IN
     (
         intended_device_family => "unused",
@@ -342,13 +494,17 @@ Component CSI_Camera
         dataout_h              => Data_H,
         dataout_l              => Data_L,
     );
-    
+
     SIGNAL RAM_Addr          : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
     SIGNAL RAM_Data          : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
     SIGNAL RAM_Data_Out      : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
     SIGNAL Received_Byte     : STD_LOGIC := '0';
     SIGNAL Combine_Bytes     : STD_LOGIC := '0';
-    
+    SIGNAL RAM_DATA_A        : STD_LOGIC_VECTOR(31 downto 0);
+    RAM_DATA_A <= (RAM_Data(15 downto 0) & Second_Byte_Reg(7 downto 0) & First_Byte_Reg(7 downto 0));
+    SIGNAL RAM_WREN_A        : STD_LOGIC;
+    RAM_WREN_A <= (Received_Byte AND Combine_Bytes);
+
     NewComponent ALTSYNCRAM
     (
         address_reg_b                      => "CLOCK0",
@@ -368,11 +524,11 @@ Component CSI_Camera
         address_a                          => RAM_Addr(9 downto 0),
         address_b                          => RAM_Addr(9 downto 0),
         clock0                             => CLK_Lane,
-        data_a                             => (RAM_Data(15 downto 0) & Second_Byte_Reg(7 downto 0) & First_Byte_Reg(7 downto 0)),
+        data_a                             => RAM_DATA_A,
         q_b                                => RAM_Data_Out,
-        wren_a                             => (Received_Byte AND Combine_Bytes),
+        wren_a                             => RAM_WREN_A,
     );
-    
+
     RAM_Data <= (others => '0') when Start_Reg(1) = '1' else RAM_Data_Out;
 
     TYPE Pixel_Value_type IS ARRAY (1 downto 0) OF UNSIGNED(7 downto 0);
@@ -383,7 +539,7 @@ Component CSI_Camera
     END RECORD Pixel_RGB_type;
     SIGNAL Pixel1 : Pixel_RGB_type := (others => (others => (others => '0')));
     SIGNAL Pixel2 : Pixel_RGB_type := (others => (others => (others => '0')));
-    
+
     Process ()
     {
         If(rising_edge(CLK_Lane))

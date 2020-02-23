@@ -1,0 +1,71 @@
+/*
+    Name: Square
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 22.02.2020
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+    Description: -This Component draws a square defined by two points in a camera stream.
+	                     _______________
+						X0/Y0---------<-> <- Width
+						| |           | |
+						| |           | |
+						| |  		  | |
+						| |___________| |
+						 -----------X1/Y1
+    
+    Insertion:   -Right click on the file -> Add to active project
+                 -Add NewComponent of this component into your code
+                 -Set the parameters according to your application
+				 -Connect the camera stream
+                    
+    Example:     Camera_CSI_Example
+ */
+
+Component Draw_Square
+(
+    Generic
+    (
+        Width : NATURAL := 4;
+        Color : STD_LOGIC_VECTOR(23 downto 0) := x"FF0000"; --FF <- R, 00 <- G, 00 <- B
+    );
+
+    Square_X0  : IN NATURAL range 0 to 639;
+    Square_X1  : IN NATURAL range 0 to 639;
+    Square_Y0  : IN NATURAL range 0 to 479;
+    Square_Y1  : IN NATURAL range 0 to 479;
+    
+    iStream    : in   rgb_stream;
+    oStream    : out  rgb_stream;
+)
+{
+    
+    oStream.New_Pixel <= iStream.New_Pixel;
+    oStream.Row       <= iStream.Row;
+    oStream.Column    <= iStream.Column;
+    
+    oStream.R <= Color(23 downto 16) when (((iStream.Column >= Square_X0 - Width/2 AND iStream.Column <= Square_X0 + Width/2) OR (iStream.Column >= Square_X1 - Width/2 AND iStream.Column <= Square_X1 + Width/2)) AND (iStream.Row >= Square_Y0 AND iStream.Row <= Square_Y1)) OR
+    (((iStream.Row >= Square_Y0 - Width/2 AND iStream.Row <= Square_Y0 + Width/2) OR (iStream.Row >= Square_Y1 - Width/2 AND iStream.Row <= Square_Y1 + Width/2)) AND (iStream.Column >= Square_X0 AND iStream.Column <= Square_X1)) else iStream.R;
+    oStream.G <= Color(15 downto 8) when (((iStream.Column >= Square_X0 - Width/2 AND iStream.Column <= Square_X0 + Width/2) OR (iStream.Column >= Square_X1 - Width/2 AND iStream.Column <= Square_X1 + Width/2)) AND (iStream.Row >= Square_Y0 AND iStream.Row <= Square_Y1)) OR
+    (((iStream.Row >= Square_Y0 - Width/2 AND iStream.Row <= Square_Y0 + Width/2) OR (iStream.Row >= Square_Y1 - Width/2 AND iStream.Row <= Square_Y1 + Width/2)) AND (iStream.Column >= Square_X0 AND iStream.Column <= Square_X1)) else iStream.G;
+    oStream.B <= Color(7 downto 0) when (((iStream.Column >= Square_X0 - Width/2 AND iStream.Column <= Square_X0 + Width/2) OR (iStream.Column >= Square_X1 - Width/2 AND iStream.Column <= Square_X1 + Width/2)) AND (iStream.Row >= Square_Y0 AND iStream.Row <= Square_Y1)) OR
+    (((iStream.Row >= Square_Y0 - Width/2 AND iStream.Row <= Square_Y0 + Width/2) OR (iStream.Row >= Square_Y1 - Width/2 AND iStream.Row <= Square_Y1 + Width/2)) AND (iStream.Column >= Square_X0 AND iStream.Column <= Square_X1)) else iStream.B;
+    
+}

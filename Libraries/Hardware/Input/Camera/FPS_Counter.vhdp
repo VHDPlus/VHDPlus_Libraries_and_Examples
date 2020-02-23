@@ -1,0 +1,74 @@
+/*
+    Name: FPS Counter
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 23.02.2020
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Description: -This component calculates the actual FPS of the Camera stream.
+ */
+
+Component FPS_Counter
+(
+    Generic
+    (
+        CLK_Frequency : NATURAL := 12000000;
+    );
+    
+    iStream : IN rgb_stream;
+    
+    oFPS    : OUT NATURAL range 0 to CLK_Frequency;
+)
+{
+    --Calculate FPS
+    SIGNAL new_frame : STD_LOGIC;
+    new_frame <= '1' when iStream.Row = 2 else '0';
+    --new_frame <= '1' when iStream.Column = 0 else '0';
+    SIGNAL fps_count : NATURAL range 0 to CLK_Frequency;
+    SIGNAL fps_rst   : STD_LOGIC;
+    
+    Process ()
+    {
+        If(rising_edge(new_frame))
+        {
+            VARIABLE fps_count_reg : NATURAL range 0 to CLK_Frequency;
+            fps_count_reg := CLK_Frequency / fps_count;
+            
+            fps_rst <= not fps_rst;
+            
+            oFPS <= fps_count_reg;
+        }
+    }
+    
+    Process ()
+    {
+        VARIABLE fps_rst_reg   : STD_LOGIC;
+
+        If(fps_rst_reg /= fps_rst)
+        {
+            fps_count <= 0;
+            fps_rst_reg := fps_rst;
+        }
+        Else
+        {
+            fps_count <= fps_count + 1;
+        }
+    }
+}

@@ -1,0 +1,193 @@
+/*
+    Name: RGB 2 HSV
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 23.02.2020
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+    Description: -This component converts a RGB Stream to HSV.
+	              R => Hue (0 red => 30 yellow => 60 green => 90 turquoise => 120 Blue => 150 pink => 180 red)
+				  G => Saturation (0-255)
+				  B => Brightness (0-255)
+    
+    Insertion:   -Right click on the file -> Add to active project
+                 -Add NewComponent of this component into your code
+                 -Set the parameters according to your application
+				 -Connect the camera stream
+				 
+    Example:     Camera_CSI_Example
+ */
+
+Component RGB2HSV_Filter
+(
+    Generic
+    (
+        CLK_Edge    : BOOLEAN := true; --true = rising edge
+    );
+    iStream    : in   rgb_stream;
+    oStream    : out  rgb_stream;
+)
+{
+    SIGNAL oStream_buf : rgb_stream;
+    SIGNAL iStream_buf : rgb_stream;
+    
+    oStream.New_Pixel <= iStream.New_Pixel;
+    
+    SIGNAL New_Pixel_Buf : STD_LOGIC;
+    New_Pixel_Buf <= iStream.New_Pixel when CLK_Edge else NOT iStream.New_Pixel;
+    
+    Process ()
+    {
+        If(rising_edge(New_Pixel_Buf))
+        {
+            iStream_buf <= iStream;
+            
+            oStream.R <= oStream_buf.R;
+            oStream.G <= oStream_buf.G;
+            oStream.B <= oStream_buf.B;
+            oStream.Column <= oStream_buf.Column;
+            oStream.Row <= oStream_buf.Row;
+            
+            oStream_buf.Column <= iStream_buf.Column;
+            oStream_buf.Row    <= iStream_buf.Row;
+            
+            variable r_int, g_int, b_int : integer range 0 to 255;
+            variable max_value, min_value, delta : integer range 0 to 255;
+            variable h_value : integer range 0 to 255;
+            variable s_value : integer range 0 to 255;
+            
+            -- rgb conversion from ycc
+            r_int := to_integer(unsigned(iStream_buf.R));
+            g_int := to_integer(unsigned(iStream_buf.G));
+            b_int := to_integer(unsigned(iStream_buf.B));
+
+            --get max value
+            If(r_int > g_int and r_int > b_int)
+            {
+                max_value := r_int;
+            }
+            Elsif(g_int > r_int and g_int > b_int)
+            {
+                max_value := g_int;
+            }
+            Else
+            {
+                max_value := b_int;
+            }
+            --get min value
+            If(r_int < g_int and r_int < b_int)
+            {
+                min_value := r_int;
+            }
+            Elsif(g_int < r_int and g_int < b_int)
+            {
+                min_value := g_int;
+            }
+            Else
+            {
+                min_value := b_int;
+            }
+            --get difference (delta)
+            delta := max_value-min_value;
+            
+            If(delta = 0)
+            {
+                h_value := 0;
+            }
+            Else
+            {
+                --Get hue degree offset depending on max value
+                VARIABLE degree_offset : NATURAL range 0 to 180 := 0;
+                If(max_value = r_int AND g_int >= b_int)
+                {
+                    degree_offset := 0;
+                }
+                Elsif(max_value = r_int AND g_int < b_int)
+                {
+                    degree_offset := 180;
+                }
+                Elsif(max_value = g_int)
+                {
+                    degree_offset := 60;
+                }
+                Else
+                {
+                    degree_offset := 120;
+                }
+                --Get difference of remaining color fur hue
+                VARIABLE remainder_diff : INTEGER range -255 to 255 := 0;
+                If(max_value = r_int)
+                {
+                    remainder_diff := g_int - b_int;
+                }
+                Elsif(max_value = g_int)
+                {
+                    remainder_diff := b_int - r_int;
+                }
+                Else
+                {
+                    remainder_diff := r_int - g_int;
+                }
+                
+                -- converion signals
+                
+                h_value := ((30 * remainder_diff)/delta) + degree_offset;
+            }
+            
+            If(max_value = 0)
+            {
+                s_value := 0;
+            }
+            Else
+            {
+                s_value := (delta*255)/max_value;
+            }
+            
+            -- perform limiting
+            
+            If(h_value <= 180)
+            {
+                oStream_buf.R <= std_logic_vector(TO_UNSIGNED(h_value,8));
+            }
+            Else
+            {
+                oStream_buf.R <= std_logic_vector(to_unsigned(180, 8));
+            }
+
+            If(s_value <= 255)
+            {
+                oStream_buf.G <= std_logic_vector(TO_UNSIGNED(s_value,8));
+            }
+            Else
+            {
+                oStream_buf.G <= std_logic_vector(to_unsigned(255, 8));
+            }
+            
+            If(max_value <= 255)
+            {
+                oStream_buf.B <= std_logic_vector(TO_UNSIGNED(max_value,8));
+            }
+            Else
+            {
+                oStream_buf.B <= std_logic_vector(to_unsigned(255, 8));
+            }
+        }
+    }
+}

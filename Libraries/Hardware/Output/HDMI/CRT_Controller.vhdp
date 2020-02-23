@@ -27,10 +27,16 @@
 
 Component CRT_Controller
 (
+    Generic
+    (
+        image_size_div : NATURAL := 1;
+    );
+    
     --RAM interface (VGA 24bit)
     Read_Column : OUT    NATURAL range 0 to 639 := 0;
     Read_Row    : OUT    NATURAL range 0 to 479 := 0;
     Read_Data   : IN     STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
+    Read_Ena    : OUT    STD_LOGIC := '0';
 
     --Video stream output
     VS_PCLK    : OUT    STD_LOGIC;
@@ -64,6 +70,12 @@ Component CRT_Controller
     CONSTANT syncV   : NATURAL := 490; --start of vertical sync
     CONSTANT porchVB : NATURAL := 492; --start of vertical back porch
     CONSTANT maxV    : NATURAL := 525; --total rows
+    
+    SIGNAL xCountReg : INTEGER range 0 to maxH := 0;
+    SIGNAL yCountReg : INTEGER range 0 to maxV := 0;
+    
+    --Pixel CLK = Request next pixel
+    Read_Ena <= PLL_c0 when xCountReg < porchHF/image_size_div AND yCountReg < porchVF/image_size_div else '0';
     
     Process ()
     {
@@ -127,6 +139,9 @@ Component CRT_Controller
                     VS_VS <= '1';
                 }
             }
+            
+            xCountReg <= xCount;
+            yCountReg <= yCount;
         }
     }
 }

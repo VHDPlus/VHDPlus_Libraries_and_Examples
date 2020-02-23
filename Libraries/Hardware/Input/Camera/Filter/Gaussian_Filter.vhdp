@@ -1,0 +1,249 @@
+/*
+    Name: Gaussian Filter
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 23.02.2020
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+    Description: -This component saves the last rows (if Filter_Area = 3 -> first 3 rows are saved) 
+	              and combines them so noise decreases and the image gets blurred
+				 -To save RAM, you can decrease the Color_Depth that is saved.
+				 -If Gaussian mode is enabled, the pixel in the center has a higher weight than the outer ones.
+				  If not, all Pixels in the area are treated the same
+				 -If HSV_Mode is enabled, you can decrease the Color_Depth for the saturation and brightness,
+				  but the Hue is kept 8bit
+    
+    Insertion:   -Right click on the file -> Add to active project
+                 -Add NewComponent of this component into your code
+                 -Set the parameters according to your application
+				 -Connect the camera stream
+				 
+    Example:     Camera_CSI_Example
+ */
+
+Component Gaussian_Filter
+(
+    Generic
+    (
+        Filter_Area : NATURAL := 3; --3 = 3x3 pixels used to create one blurred pixel
+        Color_Depth : NATURAL := 8; --Number of bits for one pixel
+        Gaussian    : BOOLEAN := true; --false to just add pixels next to center pixel
+        HSV_Mode    : BOOLEAN := false; --keeps R (Hue) input 8bit
+        CLK_Edge    : BOOLEAN := true; --true = rising edge
+    );
+    iStream    : in   rgb_stream;
+    oStream    : out  rgb_stream;
+)
+{
+    SIGNAL iStream_buf    : rgb_stream;
+    SIGNAL oStream_buf    : rgb_stream;
+    
+    oStream.New_Pixel <= iStream.New_Pixel;
+
+    type ram_type is array (Filter_Area-2 downto 0, Image_Width-1 downto 0) of std_logic_vector (Color_Depth-1 downto 0);
+    signal RAM_r : ram_type;
+    signal RAM_g : ram_type;
+    signal RAM_b : ram_type;
+    
+    type ram_type_h is array (Filter_Area-2 downto 0, Image_Width-1 downto 0) of std_logic_vector (7 downto 0);
+    signal RAM_h : ram_type_h;
+    
+    TYPE last_pixel_type IS ARRAY (Filter_Area-1 downto 0) OF std_logic_vector (Color_Depth-1 downto 0);
+    TYPE last_pixel_arr_type IS ARRAY (Filter_Area downto 0) OF last_pixel_type;
+    
+    TYPE last_pixel_type_h IS ARRAY (Filter_Area-1 downto 0) OF std_logic_vector (7 downto 0);
+    TYPE last_pixel_arr_type_h IS ARRAY (Filter_Area downto 0) OF last_pixel_type_h;
+    
+    SIGNAL New_Pixel_Buf : STD_LOGIC;
+    New_Pixel_Buf <= iStream.New_Pixel when CLK_Edge else NOT iStream.New_Pixel;
+    
+    Process ()
+    {
+        If(rising_edge(New_Pixel_Buf))
+        {
+            iStream_buf <= iStream;
+            
+            oStream.R <= oStream_buf.R;
+            oStream.G <= oStream_buf.G;
+            oStream.B <= oStream_buf.B;
+            oStream.Column <= oStream_buf.Column;
+            oStream.Row <= oStream_buf.Row;
+            
+            --current row in RAM -> if 1 -> saves in 1 and last data is in 0
+            VARIABLE row_count : NATURAL range 0 to Filter_Area-2 := 0;
+            VARIABLE last_col  : NATURAL range 0 to 639 := 0;
+            If(last_col > iStream_buf.Column)
+            {
+                If(row_count < Filter_Area-2)
+                {
+                    row_count := row_count + 1;
+                }
+                Else
+                {
+                    row_count := 0;
+                }
+            }
+            last_col := iStream_buf.Column;
+            
+            If(iStream_buf.Row > 2 AND iStream_buf.Column > 3)
+            {
+                oStream_buf.Column <= iStream_buf.Column-2;
+                oStream_buf.Row    <= iStream_buf.Row-1;
+
+				VARIABLE r_add : NATURAL;
+				VARIABLE g_add : NATURAL;
+				VARIABLE b_add : NATURAL;
+				r_add := 0;
+				g_add := 0;
+				b_add := 0;
+				If(Gaussian)
+				{
+					For(i IN 0 to Filter_Area-1)
+					{
+						For(j IN 1 to Filter_Area)
+						{
+							If(HSV_Mode)
+							{
+								r_add := r_add + TO_INTEGER(UNSIGNED(Buf_h(j)(i)))*(((Filter_Area-1)-(abs(i-Filter_Area/2)+abs(j-(Filter_Area/2+1))))*2);
+							}
+							Else
+							{
+								r_add := r_add + TO_INTEGER(UNSIGNED(Buf_r(j)(i)))*(((Filter_Area-1)-(abs(i-Filter_Area/2)+abs(j-(Filter_Area/2+1))))*2);
+							}
+							
+							g_add := g_add + TO_INTEGER(UNSIGNED(Buf_g(j)(i)))*(((Filter_Area-1)-(abs(i-Filter_Area/2)+abs(j-(Filter_Area/2+1))))*2);
+							b_add := b_add + TO_INTEGER(UNSIGNED(Buf_b(j)(i)))*(((Filter_Area-1)-(abs(i-Filter_Area/2)+abs(j-(Filter_Area/2+1))))*2);
+						}
+					}
+					
+					VARIABLE divider : NATURAL range 0 to 1024;
+					Case(Filter_Area)
+					{
+						When(1)
+						{
+							divider := 1;
+						}
+						When(3)
+						{
+							divider := 16;
+						}
+						When(5)
+						{
+							divider := 84;
+						}
+						When(7)
+						{
+							divider := 256;
+						}
+						When(others)
+						{
+							divider := 1;
+						}
+					}
+					If(HSV_Mode)
+					{
+						oStream_buf.R <= STD_LOGIC_VECTOR(TO_UNSIGNED(r_add/divider, 8));
+					}
+					Else
+					{
+						oStream_buf.R(7 downto 8-Color_Depth) <= STD_LOGIC_VECTOR(TO_UNSIGNED(r_add/divider, Color_Depth));
+					}
+					
+					oStream_buf.G(7 downto 8-Color_Depth) <= STD_LOGIC_VECTOR(TO_UNSIGNED(g_add/divider, Color_Depth));
+					oStream_buf.B(7 downto 8-Color_Depth) <= STD_LOGIC_VECTOR(TO_UNSIGNED(b_add/divider, Color_Depth));
+				}
+				Else
+				{
+					For(i IN 0 to Filter_Area-1)
+					{
+						For(j IN 1 to Filter_Area)
+						{
+							If(HSV_Mode)
+							{
+								r_add := r_add + TO_INTEGER(UNSIGNED(Buf_h(j)(i)));
+							}
+							Else
+							{
+								r_add := r_add + TO_INTEGER(UNSIGNED(Buf_r(j)(i)));
+							}
+							g_add := g_add + TO_INTEGER(UNSIGNED(Buf_g(j)(i)));
+							b_add := b_add + TO_INTEGER(UNSIGNED(Buf_b(j)(i)));
+						}
+					}
+					If(HSV_Mode)
+					{
+						oStream_buf.R <= STD_LOGIC_VECTOR(TO_UNSIGNED(r_add/Filter_Area**2, 8));
+					}
+					Else
+					{
+						oStream_buf.R(7 downto 8-Color_Depth) <= STD_LOGIC_VECTOR(TO_UNSIGNED(r_add/Filter_Area**2, Color_Depth));
+					}
+					oStream_buf.G(7 downto 8-Color_Depth) <= STD_LOGIC_VECTOR(TO_UNSIGNED(g_add/Filter_Area**2, Color_Depth));
+					oStream_buf.B(7 downto 8-Color_Depth) <= STD_LOGIC_VECTOR(TO_UNSIGNED(b_add/Filter_Area**2, Color_Depth));
+				}
+            }
+
+            VARIABLE Buf_r : last_pixel_arr_type;
+            VARIABLE Buf_g : last_pixel_arr_type;
+            VARIABLE Buf_b : last_pixel_arr_type;
+            
+            VARIABLE Buf_h : last_pixel_arr_type_h;
+            
+            --| 20 | 10 |     00    |
+            --| 21 | 11 | row_count |
+            --| 22 | 12 | new pixel |
+            Buf_r(Filter_Area downto 1) := Buf_r(Filter_Area-1 downto 0);
+            Buf_g(Filter_Area downto 1) := Buf_g(Filter_Area-1 downto 0);
+            Buf_b(Filter_Area downto 1) := Buf_b(Filter_Area-1 downto 0);
+            
+            Buf_h(Filter_Area downto 1) := Buf_h(Filter_Area-1 downto 0);
+            
+            For(i IN 0 to Filter_Area-2)
+            {
+                VARIABLE read_row : NATURAL range 0 to Filter_Area-2 := 0;
+                If(row_count >= i)
+                {
+                    read_row := row_count-i;
+                }
+                Else
+                {
+                    read_row := (Filter_Area-1)+row_count-i;
+                }
+                Buf_r(0)(i) := RAM_r(read_row, iStream_buf.Column);
+                Buf_g(0)(i) := RAM_g(read_row, iStream_buf.Column);
+                Buf_b(0)(i) := RAM_b(read_row, iStream_buf.Column);
+                
+                Buf_h(0)(i) := RAM_h(read_row, iStream_buf.Column);
+            }
+            
+            Buf_r(0)(Filter_Area-1) := iStream_buf.R(7 downto 8-Color_Depth);
+            Buf_g(0)(Filter_Area-1) := iStream_buf.G(7 downto 8-Color_Depth);
+            Buf_b(0)(Filter_Area-1) := iStream_buf.B(7 downto 8-Color_Depth);
+            
+            Buf_h(0)(Filter_Area-1) := iStream_buf.R;
+            
+            RAM_r(row_count, iStream_buf.Column)   <= iStream_buf.R(7 downto 8-Color_Depth);
+            RAM_g(row_count, iStream_buf.Column)   <= iStream_buf.G(7 downto 8-Color_Depth);
+            RAM_b(row_count, iStream_buf.Column)   <= iStream_buf.B(7 downto 8-Color_Depth);
+            
+            RAM_h(row_count, iStream_buf.Column)   <= iStream_buf.R;
+        }
+    }
+}
