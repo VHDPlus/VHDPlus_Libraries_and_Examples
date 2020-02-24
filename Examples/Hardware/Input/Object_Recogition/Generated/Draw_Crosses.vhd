@@ -73,7 +73,7 @@ BEGIN
         END IF;
       ELSE
         save_cross := false;
-        IF (Cross_Addr < Crosses) THEN
+        IF (Cross_Addr < Crosses-1) THEN
           Cross_Addr <= Cross_Addr + 1;
         ELSE
           Cross_Addr <= 0;
@@ -81,8 +81,8 @@ BEGIN
       END IF;
       oStream.Column    <= iStream.Column;
       oStream.Row       <= iStream.Row;
-      IF (((iStream.Column >= X - Width/2 AND iStream.Column <= X + Width/2) AND (iStream.Row >= Y - Length/2 AND iStream.Row <= Y + Length/2)) OR
-((iStream.Column >= X - Length/2 AND iStream.Column <= X + Length/2) AND (iStream.Row >= Y - Width/2 AND iStream.Row <= Y + Width/2))) THEN
+      IF (Crosses > 0 AND (((iStream.Column >= X - Width/2 AND iStream.Column <= X + Width/2) AND (iStream.Row >= Y - Length/2 AND iStream.Row <= Y + Length/2)) OR
+((iStream.Column >= X - Length/2 AND iStream.Column <= X + Length/2) AND (iStream.Row >= Y - Width/2 AND iStream.Row <= Y + Width/2)))) THEN
         oStream.R <= Color(23 downto 16);
         oStream.G <= Color(15 downto 8);
         oStream.B <= Color(7 downto 0);

@@ -124,6 +124,16 @@
       <Header>VS_PLL.vhd</Header>
     </Items>
   </Items>
+  <Items xsi:type="ProjectFolder">
+    <Header>Libraries</Header>
+    <fileWatcherIgnore />
+    <Items xsi:type="ProjectFile">
+      <Header>ISSP.qsys</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>ISSP.qsys.vhdp</Header>
+    </Items>
+  </Items>
   <Items xsi:type="ProjectFileVHDP">
     <Header>Cone_Detection.vhdp</Header>
   </Items>

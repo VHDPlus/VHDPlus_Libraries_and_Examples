@@ -28,14 +28,28 @@ END Draw_Squares;
 
 ARCHITECTURE BEHAVIORAL OF Draw_Squares IS
 
+  SIGNAL ISSP_source : std_logic_vector (7 downto 0);
+  SIGNAL ISSP_probe  : std_logic_vector (31 downto 0);
   SIGNAL X0   : NATURAL range 0 to Image_Width-1;
   SIGNAL X1   : NATURAL range 0 to Image_Width-1;
   SIGNAL Y0   : NATURAL range 0 to Image_Height-1;
   SIGNAL Y1   : NATURAL range 0 to Image_Height-1;
+  COMPONENT ISSP IS
+  
+  PORT (
+    source : out std_logic_vector(7 downto 0);                      
+    probe  : in  std_logic_vector(31 downto 0)  := (others => 'X') 
+
+  );
+  END COMPONENT;
   
 BEGIN
-
+  ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Square_Addr,ISSP_probe'LENGTH));
   oStream.New_Pixel <= iStream.New_Pixel;
+  ISSP1 : ISSP  PORT MAP (
+    source => ISSP_source,
+    probe  => ISSP_probe
+  );
   PROCESS (iStream)
     VARIABLE r : NATURAL range 0 to Image_Height-1;
     VARIABLE c : NATURAL range 0 to Image_Width-1;
@@ -79,7 +93,7 @@ BEGIN
         END IF;
       ELSE
         save_square := false;
-        IF (Square_Addr < Squares) THEN
+        IF (Square_Addr < Squares-1) THEN
           Square_Addr <= Square_Addr + 1;
         ELSE
           Square_Addr <= 0;
@@ -87,8 +101,8 @@ BEGIN
       END IF;
       oStream.Column    <= iStream.Column;
       oStream.Row       <= iStream.Row;
-      IF ((((iStream.Column >= X0 - Width/2 AND iStream.Column <= X0 + Width/2) OR (iStream.Column >= X1 - Width/2 AND iStream.Column <= X1 + Width/2)) AND (iStream.Row >= Y0 AND iStream.Row <= Y1)) OR
-(((iStream.Row >= Y0 - Width/2 AND iStream.Row <= Y0 + Width/2) OR (iStream.Row >= Y1 - Width/2 AND iStream.Row <= Y1 + Width/2)) AND (iStream.Column >= X0 AND iStream.Column <= X1))) THEN
+      IF (Squares > 0 AND ((((iStream.Column >= X0 - Width/2 AND iStream.Column <= X0 + Width/2) OR (iStream.Column >= X1 - Width/2 AND iStream.Column <= X1 + Width/2)) AND (iStream.Row >= Y0 AND iStream.Row <= Y1)) OR
+(((iStream.Row >= Y0 - Width/2 AND iStream.Row <= Y0 + Width/2) OR (iStream.Row >= Y1 - Width/2 AND iStream.Row <= Y1 + Width/2)) AND (iStream.Column >= X0 AND iStream.Column <= X1)))) THEN
         oStream.R <= Color(23 downto 16);
         oStream.G <= Color(15 downto 8);
         oStream.B <= Color(7 downto 0);

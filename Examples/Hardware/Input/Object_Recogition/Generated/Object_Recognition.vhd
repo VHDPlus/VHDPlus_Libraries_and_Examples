@@ -26,19 +26,19 @@ ARCHITECTURE BEHAVIORAL OF Object_Recognition IS
   CONSTANT CLK_Frequency : NATURAL := 48000000;
   CONSTANT Row_Buf  : BOOLEAN := true;
   CONSTANT Enable_Compression  : BOOLEAN := true;
-  CONSTANT Compression_Area    : NATURAL := 2;
+  CONSTANT Compression_Area    : NATURAL := 4;
   CONSTANT Min_Pixel_Num       : NATURAL := ((Compression_Area**2)/2)*1;
   CONSTANT Blob_Min_H  : NATURAL := 5;
   CONSTANT Blob_Min_W  : NATURAL := 5;
   CONSTANT Blob_Max_H  : NATURAL := 40;
   CONSTANT Blob_Max_W  : NATURAL := 80;
-  CONSTANT Detect_Cones : BOOLEAN := true;
   CONSTANT Cone_31_Dist_Mult : NATURAL := 3;
   CONSTANT Cone_32_Dist_Mult : NATURAL := 2;
   CONSTANT Capture_Compression : NATURAL :=  2;
   CONSTANT Capture_Output      : NATURAL :=  5;
   CONSTANT Capture_Color_Depth : NATURAL := 1;
   CONSTANT Full_Image : BOOLEAN := true;
+  CONSTANT Color_Out  : BOOLEAN := true;
   SIGNAL Color_Select : NATURAL range 0 to 3 := 2;
   SIGNAL Cone_Select  : NATURAL range 0 to 1 := 1;
   SIGNAL Camera_Stream         : rgb_stream;
@@ -77,11 +77,21 @@ ARCHITECTURE BEHAVIORAL OF Object_Recognition IS
   SIGNAL Square_oStream : rgb_stream;
   SIGNAL Cone_Out          : Cone_Data;
   SIGNAL Cross_oStream : rgb_stream;
+  SIGNAL ISSP_source  : std_logic_vector (7 downto 0) := "00000000";
+  SIGNAL ISSP1_source : std_logic_vector (7 downto 0) := "01001000";
+  SIGNAL ISSP2_source : std_logic_vector (7 downto 0) := "00010001";
+  SIGNAL ISSP3_source : std_logic_vector (7 downto 0) := "01001000";
+  SIGNAL ISSP4_source : std_logic_vector (7 downto 0) := "00010001";
+  SIGNAL ISSP_probe   : std_logic_vector (31 downto 0);
+  SIGNAL ISSP1_probe  : std_logic_vector (31 downto 0);
+  SIGNAL ISSP2_probe  : std_logic_vector (31 downto 0);
+  SIGNAL ISSP3_probe  : std_logic_vector (31 downto 0);
+  SIGNAL ISSP4_probe  : std_logic_vector (31 downto 0);
   SIGNAL Camera_Capture_Read_Column    : NATURAL          range 0 to 639;
   SIGNAL Camera_Capture_Read_Row       : NATURAL          range 0 to 479;
   SIGNAL Camera_Capture_Read_Data      : STD_LOGIC_VECTOR (23 downto 0);
   SIGNAL Camera_Capture_SDRAM_Read_Ena : STD_LOGIC;
-  CONSTANT RGB                 : BOOLEAN := (Capture_Output < 2 OR Capture_Output > 4);
+  CONSTANT RGB   : BOOLEAN := (Capture_Output < 2 OR Capture_Output > 4) AND Color_Out;
   SIGNAL Camera_Capture_iStream     : rgb_stream;
   SIGNAL HDMI_Out_VS_PCLK   : STD_LOGIC;
   SIGNAL HDMI_Out_VS_SCLK   : STD_LOGIC;
@@ -285,6 +295,14 @@ ARCHITECTURE BEHAVIORAL OF Object_Recognition IS
 
   );
   END COMPONENT;
+  COMPONENT ISSP IS
+  
+  PORT (
+    source : out std_logic_vector(7 downto 0);                      
+    probe  : in  std_logic_vector(31 downto 0)  := (others => 'X') 
+
+  );
+  END COMPONENT;
   COMPONENT Camera_Capture IS
   GENERIC (
       Compression : NATURAL := 3;  
@@ -382,6 +400,11 @@ BEGIN
   Square_iStream when Capture_Output = 4 else
   Square_oStream when Capture_Output = 5 else
   Cross_oStream;
+  ISSP_probe  <= STD_LOGIC_VECTOR(TO_UNSIGNED(Cone_Out.Cones, 32))           when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Blobs, 32));
+  ISSP1_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Cone_Out.X, 32))               when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.X0, 32));
+  ISSP2_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Cone_Out.Y, 32))               when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Y0, 32));
+  ISSP3_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Cone_Out.Addr, 32))            when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.X1-Blob_Out.X0, 32));
+  ISSP4_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(blob_data_array(2).Blobs, 32)) when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Y1-Blob_Out.Y0, 32));
   CSI_Camera1 : CSI_Camera
   GENERIC MAP (
       CLK_Frequency => CLK_Frequency,
@@ -562,7 +585,7 @@ BEGIN
       
     );
   END GENERATE Generate3;
-  Generate4 : if Detect_Cones GENERATE
+  Generate4 : if Capture_Output = 6 GENERATE
     Generate5 : for i in 0 to 1 GENERATE
       Cone_Detection1 : Cone_Detection
   GENERIC MAP (
@@ -600,7 +623,7 @@ BEGIN
       );
     END GENERATE Generate5;
   END GENERATE Generate4;
-  Generate6 : if NOT Detect_Cones GENERATE
+  Generate6 : if Capture_Output < 6 GENERATE
     Blob_data_array(color_select).Addr <= Blob_Out.Addr;
   END GENERATE Generate6;
   Draw_Squares1 : Draw_Squares
@@ -637,6 +660,36 @@ BEGIN
     Cross_Y     => Cone_Out.Y,
     iStream     => Square_iStream,
     oStream     => Cross_oStream
+
+    
+  );
+  ISSP1 : ISSP  PORT MAP (
+    source => ISSP_source,
+    probe  => ISSP_probe
+
+    
+  );
+  ISSP2 : ISSP  PORT MAP (
+    source => ISSP1_source,
+    probe  => ISSP1_probe
+
+    
+  );
+  ISSP3 : ISSP  PORT MAP (
+    source => ISSP2_source,
+    probe  => ISSP2_probe
+
+    
+  );
+  ISSP4 : ISSP  PORT MAP (
+    source => ISSP3_source,
+    probe  => ISSP3_probe
+
+    
+  );
+  ISSP5 : ISSP  PORT MAP (
+    source => ISSP4_source,
+    probe  => ISSP4_probe
 
     
   );

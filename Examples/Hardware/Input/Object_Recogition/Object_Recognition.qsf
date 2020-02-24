@@ -49,6 +49,7 @@ set_global_assignment -name VERILOG_FILE HDMI/DVI_OUT.v
 set_global_assignment -name VERILOG_FILE HDMI/TMDS_ENCODE.v
 set_global_assignment -name QIP_FILE HDMI/VS_PLL.qip
 set_global_assignment -name VHDL_FILE HDMI/VS_PLL.vhd
+set_global_assignment -name QSYS_FILE Libraries/ISSP.qsys
 set_location_assignment PIN_E2 -to CLK
 set_location_assignment PIN_L2 -to Camera_Data_Lane[0]
 set_location_assignment PIN_J2 -to Camera_Data_Lane[1]

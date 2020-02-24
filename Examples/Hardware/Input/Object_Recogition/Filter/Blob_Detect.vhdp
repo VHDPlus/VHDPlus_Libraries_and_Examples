@@ -23,7 +23,7 @@
     WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
     
     Description: -Find blobs in a camera stream from a threshold filter
-	             -Can be outputed with Crosses
+                 -Can be outputed with Crosses
  */
 
 Component Blob_Detect
@@ -180,7 +180,7 @@ Component Blob_Detect
     
     Process ()
     {
-        If(falling_edge(New_Pixel))
+        If(rising_edge(New_Pixel))
         {
             VARIABLE Row_Reg      : NATURAL range 0 to Image_Height-1 := 0;
 
@@ -393,13 +393,13 @@ Component Blob_Detect
                 Elsif(copy)
                 {
                     --Save last data from blob ram into output ram
-                    If(Blobs_Buf > 1)
+                    If(Blobs_Buf > 2)
                     {
-                        blob_ram_copy_addr_in  <= Blobs_Buf-2;
+                        blob_ram_copy_addr_in  <= Blobs_Buf-3;
                         blob_ram_copy_in <= blob_ram_copy_out;
                     }
 
-                    SIGNAL Blobs_Buf     : NATURAL range 0 to Blob_Number+1;
+                    SIGNAL Blobs_Buf     : NATURAL range 0 to Blob_Number+2;
                     
                     --Copy data from blob ram
                     If(cur_blob > 0)
@@ -408,7 +408,7 @@ Component Blob_Detect
                         Blobs_Buf <= Blobs_Buf + 1;
                         cur_blob := cur_blob - 1;
                     }
-                    Elsif(Blobs_Buf < Blobs_Reg+1)
+                    Elsif(Blobs_Buf < Blobs_Reg+2)
                     {
                         Blobs_Buf <= Blobs_Buf + 1;
                     }

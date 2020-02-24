@@ -72,7 +72,7 @@ ARCHITECTURE BEHAVIORAL OF Blob_Detect IS
   SIGNAL next_blob : NATURAL range 0 to Blob_Buffer := 0;
   TYPE edge_reg_type IS ARRAY (0 to Edge_Reg_Size-1) OF NATURAL range 0 to Image_Width-1;
   SIGNAL Blobs_Reg     : NATURAL range 0 to Blob_Number;
-  SIGNAL Blobs_Buf     : NATURAL range 0 to Blob_Number+1;
+  SIGNAL Blobs_Buf     : NATURAL range 0 to Blob_Number+2;
   COMPONENT ALTSYNCRAM IS
   GENERIC (
       address_aclr_a         : string := "UNUSED";
@@ -248,7 +248,7 @@ BEGIN
     VARIABLE found_reg : BOOLEAN;
     VARIABLE find_i_reg : NATURAL range 0 to Blob_Buffer;
   BEGIN
-    IF (falling_edge(New_Pixel)) THEN
+    IF (rising_edge(New_Pixel)) THEN
       IF (Row < Row_Reg) THEN
         copy := true;
         Blobs_Buf <= 0;
@@ -397,8 +397,8 @@ BEGIN
           
           END IF;
         ELSIF (copy) THEN
-          IF (Blobs_Buf > 1) THEN
-            blob_ram_copy_addr_in  <= Blobs_Buf-2;
+          IF (Blobs_Buf > 2) THEN
+            blob_ram_copy_addr_in  <= Blobs_Buf-3;
             blob_ram_copy_in <= blob_ram_copy_out;
           
           END IF;
@@ -406,7 +406,7 @@ BEGIN
             blob_ram_copy_addr_out <= Blobs_Buf;
             Blobs_Buf <= Blobs_Buf + 1;
             cur_blob := cur_blob - 1;
-          ELSIF (Blobs_Buf < Blobs_Reg+1) THEN
+          ELSIF (Blobs_Buf < Blobs_Reg+2) THEN
             Blobs_Buf <= Blobs_Buf + 1;
           ELSE
             Blobs <= Blobs_Reg;

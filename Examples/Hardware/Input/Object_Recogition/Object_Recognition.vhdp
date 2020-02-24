@@ -19,7 +19,7 @@ Main
     --Compression
     CONSTANT Enable_Compression  : BOOLEAN := true;  --Uses more RAM, decreases noise
     
-    CONSTANT Compression_Area    : NATURAL := 2; --Bigger Area = less noise but higher RAM usage
+    CONSTANT Compression_Area    : NATURAL := 4; --Bigger Area = less noise but higher RAM usage
     CONSTANT Min_Pixel_Num       : NATURAL := ((Compression_Area**2)/2)*1; --min 50% '1'
     
     --Blob Detection
@@ -29,8 +29,6 @@ Main
     CONSTANT Blob_Max_W  : NATURAL := 80;
     
     --Cone Detection
-    CONSTANT Detect_Cones : BOOLEAN := true;  --Combines blobs
-    
     CONSTANT Cone_31_Dist_Mult : NATURAL := 3; --Bigger = detect more cones but less accurate
     CONSTANT Cone_32_Dist_Mult : NATURAL := 2;
     
@@ -40,6 +38,7 @@ Main
     --3 = Threshold with Color_Select color, 4 = Compressed, 5 = Blobs, 6 = Cones
     CONSTANT Capture_Color_Depth : NATURAL := 1; --4 for Capture_Output = 0 or 1; 8 for Capture_Output = 2; 1 for others
     CONSTANT Full_Image : BOOLEAN := true;
+    CONSTANT Color_Out  : BOOLEAN := true;
     
     SIGNAL Color_Select : NATURAL range 0 to 3 := 2;
     SIGNAL Cone_Select  : NATURAL range 0 to 1 := 1;  --0 = Yellow-Black 1 = Blue-White
@@ -270,7 +269,7 @@ Main
     TYPE cone_array IS ARRAY (0 to 1) OF Cone_Data;
     SIGNAL cone_data_array : cone_array;
     
-    Generate (if Detect_Cones)
+    Generate (if Capture_Output = 6)
     {
         --Detect yellow and blue cones
         Generate (for i in 0 to 1)
@@ -331,7 +330,7 @@ Main
     Blob_Out.X1    <= Blob_data_array(color_select).X1;
     Blob_Out.Y0    <= Blob_data_array(color_select).Y0;
     Blob_Out.Y1    <= Blob_data_array(color_select).Y1;
-    Generate (if NOT Detect_Cones)
+    Generate (if Capture_Output < 6)
     {
         Blob_data_array(color_select).Addr <= Blob_Out.Addr;
     }
@@ -395,6 +394,53 @@ Main
     Square_iStream when Capture_Output = 4 else
     Square_oStream when Capture_Output = 5 else
     Cross_oStream;
+    
+    SIGNAL ISSP_source  : std_logic_vector (7 downto 0) := "00000000";
+    SIGNAL ISSP1_source : std_logic_vector (7 downto 0) := "01001000";
+    SIGNAL ISSP2_source : std_logic_vector (7 downto 0) := "00010001";
+    SIGNAL ISSP3_source : std_logic_vector (7 downto 0) := "01001000";
+    SIGNAL ISSP4_source : std_logic_vector (7 downto 0) := "00010001";
+    SIGNAL ISSP_probe   : std_logic_vector (31 downto 0);
+    SIGNAL ISSP1_probe  : std_logic_vector (31 downto 0);
+    SIGNAL ISSP2_probe  : std_logic_vector (31 downto 0);
+    SIGNAL ISSP3_probe  : std_logic_vector (31 downto 0);
+    SIGNAL ISSP4_probe  : std_logic_vector (31 downto 0);
+    
+    NewComponent ISSP
+    (
+        source => ISSP_source,
+        probe  => ISSP_probe,
+    );
+
+    NewComponent ISSP
+    (
+        source => ISSP1_source,
+        probe  => ISSP1_probe,
+    );
+    
+    NewComponent ISSP
+    (
+        source => ISSP2_source,
+        probe  => ISSP2_probe,
+    );
+    
+    NewComponent ISSP
+    (
+        source => ISSP3_source,
+        probe  => ISSP3_probe,
+    );
+    
+    NewComponent ISSP
+    (
+        source => ISSP4_source,
+        probe  => ISSP4_probe,
+    );
+    
+    ISSP_probe  <= STD_LOGIC_VECTOR(TO_UNSIGNED(Cone_Out.Cones, 32))           when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Blobs, 32));
+    ISSP1_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Cone_Out.X, 32))               when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.X0, 32));
+    ISSP2_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Cone_Out.Y, 32))               when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Y0, 32));
+    ISSP3_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Cone_Out.Addr, 32))            when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.X1-Blob_Out.X0, 32));
+    ISSP4_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(blob_data_array(2).Blobs, 32)) when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Y1-Blob_Out.Y0, 32));
 
     --Output image with HDMI-------------------------------------------------------------
 
@@ -404,7 +450,7 @@ Main
     SIGNAL Camera_Capture_Read_Data      : STD_LOGIC_VECTOR (23 downto 0);
     SIGNAL Camera_Capture_SDRAM_Read_Ena : STD_LOGIC;
 
-    CONSTANT RGB                 : BOOLEAN := (Capture_Output < 2 OR Capture_Output > 4);
+    CONSTANT RGB   : BOOLEAN := (Capture_Output < 2 OR Capture_Output > 4) AND Color_Out;
     
     SIGNAL Camera_Capture_iStream     : rgb_stream;
     
