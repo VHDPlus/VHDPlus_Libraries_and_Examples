@@ -50,7 +50,7 @@ Component Cone_Detection
 )
 {
     
-    CONSTANT Detect_Steps : NATURAL := 4; --0-4
+    CONSTANT Detect_Steps : NATURAL := 3; --0-4
     
     TYPE cone_type IS RECORD
     x : NATURAL range 0 to Image_Width-1;  --center x
@@ -131,7 +131,7 @@ Component Cone_Detection
     (
         probe  => ISSP4_probe,
     );
-    */
+     */
     Process()
     {
         If(rising_edge(New_Pixel))
@@ -183,23 +183,12 @@ Component Cone_Detection
                 VARIABLE Cur_Blob_Addr1 : NATURAL range 0 to Blob_Number-1;  --Blob color_1
                 VARIABLE Cur_Blob_Addr2 : NATURAL range 0 to Blob_Number-1;  --Blob color_2
                 VARIABLE Cur_Blob1_Addr : NATURAL range 0 to Blob_Number-1;  --Big Blob color_1
-                
-                iBlob_Addr_2 <= Cur_Blob_Addr2;
-                
+
                 VARIABLE main_blob : BOOLEAN := false;
-                
-                If(main_blob)
-                {
-                    iBlob_Addr_1 <= Cur_Blob1_Addr;
-                }
-                Else
-                {
-                    iBlob_Addr_1 <= Cur_Blob_Addr1;
-                }
                 
                 Thread
                 {
-                    StepFor(Cur_Blob1_Addr := 0; Cur_Blob1_Addr < iBlobs_1; Cur_Blob1_Addr := Cur_Blob1_Addr + 1)
+                    StepFor(Cur_Blob1_Addr := 0; Cur_Blob1_Addr <= iBlobs_1; Cur_Blob1_Addr := Cur_Blob1_Addr + 1)
                     {
                         VARIABLE Blob1_X0  : NATURAL range 0 to Image_Width-1;
                         VARIABLE Blob1_X1  : NATURAL range 0 to Image_Width-1;
@@ -226,8 +215,7 @@ Component Cone_Detection
                         VARIABLE match34 : NATURAL range 0 to Blob_Number**2;
 
                         main_blob := true;
-                        iBlob_Addr_1 <= Cur_Blob1_Addr;
-                        
+
                         Wait(1);
                         
                         main_blob := false;
@@ -258,7 +246,7 @@ Component Cone_Detection
                         VARIABLE found : BOOLEAN := false;
                         found := false;
 
-                        StepFor(Cur_Blob_Addr1 := 0; Cur_Blob_Addr1 < iBlobs_1 AND NOT found; Cur_Blob_Addr1 := Cur_Blob_Addr1 + 1)
+                        StepFor(Cur_Blob_Addr1 := 0; Cur_Blob_Addr1 <= iBlobs_1 AND NOT found; Cur_Blob_Addr1 := Cur_Blob_Addr1 + 1)
                         {
                             --1. B3_Y1 < B1_Y1
                             --2. Dist3 < MaxDist3
@@ -311,7 +299,7 @@ Component Cone_Detection
                             }
                         }
                         
-                        StepFor(Cur_Blob_Addr2 := 0; Cur_Blob_Addr2 < iBlobs_2 AND NOT found; Cur_Blob_Addr2 := Cur_Blob_Addr2 + 1)
+                        StepFor(Cur_Blob_Addr2 := 0; Cur_Blob_Addr2 <= iBlobs_2 AND NOT found; Cur_Blob_Addr2 := Cur_Blob_Addr2 + 1)
                         {
                             --1. B2_Y1 < B1_Y1
                             --2. Dist2 < MaxDist2
@@ -372,6 +360,17 @@ Component Cone_Detection
                     }
                     run_combine := false;
                 }
+                
+                If(main_blob)
+                {
+                    iBlob_Addr_1 <= Cur_Blob1_Addr;
+                }
+                Else
+                {
+                    iBlob_Addr_1 <= Cur_Blob_Addr1;
+                }
+                
+                iBlob_Addr_2 <= Cur_Blob_Addr2;
             }
         }
     }

@@ -101,6 +101,9 @@
     <Items xsi:type="ProjectFile">
       <Header>RGB2HSV_Filter.vhd</Header>
     </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>Stream2VS.vhd</Header>
+    </Items>
   </Items>
   <Items xsi:type="ProjectFolder">
     <Header>HDMI</Header>
@@ -108,20 +111,20 @@
     <Items xsi:type="ProjectFileVHDP">
       <Header>CRT_Controller.vhdp</Header>
     </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>DVI_OUT.v</Header>
-    </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>HDMI_Out.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFile">
-      <Header>TMDS_ENCODE.v</Header>
+      <Header>VS_PLL.vhd</Header>
     </Items>
     <Items xsi:type="ProjectFile">
       <Header>VS_PLL.qip</Header>
     </Items>
     <Items xsi:type="ProjectFile">
-      <Header>VS_PLL.vhd</Header>
+      <Header>DVI_OUT.v</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>TMDS_ENCODE.v</Header>
     </Items>
   </Items>
   <Items xsi:type="ProjectFolder">

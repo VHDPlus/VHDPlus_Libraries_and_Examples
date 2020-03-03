@@ -63,17 +63,6 @@ Component Draw_Squares
     oStream    : out  rgb_stream;
 )
 {
-    SIGNAL ISSP_source : std_logic_vector (7 downto 0);
-    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0);
-    
-    NewComponent ISSP
-    (
-        source => ISSP_source,
-        probe  => ISSP_probe,
-    );
-    
-    ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Square_Addr,ISSP_probe'LENGTH));
-    
     oStream.New_Pixel <= iStream.New_Pixel;
     
     Process ()

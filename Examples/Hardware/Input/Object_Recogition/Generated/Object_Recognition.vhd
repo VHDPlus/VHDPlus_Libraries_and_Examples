@@ -26,8 +26,9 @@ ARCHITECTURE BEHAVIORAL OF Object_Recognition IS
   CONSTANT CLK_Frequency : NATURAL := 48000000;
   CONSTANT Row_Buf  : BOOLEAN := true;
   CONSTANT Enable_Compression  : BOOLEAN := true;
-  CONSTANT Compression_Area    : NATURAL := 4;
-  CONSTANT Min_Pixel_Num       : NATURAL := ((Compression_Area**2)/2)*1;
+  CONSTANT Max_Area            : NATURAL := 4;
+  CONSTANT Min_Area            : NATURAL := 2;
+  CONSTANT Min_Pixel_Num       : NATURAL := ((Max_Area**2)/2)*1;
   CONSTANT Blob_Min_H  : NATURAL := 5;
   CONSTANT Blob_Min_W  : NATURAL := 5;
   CONSTANT Blob_Max_H  : NATURAL := 40;
@@ -35,7 +36,7 @@ ARCHITECTURE BEHAVIORAL OF Object_Recognition IS
   CONSTANT Cone_31_Dist_Mult : NATURAL := 3;
   CONSTANT Cone_32_Dist_Mult : NATURAL := 2;
   CONSTANT Capture_Compression : NATURAL :=  2;
-  CONSTANT Capture_Output      : NATURAL :=  5;
+  CONSTANT Capture_Output      : NATURAL :=  6;
   CONSTANT Capture_Color_Depth : NATURAL := 1;
   CONSTANT Full_Image : BOOLEAN := true;
   CONSTANT Color_Out  : BOOLEAN := true;
@@ -75,24 +76,26 @@ ARCHITECTURE BEHAVIORAL OF Object_Recognition IS
   SIGNAL Square_iStream : rgb_stream;
   SIGNAL Blob_Out           : Blob_Data;
   SIGNAL Square_oStream : rgb_stream;
-  SIGNAL Cone_Out          : Cone_Data;
   SIGNAL Cross_oStream : rgb_stream;
-  SIGNAL ISSP_source  : std_logic_vector (7 downto 0) := "00000000";
-  SIGNAL ISSP1_source : std_logic_vector (7 downto 0) := "01001000";
-  SIGNAL ISSP2_source : std_logic_vector (7 downto 0) := "00010001";
-  SIGNAL ISSP3_source : std_logic_vector (7 downto 0) := "01001000";
-  SIGNAL ISSP4_source : std_logic_vector (7 downto 0) := "00010001";
+  SIGNAL Cone_Out          : Cone_Data;
+  SIGNAL Cross1_oStream : rgb_stream;
+  SIGNAL Combine_Stream : rgb_stream;
+  SIGNAL ISSP_source  : std_logic_vector (7 downto 0);
+  SIGNAL ISSP1_source : std_logic_vector (7 downto 0);
+  SIGNAL ISSP2_source : std_logic_vector (7 downto 0);
+  SIGNAL ISSP3_source : std_logic_vector (7 downto 0);
+  SIGNAL ISSP4_source : std_logic_vector (7 downto 0);
   SIGNAL ISSP_probe   : std_logic_vector (31 downto 0);
   SIGNAL ISSP1_probe  : std_logic_vector (31 downto 0);
   SIGNAL ISSP2_probe  : std_logic_vector (31 downto 0);
   SIGNAL ISSP3_probe  : std_logic_vector (31 downto 0);
   SIGNAL ISSP4_probe  : std_logic_vector (31 downto 0);
+  SIGNAL Camera_Capture_iStream     : rgb_stream;
   SIGNAL Camera_Capture_Read_Column    : NATURAL          range 0 to 639;
   SIGNAL Camera_Capture_Read_Row       : NATURAL          range 0 to 479;
   SIGNAL Camera_Capture_Read_Data      : STD_LOGIC_VECTOR (23 downto 0);
   SIGNAL Camera_Capture_SDRAM_Read_Ena : STD_LOGIC;
   CONSTANT RGB   : BOOLEAN := (Capture_Output < 2 OR Capture_Output > 4) AND Color_Out;
-  SIGNAL Camera_Capture_iStream     : rgb_stream;
   SIGNAL HDMI_Out_VS_PCLK   : STD_LOGIC;
   SIGNAL HDMI_Out_VS_SCLK   : STD_LOGIC;
   SIGNAL HDMI_Out_VS_R      : STD_LOGIC_VECTOR (7 downto 0);
@@ -104,7 +107,8 @@ ARCHITECTURE BEHAVIORAL OF Object_Recognition IS
   COMPONENT CSI_Camera IS
   GENERIC (
       CLK_Frequency : NATURAL := 12000000;
-    Row_Buf       : BOOLEAN := false 
+    Row_Buf       : BOOLEAN := false; 
+    CLK_as_PCLK   : BOOLEAN := false 
 
   );
   PORT (
@@ -385,11 +389,19 @@ BEGIN
   Blob_Out.Y0    <= Blob_data_array(color_select).Y0;
   Blob_Out.Y1    <= Blob_data_array(color_select).Y1;
 
+
   Cone_Out.Busy  <= cone_data_array(cone_select).Busy;
   Cone_Out.Cones <= cone_data_array(cone_select).Cones;
   Cone_Out.X     <= cone_data_array(cone_select).X;
   Cone_Out.Y     <= cone_data_array(cone_select).Y;
-  cone_data_array(cone_select).Addr <= Cone_Out.Addr;
+  Cone_Out.Addr  <= cone_data_array(cone_select).Addr;
+
+  Combine_Stream.R         <= (others => (Area_Compression_Pixel(0) OR Area_Compression_Pixel(1)));
+  Combine_Stream.G         <= (others => (Area_Compression_Pixel(2) OR Area_Compression_Pixel(1)));
+  Combine_Stream.B         <= (others => Area_Compression_Pixel(3));
+  Combine_Stream.Column    <= Area_Compression_Column;
+  Combine_Stream.Row       <= Area_Compression_Row;
+  Combine_Stream.New_Pixel <= Area_Compression_New_Pixel;
   Camera_Capture_iStream <= Camera_Stream when Capture_Output = 0 else
   Color_Correction_Stream when Capture_Output = 1 else
   RGB2HSV_Stream when Capture_Output = 2 else
@@ -399,7 +411,8 @@ BEGIN
   White_Filter_Stream when Capture_Output = 3 AND Color_Select = 3 else
   Square_iStream when Capture_Output = 4 else
   Square_oStream when Capture_Output = 5 else
-  Cross_oStream;
+  Cross_oStream when Capture_Output = 6 else
+  Combine_Stream;
   ISSP_probe  <= STD_LOGIC_VECTOR(TO_UNSIGNED(Cone_Out.Cones, 32))           when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Blobs, 32));
   ISSP1_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Cone_Out.X, 32))               when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.X0, 32));
   ISSP2_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Cone_Out.Y, 32))               when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Y0, 32));
@@ -408,7 +421,7 @@ BEGIN
   CSI_Camera1 : CSI_Camera
   GENERIC MAP (
       CLK_Frequency => CLK_Frequency,
-    Row_Buf       => Row_Buf
+    CLK_as_PCLK   => Row_Buf
 
   ) PORT MAP (
     CLK => CLK,
@@ -431,7 +444,7 @@ BEGIN
     R_Divider    => 1,
     R_Add        => 0,
     G_Multiplier => 3,
-    G_Divider    => 5, 
+    G_Divider    => 5,
     G_Add        => 0,
     B_Multiplier => 1,
     B_Divider    => 1,
@@ -459,7 +472,7 @@ BEGIN
   ) PORT MAP (
     CLK => CLK,
     H_Min      => 170,
-    H_Max      => 40,
+    H_Max      => 45,
     S_Min      => 100,
     S_Max      => 255,
     V_Min      => 60,
@@ -478,9 +491,9 @@ BEGIN
     H_Min      => 0,
     H_Max      => 255,
     S_Min      => 0,
-    S_Max      => 120,
+    S_Max      => 70,
     V_Min      => 0,
-    V_Max      => 40,
+    V_Max      => 60,
     iStream    => RGB2HSV_Stream,
     oStream    => Black_Filter_Stream
 
@@ -513,7 +526,7 @@ BEGIN
     H_Max      => 255,
     S_Min      => 0,
     S_Max      => 120,
-    V_Min      => 150,
+    V_Min      => 200,
     V_Max      => 255,
     iStream    => RGB2HSV_Stream,
     oStream    => White_Filter_Stream
@@ -524,8 +537,8 @@ BEGIN
     AreaLimitedCompression1 : AreaLimitedCompression
   GENERIC MAP (
       Min_Pixel_Num => Min_Pixel_Num,  
-      MAX_Area      => Compression_Area,
-      MIN_Area      => Compression_Area,
+      MAX_Area      => Max_Area,
+      MIN_Area      => Min_Area,
       Start_Row     => 0,
       Colors        => 4,
       CLK_Edge      => true
@@ -650,15 +663,33 @@ BEGIN
       Max_Cross_Number => 16,
     Width            => 4,
     Length           => 20,
+    Color            => x"00FF00"
+
+  ) PORT MAP (
+    CLK => CLK,
+    Crosses     => cone_data_array(0).Cones,
+    Cross_Addr  => cone_data_array(0).Addr,
+    Cross_X     => cone_data_array(0).X,
+    Cross_Y     => cone_data_array(0).Y,
+    iStream     => Combine_Stream,
+    oStream     => Cross1_oStream
+
+    
+  );
+  Draw_Crosses2 : Draw_Crosses
+  GENERIC MAP (
+      Max_Cross_Number => 16,
+    Width            => 4,
+    Length           => 20,
     Color            => x"FF0000"
 
   ) PORT MAP (
     CLK => CLK,
-    Crosses     => Cone_Out.Cones,
-    Cross_Addr  => Cone_Out.Addr,
-    Cross_X     => Cone_Out.X,
-    Cross_Y     => Cone_Out.Y,
-    iStream     => Square_iStream,
+    Crosses     => cone_data_array(1).Cones,
+    Cross_Addr  => cone_data_array(1).Addr,
+    Cross_X     => cone_data_array(1).X,
+    Cross_Y     => cone_data_array(1).Y,
+    iStream     => Cross1_oStream,
     oStream     => Cross_oStream
 
     

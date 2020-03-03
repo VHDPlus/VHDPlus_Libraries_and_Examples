@@ -8,7 +8,8 @@ use work.Image_Data_Package.all;
 ENTITY CSI_Camera IS
   GENERIC (
       CLK_Frequency : NATURAL := 12000000;
-    Row_Buf       : BOOLEAN := false 
+    Row_Buf       : BOOLEAN := false; 
+    CLK_as_PCLK   : BOOLEAN := false 
 
   );
 PORT (
@@ -216,10 +217,10 @@ BEGIN
 
 
 
-  New_Pixel <= New_Pixel_Reg_O when Row_Buf else New_Pixel_Reg;
-  oStream.R <= Pixel_R_Reg_O when Row_Buf else Pixel_R_Reg;
-  oStream.G <= Pixel_G_Reg_O when Row_Buf else Pixel_G_Reg;
-  oStream.B <= Pixel_B_Reg_O when Row_Buf else Pixel_B_Reg;
+  New_Pixel <= New_Pixel_Reg_O when Row_Buf OR CLK_as_PCLK else New_Pixel_Reg;
+  oStream.R <= Pixel_R_Reg_O when Row_Buf OR CLK_as_PCLK else Pixel_R_Reg;
+  oStream.G <= Pixel_G_Reg_O when Row_Buf OR CLK_as_PCLK else Pixel_G_Reg;
+  oStream.B <= Pixel_B_Reg_O when Row_Buf OR CLK_as_PCLK else Pixel_B_Reg;
   oStream.New_Pixel <= New_Pixel;
   oStream.Column <= Column;
   oStream.Row <= Row;
@@ -625,10 +626,10 @@ BEGIN
     
     END IF;
   END PROCESS;
-  Generate1 : if pixel_clk_divider < 2 GENERATE
+  Generate1 : if pixel_clk_divider < 2 OR CLK_as_PCLK GENERATE
     New_Pixel_Div <= CLK;
   END GENERATE Generate1;
-  Generate2 : if pixel_clk_divider > 1 GENERATE
+  Generate2 : if pixel_clk_divider > 1 AND NOT CLK_as_PCLK GENERATE
     PROCESS (CLK)  
       VARIABLE div_count  : NATURAL range 0 to pixel_clk_divider-1 := 0;
 

@@ -16,32 +16,78 @@ Main
     --Camera Input
     CONSTANT Row_Buf  : BOOLEAN := true; --Uses more RAM, but helps with less noise
     
-    --Compression
+    --Color Correction and Threshold
+    CONSTANT Debug_Mode  : NATURAL := 0; --To change Threshold and Color Correction parameters with ISSP
+    --0 = No debug
+    --1 = Color Correction (ISSP1 = G* ISSP2 = G/ ISSP3 = B* ISSP4 = B/ -> R* = 1   R/ = 1)
+    --2 = Threshold Yellow (ISSP1 = H- ISSP2 = H+ ISSP3 = S- ISSP4 = V- -> S+ = 255 V+ = 255)
+    --3 = Threshold Black  (ISSP1 = H- ISSP2 = H+ ISSP3 = S+ ISSP4 = V+ -> S- = 0   V- = 0)
+    --4 = Threshold Blue   (ISSP1 = H- ISSP2 = H+ ISSP3 = S- ISSP4 = V- -> S+ = 255 V+ = 255)
+    --5 = Threshold White  (ISSP1 = H- ISSP2 = H+ ISSP3 = S+ ISSP4 = V- -> S- = 0   V+ = 255)
+    
+    CONSTANT CC_G_Mult : NATURAL := 3;
+    CONSTANT CC_G_Div  : NATURAL := 5;
+    CONSTANT CC_B_Mult : NATURAL := 1;
+    CONSTANT CC_B_Div  : NATURAL := 1;
+    
+    CONSTANT Ye_H_Min : NATURAL := 170;
+    CONSTANT Ye_H_Max : NATURAL := 45;
+    CONSTANT Ye_S_Min : NATURAL := 100;
+    CONSTANT Ye_V_Min : NATURAL := 60;
+    
+    CONSTANT Bk_H_Min : NATURAL := 0;
+    CONSTANT Bk_H_Max : NATURAL := 255;
+    CONSTANT Bk_S_Max : NATURAL := 70;
+    CONSTANT Bk_V_Max : NATURAL := 60;
+    
+    CONSTANT Bl_H_Min : NATURAL := 105;
+    CONSTANT Bl_H_Max : NATURAL := 150;
+    CONSTANT Bl_S_Min : NATURAL := 120;
+    CONSTANT Bl_V_Min : NATURAL := 50;
+    
+    CONSTANT Wh_H_Min : NATURAL := 0;
+    CONSTANT Wh_H_Max : NATURAL := 255;
+    CONSTANT Wh_S_Max : NATURAL := 120;
+    CONSTANT Wh_V_Min : NATURAL := 200;
+    
+    --Compression (AreaLimitedCompression)
     CONSTANT Enable_Compression  : BOOLEAN := true;  --Uses more RAM, decreases noise
     
-    CONSTANT Compression_Area    : NATURAL := 4; --Bigger Area = less noise but higher RAM usage
-    CONSTANT Min_Pixel_Num       : NATURAL := ((Compression_Area**2)/2)*1; --min 50% '1'
+    CONSTANT Max_Area            : NATURAL := 4; --Bigger Area = less noise but higher RAM usage
+    CONSTANT Min_Area            : NATURAL := 2;
+    CONSTANT Min_Pixel_Num       : NATURAL := ((Max_Area**2)/2)*1; --min 50% correct color
     
     --Blob Detection
-    CONSTANT Blob_Min_H  : NATURAL := 5;   --< = Detect smaller blobs
-    CONSTANT Blob_Min_W  : NATURAL := 5;
-    CONSTANT Blob_Max_H  : NATURAL := 40;  --> = Detect bigger blobs
-    CONSTANT Blob_Max_W  : NATURAL := 80;
+    CONSTANT Blob_Min_H  : NATURAL := 3;   --< = Detect smaller blobs
+    CONSTANT Blob_Min_W  : NATURAL := 3;
+    CONSTANT Blob_Max_H  : NATURAL := 20;  --> = Detect bigger blobs
+    CONSTANT Blob_Max_W  : NATURAL := 40;
     
     --Cone Detection
     CONSTANT Cone_31_Dist_Mult : NATURAL := 3; --Bigger = detect more cones but less accurate
     CONSTANT Cone_32_Dist_Mult : NATURAL := 2;
     
     --Capture and video output parameters
-    CONSTANT Capture_Compression : NATURAL :=  2; --Higher value = less RAM but also less resolution
-    CONSTANT Capture_Output      : NATURAL :=  5; --0 = Camera, 1 = Color Filter, 2 = HSV,
-    --3 = Threshold with Color_Select color, 4 = Compressed, 5 = Blobs, 6 = Cones
-    CONSTANT Capture_Color_Depth : NATURAL := 1; --4 for Capture_Output = 0 or 1; 8 for Capture_Output = 2; 1 for others
-    CONSTANT Full_Image : BOOLEAN := true;
-    CONSTANT Color_Out  : BOOLEAN := true;
+
+    --|Nr.| Output                            | Color type                  | Recommended color depth  | Recommended compression |
+    --|   |                                   | (Force_Mono = false)        | -> Capture_Color_Depth   | -> Capture_Compression  |
+    --|---|-----------------------------------|-----------------------------|--------------------------|-------------------------|
+    --| 0 | Camera                            | RGB                         | 4                        | 4-5                     |
+    --| 1 | Color Filter                      | RGB                         | 4                        | 4-5                     |
+    --| 2 | HSV                               | Mono (only Hue)             | 8                        | 4-5                     |
+    --| 3 | Threshold with Color_Select color | BW                          | 1                        | 1-2                     |
+    --| 4 | Output 3 after Area Compression   | BW                          | 1                        | 1-2                     |
+    --| 5 | Blobs                      (ISSP) | RGB                         | 1                        | 2                       |
+    --| 6 | Output 7 with marked cones (ISSP) | RGB                         | 1                        | 2                       |
+    --| 7 | Threshold with all colors         | RGB                         | 1                        | 2                       |
     
-    SIGNAL Color_Select : NATURAL range 0 to 3 := 2;
-    SIGNAL Cone_Select  : NATURAL range 0 to 1 := 1;  --0 = Yellow-Black 1 = Blue-White
+    CONSTANT Capture_Output      : NATURAL := 6;
+    CONSTANT Force_Mono          : BOOLEAN := false;  --true forces the image to monochrome
+    CONSTANT Capture_Color_Depth : NATURAL := 1;      --How many bits for each color
+    CONSTANT Capture_Compression : NATURAL := 2;      --Higher value = less RAM but also less resolution
+    CONSTANT Full_Image          : BOOLEAN := true;   --true -> full image with less resolution | false -> part of image with full resolution
+    
+    SIGNAL Color_Select          : NATURAL range 0 to 3 := 2;  --0 = Yellow 1 = Black 2 = Blue 3 = White
     
     --Camera Interface-------------------------------------------------------------------
     
@@ -53,7 +99,7 @@ Main
     NewComponent CSI_Camera
     (
         CLK_Frequency => CLK_Frequency,
-        Row_Buf       => Row_Buf,
+        CLK_as_PCLK   => Row_Buf,
         
         Reset         => '0',
         CLK_Lane      => Camera_CLK_Lane,
@@ -68,6 +114,11 @@ Main
     
     SIGNAL Color_Correction_Stream     : rgb_stream;
     
+    SIGNAL S_CC_G_Mult : NATURAL := 3; S_CC_G_Mult <= TO_INTEGER(UNSIGNED(ISSP1_source)) when Debug_Mode = 1 else CC_G_Mult;
+    SIGNAL S_CC_G_Div  : NATURAL := 5; S_CC_G_Div  <= TO_INTEGER(UNSIGNED(ISSP2_source)) when Debug_Mode = 1 else CC_G_Div;
+    SIGNAL S_CC_B_Mult : NATURAL := 1; S_CC_B_Mult <= TO_INTEGER(UNSIGNED(ISSP3_source)) when Debug_Mode = 1 else CC_B_Mult;
+    SIGNAL S_CC_B_Div  : NATURAL := 1; S_CC_B_Div  <= TO_INTEGER(UNSIGNED(ISSP4_source)) when Debug_Mode = 1 else CC_B_Div;
+
     NewComponent Color_Correction_Filter
     (
         CLK_Edge     => false,
@@ -75,11 +126,11 @@ Main
         R_Multiplier => 1,
         R_Divider    => 1,
         R_Add        => 0,
-        G_Multiplier => 3,
-        G_Divider    => 5, --less green
+        G_Multiplier => S_CC_G_Mult,
+        G_Divider    => S_CC_G_Div,
         G_Add        => 0,
-        B_Multiplier => 1,
-        B_Divider    => 1,
+        B_Multiplier => S_CC_B_Mult,
+        B_Divider    => S_CC_B_Div,
         B_Add        => 0,
         
         iStream      => Camera_Stream,
@@ -101,16 +152,36 @@ Main
     --Color detection--------------------------------------------------------------------
 
     SIGNAL Yellow_Filter_Stream   : rgb_stream;
+
+    SIGNAL S_Ye_H_Min : NATURAL := 170; S_Ye_H_Min <= TO_INTEGER(UNSIGNED(ISSP1_source)) when Debug_Mode = 2 else Ye_H_Min;
+    SIGNAL S_Ye_H_Max : NATURAL := 45;  S_Ye_H_Max <= TO_INTEGER(UNSIGNED(ISSP2_source)) when Debug_Mode = 2 else Ye_H_Max;
+    SIGNAL S_Ye_S_Min : NATURAL := 100; S_Ye_S_Min <= TO_INTEGER(UNSIGNED(ISSP3_source)) when Debug_Mode = 2 else Ye_S_Min;
+    SIGNAL S_Ye_V_Min : NATURAL := 60;  S_Ye_V_Min <= TO_INTEGER(UNSIGNED(ISSP4_source)) when Debug_Mode = 2 else Ye_V_Min;
     
+    SIGNAL S_Bk_H_Min : NATURAL := 0;   S_Bk_H_Min <= TO_INTEGER(UNSIGNED(ISSP1_source)) when Debug_Mode = 3 else Bk_H_Min;
+    SIGNAL S_Bk_H_Max : NATURAL := 255; S_Bk_H_Max <= TO_INTEGER(UNSIGNED(ISSP2_source)) when Debug_Mode = 3 else Bk_H_Max;
+    SIGNAL S_Bk_S_Max : NATURAL := 70;  S_Bk_S_Max <= TO_INTEGER(UNSIGNED(ISSP3_source)) when Debug_Mode = 3 else Bk_S_Max;
+    SIGNAL S_Bk_V_Max : NATURAL := 60;  S_Bk_V_Max <= TO_INTEGER(UNSIGNED(ISSP4_source)) when Debug_Mode = 3 else Bk_V_Max;
+    
+    SIGNAL S_Bl_H_Min : NATURAL := 105; S_Bl_H_Min <= TO_INTEGER(UNSIGNED(ISSP1_source)) when Debug_Mode = 4 else Bl_H_Min;
+    SIGNAL S_Bl_H_Max : NATURAL := 150; S_Bl_H_Max <= TO_INTEGER(UNSIGNED(ISSP2_source)) when Debug_Mode = 4 else Bl_H_Max;
+    SIGNAL S_Bl_S_Min : NATURAL := 120; S_Bl_S_Min <= TO_INTEGER(UNSIGNED(ISSP3_source)) when Debug_Mode = 4 else Bl_S_Min;
+    SIGNAL S_Bl_V_Min : NATURAL := 50;  S_Bl_V_Min <= TO_INTEGER(UNSIGNED(ISSP4_source)) when Debug_Mode = 4 else Bl_V_Min;
+    
+    SIGNAL S_Wh_H_Min : NATURAL := 0;   S_Wh_H_Min <= TO_INTEGER(UNSIGNED(ISSP1_source)) when Debug_Mode = 5 else Wh_H_Min;
+    SIGNAL S_Wh_H_Max : NATURAL := 255; S_Wh_H_Max <= TO_INTEGER(UNSIGNED(ISSP2_source)) when Debug_Mode = 5 else Wh_H_Max;
+    SIGNAL S_Wh_S_Max : NATURAL := 120; S_Wh_S_Max <= TO_INTEGER(UNSIGNED(ISSP3_source)) when Debug_Mode = 5 else Wh_S_Max;
+    SIGNAL S_Wh_V_Min : NATURAL := 200; S_Wh_V_Min <= TO_INTEGER(UNSIGNED(ISSP4_source)) when Debug_Mode = 5 else Wh_V_Min;
+
     NewComponent Color_Threshold_HSV_Filter
     (
         CLK_Edge   => false,
         
-        H_Min      => 170,
-        H_Max      => 40,
-        S_Min      => 100,
+        H_Min      => S_Ye_H_Min,
+        H_Max      => S_Ye_H_Max,
+        S_Min      => S_Ye_S_Min,
         S_Max      => 255,
-        V_Min      => 60,
+        V_Min      => S_Ye_V_Min,
         V_Max      => 255,
         
         iStream    => RGB2HSV_Stream,
@@ -122,13 +193,13 @@ Main
     NewComponent Color_Threshold_HSV_Filter
     (
         CLK_Edge   => false,
-        
-        H_Min      => 0,
-        H_Max      => 255,
+
+        H_Min      => S_Bk_H_Min,
+        H_Max      => S_Bk_H_Max,
         S_Min      => 0,
-        S_Max      => 120,
+        S_Max      => S_Bk_S_Max,
         V_Min      => 0,
-        V_Max      => 40,
+        V_Max      => S_Bk_V_Max,
         
         iStream    => RGB2HSV_Stream,
         oStream    => Black_Filter_Stream,
@@ -140,11 +211,11 @@ Main
     (
         CLK_Edge   => false,
         
-        H_Min      => 105,
-        H_Max      => 150,
-        S_Min      => 120,
+        H_Min      => S_Bl_H_Min,
+        H_Max      => S_Bl_H_Max,
+        S_Min      => S_Bl_S_Min,
         S_Max      => 255,
-        V_Min      => 50,
+        V_Min      => S_Bl_V_Min,
         V_Max      => 255,
         
         iStream    => RGB2HSV_Stream,
@@ -157,13 +228,13 @@ Main
     (
         CLK_Edge   => false,
         
-        H_Min      => 0,
-        H_Max      => 255,
+        H_Min      => S_Wh_H_Min,
+        H_Max      => S_Wh_H_Max,
         S_Min      => 0,
-        S_Max      => 120,
-        V_Min      => 150,
+        S_Max      => S_Wh_S_Max,
+        V_Min      => S_Wh_V_Min,
         V_Max      => 255,
-        
+
         iStream    => RGB2HSV_Stream,
         oStream    => White_Filter_Stream,
     );
@@ -180,8 +251,8 @@ Main
         NewComponent AreaLimitedCompression
         (
             Min_Pixel_Num => Min_Pixel_Num,  --10x10 = 100 -> 60/100 = min 60% blue
-            MAX_Area      => Compression_Area,
-            MIN_Area      => Compression_Area,
+            MAX_Area      => Max_Area,
+            MIN_Area      => Min_Area,
             Start_Row     => 0,
             Colors        => 4,
             CLK_Edge      => true,
@@ -354,15 +425,24 @@ Main
         oStream           => Square_oStream,
     );
     
-    --Select cone color
-    SIGNAL Cone_Out          : Cone_Data;
-    Cone_Out.Busy  <= cone_data_array(cone_select).Busy;
-    Cone_Out.Cones <= cone_data_array(cone_select).Cones;
-    Cone_Out.X     <= cone_data_array(cone_select).X;
-    Cone_Out.Y     <= cone_data_array(cone_select).Y;
-    cone_data_array(cone_select).Addr <= Cone_Out.Addr;
-    
     SIGNAL Cross_oStream : rgb_stream;
+    SIGNAL Cross1_oStream : rgb_stream;
+    
+    --draw cross at cone position
+    NewComponent Draw_Crosses
+    (
+        Max_Cross_Number => 16,
+        Width            => 4,
+        Length           => 20,
+        Color            => x"00FF00",
+
+        Crosses     => cone_data_array(0).Cones,
+        Cross_Addr  => cone_data_array(0).Addr,
+        Cross_X     => cone_data_array(0).X,
+        Cross_Y     => cone_data_array(0).Y,
+        iStream     => Combine_Stream,
+        oStream     => Cross1_oStream,
+    );
     
     --draw cross at cone position
     NewComponent Draw_Crosses
@@ -372,17 +452,25 @@ Main
         Length           => 20,
         Color            => x"FF0000",
 
-        Crosses     => Cone_Out.Cones,
-        Cross_Addr  => Cone_Out.Addr,
-        Cross_X     => Cone_Out.X,
-        Cross_Y     => Cone_Out.Y,
-        iStream     => Square_iStream,
+        Crosses     => cone_data_array(1).Cones,
+        Cross_Addr  => cone_data_array(1).Addr,
+        Cross_X     => cone_data_array(1).X,
+        Cross_Y     => cone_data_array(1).Y,
+        iStream     => Cross1_oStream,
         oStream     => Cross_oStream,
     );
 
     --Select camera output---------------------------------------------------------------
     --0 = Camera, 1 = Color Filter, 2 = HSV,
-    --3 = Threshold with Color_Select color, 4 = Compressed, 5 = Blobs, 6 = Cones
+    --3 = Threshold with Color_Select color, 4 = Compressed, 5 = Blobs, 6 = Cones, 7 = Threshold with all colors
+    
+    SIGNAL Combine_Stream : rgb_stream;
+    Combine_Stream.R         <= (others => (Area_Compression_Pixel(0) OR Area_Compression_Pixel(1)));
+    Combine_Stream.G         <= (others => (Area_Compression_Pixel(2) OR Area_Compression_Pixel(1)));
+    Combine_Stream.B         <= (others => Area_Compression_Pixel(3));
+    Combine_Stream.Column    <= Area_Compression_Column;
+    Combine_Stream.Row       <= Area_Compression_Row;
+    Combine_Stream.New_Pixel <= Area_Compression_New_Pixel;
     
     Camera_Capture_iStream <= Camera_Stream when Capture_Output = 0 else
     Color_Correction_Stream when Capture_Output = 1 else
@@ -393,13 +481,14 @@ Main
     White_Filter_Stream when Capture_Output = 3 AND Color_Select = 3 else
     Square_iStream when Capture_Output = 4 else
     Square_oStream when Capture_Output = 5 else
-    Cross_oStream;
+    Cross_oStream when Capture_Output = 6 else
+    Combine_Stream;
     
-    SIGNAL ISSP_source  : std_logic_vector (7 downto 0) := "00000000";
-    SIGNAL ISSP1_source : std_logic_vector (7 downto 0) := "01001000";
-    SIGNAL ISSP2_source : std_logic_vector (7 downto 0) := "00010001";
-    SIGNAL ISSP3_source : std_logic_vector (7 downto 0) := "01001000";
-    SIGNAL ISSP4_source : std_logic_vector (7 downto 0) := "00010001";
+    SIGNAL ISSP_source  : std_logic_vector (7 downto 0);
+    SIGNAL ISSP1_source : std_logic_vector (7 downto 0);
+    SIGNAL ISSP2_source : std_logic_vector (7 downto 0);
+    SIGNAL ISSP3_source : std_logic_vector (7 downto 0);
+    SIGNAL ISSP4_source : std_logic_vector (7 downto 0);
     SIGNAL ISSP_probe   : std_logic_vector (31 downto 0);
     SIGNAL ISSP1_probe  : std_logic_vector (31 downto 0);
     SIGNAL ISSP2_probe  : std_logic_vector (31 downto 0);
@@ -436,23 +525,23 @@ Main
         probe  => ISSP4_probe,
     );
     
-    ISSP_probe  <= STD_LOGIC_VECTOR(TO_UNSIGNED(Cone_Out.Cones, 32))           when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Blobs, 32));
-    ISSP1_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Cone_Out.X, 32))               when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.X0, 32));
-    ISSP2_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Cone_Out.Y, 32))               when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Y0, 32));
-    ISSP3_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Cone_Out.Addr, 32))            when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.X1-Blob_Out.X0, 32));
-    ISSP4_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(blob_data_array(2).Blobs, 32)) when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Y1-Blob_Out.Y0, 32));
+    ISSP_probe  <= STD_LOGIC_VECTOR(TO_UNSIGNED(cone_data_array(0).Cones, 32)) when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Blobs, 32))          when Capture_Output = 5 else (others => '0');
+    ISSP1_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(cone_data_array(1).Cones, 32)) when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.X0, 32))             when Capture_Output = 5 else (others => '0');
+    ISSP2_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(cone_data_array(0).X, 32))     when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Y0, 32))             when Capture_Output = 5 else (others => '0');
+    ISSP3_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(cone_data_array(1).X, 32))     when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.X1-Blob_Out.X0, 32)) when Capture_Output = 5 else (others => '0');
+    ISSP4_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(cone_data_array(0).Y, 32))     when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Y1-Blob_Out.Y0, 32)) when Capture_Output = 5 else (others => '0');
 
     --Output image with HDMI-------------------------------------------------------------
 
+    SIGNAL Camera_Capture_iStream     : rgb_stream;
+    
     --Save images in RAM
     SIGNAL Camera_Capture_Read_Column    : NATURAL          range 0 to 639;
     SIGNAL Camera_Capture_Read_Row       : NATURAL          range 0 to 479;
     SIGNAL Camera_Capture_Read_Data      : STD_LOGIC_VECTOR (23 downto 0);
     SIGNAL Camera_Capture_SDRAM_Read_Ena : STD_LOGIC;
 
-    CONSTANT RGB   : BOOLEAN := (Capture_Output < 2 OR Capture_Output > 4) AND Color_Out;
-    
-    SIGNAL Camera_Capture_iStream     : rgb_stream;
+    CONSTANT RGB   : BOOLEAN := (Capture_Output < 2 OR Capture_Output > 4) AND NOT Force_Mono;
     
     NewComponent Camera_Capture
     (
@@ -493,7 +582,7 @@ Main
         VS_VS       => HDMI_Out_VS_VS,
         VS_DE       => HDMI_Out_VS_DE,
     );
-
+    
     --Output video stream with hdmi interface
     SIGNAL HDMI_Out_VS_PCLK   : STD_LOGIC;
     SIGNAL HDMI_Out_VS_SCLK   : STD_LOGIC;

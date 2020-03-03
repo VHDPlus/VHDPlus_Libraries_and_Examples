@@ -28,28 +28,14 @@ END Draw_Squares;
 
 ARCHITECTURE BEHAVIORAL OF Draw_Squares IS
 
-  SIGNAL ISSP_source : std_logic_vector (7 downto 0);
-  SIGNAL ISSP_probe  : std_logic_vector (31 downto 0);
   SIGNAL X0   : NATURAL range 0 to Image_Width-1;
   SIGNAL X1   : NATURAL range 0 to Image_Width-1;
   SIGNAL Y0   : NATURAL range 0 to Image_Height-1;
   SIGNAL Y1   : NATURAL range 0 to Image_Height-1;
-  COMPONENT ISSP IS
-  
-  PORT (
-    source : out std_logic_vector(7 downto 0);                      
-    probe  : in  std_logic_vector(31 downto 0)  := (others => 'X') 
-
-  );
-  END COMPONENT;
   
 BEGIN
-  ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Square_Addr,ISSP_probe'LENGTH));
+
   oStream.New_Pixel <= iStream.New_Pixel;
-  ISSP1 : ISSP  PORT MAP (
-    source => ISSP_source,
-    probe  => ISSP_probe
-  );
   PROCESS (iStream)
     VARIABLE r : NATURAL range 0 to Image_Height-1;
     VARIABLE c : NATURAL range 0 to Image_Width-1;

@@ -43,7 +43,7 @@ END Cone_Detection;
 
 ARCHITECTURE BEHAVIORAL OF Cone_Detection IS
 
-  CONSTANT Detect_Steps : NATURAL := 4;
+  CONSTANT Detect_Steps : NATURAL := 3;
   TYPE cone_type IS RECORD
   x : NATURAL range 0 to Image_Width-1;  
   y : NATURAL range 0 to Image_Height-1; 
@@ -211,8 +211,8 @@ BEGIN
     VARIABLE Dist2 : NATURAL range 0 to Image_Height-1;
     VARIABLE Blob2_W   : NATURAL range 0 to Image_Width-1;
     VARIABLE Blob2_Flp : BOOLEAN;
-    VARIABLE Thread15 : NATURAL range 0 to 4 := 0;
-    VARIABLE Thread18 : NATURAL range 0 to 12 := 0;
+    VARIABLE Thread13 : NATURAL range 0 to 4 := 0;
+    VARIABLE Thread16 : NATURAL range 0 to 12 := 0;
   BEGIN
     IF (rising_edge(New_Pixel)) THEN
       IF ((Blob_Busy_1 OR Blob_Busy_2) = '0' AND New_Image_Reg = '1') THEN
@@ -239,30 +239,23 @@ BEGIN
       ISSP3_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(match33, 32));
       ISSP4_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(match34, 32));
       IF (run_combine) THEN
-        iBlob_Addr_2 <= Cur_Blob_Addr2;
-        IF (main_blob) THEN
-          iBlob_Addr_1 <= Cur_Blob1_Addr;
-        ELSE
-          iBlob_Addr_1 <= Cur_Blob_Addr1;
-        END IF;
-        CASE (Thread15) IS
+        CASE (Thread13) IS
           WHEN 0 =>
             Cur_Blob1_Addr := 0;
-            Thread15 := 1;
+            Thread13 := 1;
           WHEN 1 =>
-            IF ( Cur_Blob1_Addr < iBlobs_1) THEN 
-              Thread15 := Thread15 + 1;
+            IF ( Cur_Blob1_Addr <= iBlobs_1) THEN 
+              Thread13 := Thread13 + 1;
             ELSE
-              Thread15 := Thread15 + 2;
+              Thread13 := Thread13 + 2;
             END IF;
           WHEN (1+1) =>
-            CASE (Thread18) IS
+            CASE (Thread16) IS
               WHEN 0 =>
                 main_blob := true;
-                iBlob_Addr_1 <= Cur_Blob1_Addr;
-                Thread18 := 1;
+                Thread16 := 1;
               WHEN 1 to 2 =>
-                Thread18 := Thread18 + 1;
+                Thread16 := Thread16 + 1;
               WHEN 3 =>
                 main_blob := false;
                 Blob1_X0 := iBlob_X0_1;
@@ -270,7 +263,7 @@ BEGIN
                 Blob1_Y0 := iBlob_Y0_1;
                 Blob1_Y1 := iBlob_Y1_1;
                 Blob1_XC := (Blob1_X1+Blob1_X0)/2;
-                Thread18 := 4;
+                Thread16 := 4;
               WHEN 4 =>
                 IF (Blob1_Y1 - Blob1_Y0 < Blob1_X1 - Blob1_X0) THEN 
                   Blob1_Flp := false;
@@ -281,17 +274,17 @@ BEGIN
                 Blob1_H := Blob1_X1 - Blob1_X0;
                 Blob1_W := Blob1_Y1 - Blob1_Y0;
                 END IF;
-                Thread18 := 5;
+                Thread16 := 5;
 
-              Thread18 := 5;
+              Thread16 := 5;
               WHEN 5 =>
                 Max_Dist2 := (Blob1_H * Max_12Dist_Mult) / Max_12Dist_Div;
                 Max_Dist3 := (Blob1_H * Max_11Dist_Mult) / Max_11Dist_Div;
 
                 found := false;
-                Thread18 := 6;
+                Thread16 := 6;
               WHEN 6 =>
-                IF ( Cur_Blob_Addr1 < iBlobs_1 AND NOT found) THEN
+                IF ( Cur_Blob_Addr1 <= iBlobs_1 AND NOT found) THEN
                   IF (Blob1_Y1 > iBlob_Y1_1 OR Detect_Steps < 1) THEN
                     match31 := match31 + 1;
 
@@ -326,13 +319,13 @@ BEGIN
 
                  Cur_Blob_Addr1 := Cur_Blob_Addr1 + 1;
                 ELSE
-                  Thread18 := Thread18 + 1;
+                  Thread16 := Thread16 + 1;
                 END IF;
               WHEN 7 =>
                 Cur_Blob_Addr1 := 0;
-                Thread18 := 8;
+                Thread16 := 8;
               WHEN 8 =>
-                IF ( Cur_Blob_Addr2 < iBlobs_2 AND NOT found) THEN
+                IF ( Cur_Blob_Addr2 <= iBlobs_2 AND NOT found) THEN
                   IF (Blob1_Y1 > iBlob_Y1_2 OR Detect_Steps < 1) THEN
                     match21 := match21 + 1;
 
@@ -363,28 +356,34 @@ BEGIN
 
                  Cur_Blob_Addr2 := Cur_Blob_Addr2 + 1;
                 ELSE
-                  Thread18 := Thread18 + 1;
+                  Thread16 := Thread16 + 1;
                 END IF;
               WHEN 9 =>
                 Cur_Blob_Addr2 := 0;
-                Thread18 := 10;
+                Thread16 := 10;
               WHEN 10 =>
                 IF (found) THEN 
                   blob_ram_addr_in <= cones_c;
                 blob_ram_data_in <= STD_LOGIC_VECTOR(TO_UNSIGNED(new_cone.y, 9)) & STD_LOGIC_VECTOR(TO_UNSIGNED(new_cone.x/2, 9));
                 END IF;
-                Thread18 := 11;
+                Thread16 := 11;
               WHEN 11 =>
                 Cur_Blob1_Addr := Cur_Blob1_Addr + 1;
-                Thread18 := 0;
-                Thread15 := 1;
-              WHEN others => Thread18 := 0;
+                Thread16 := 0;
+                Thread13 := 1;
+              WHEN others => Thread16 := 0;
             END CASE;
           WHEN 3 =>
             run_combine := false;
-            Thread15 := 0;
-          WHEN others => Thread15 := 0;
+            Thread13 := 0;
+          WHEN others => Thread13 := 0;
         END CASE;
+        IF (main_blob) THEN
+          iBlob_Addr_1 <= Cur_Blob1_Addr;
+        ELSE
+          iBlob_Addr_1 <= Cur_Blob_Addr1;
+        END IF;
+        iBlob_Addr_2 <= Cur_Blob_Addr2;
       END IF;
     END IF;
   END PROCESS;
