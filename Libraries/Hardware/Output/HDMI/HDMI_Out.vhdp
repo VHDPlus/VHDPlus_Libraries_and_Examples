@@ -23,6 +23,11 @@
     WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
     
     Description: This component takes a video stream and outputs via HDMI
+    
+    Important:   -To add the negative pins, add this for each pin to your qsf file in the project folder,
+                  replace <Signal_Name> with the actual name and replace <N_Pin> with the corresponding negativ pin:
+                    set_instance_assignment -name IO_STANDARD LVDS -to <Signal_Name>
+                    set_location_assignment PIN_<N_Pin> -to "<Signal_Name>(n)"
  */
 
 Component HDMI_Out

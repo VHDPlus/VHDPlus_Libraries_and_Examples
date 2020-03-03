@@ -25,27 +25,67 @@ ARCHITECTURE BEHAVIORAL OF Object_Recognition IS
 
   CONSTANT CLK_Frequency : NATURAL := 48000000;
   CONSTANT Row_Buf  : BOOLEAN := true;
+  CONSTANT Debug_Mode  : NATURAL := 0;
+  CONSTANT CC_G_Mult : NATURAL := 3;
+  CONSTANT CC_G_Div  : NATURAL := 5;
+  CONSTANT CC_B_Mult : NATURAL := 1;
+  CONSTANT CC_B_Div  : NATURAL := 1;
+  CONSTANT Ye_H_Min : NATURAL := 170;
+  CONSTANT Ye_H_Max : NATURAL := 45;
+  CONSTANT Ye_S_Min : NATURAL := 100;
+  CONSTANT Ye_V_Min : NATURAL := 60;
+  CONSTANT Bk_H_Min : NATURAL := 0;
+  CONSTANT Bk_H_Max : NATURAL := 255;
+  CONSTANT Bk_S_Max : NATURAL := 70;
+  CONSTANT Bk_V_Max : NATURAL := 60;
+  CONSTANT Bl_H_Min : NATURAL := 105;
+  CONSTANT Bl_H_Max : NATURAL := 150;
+  CONSTANT Bl_S_Min : NATURAL := 120;
+  CONSTANT Bl_V_Min : NATURAL := 50;
+  CONSTANT Wh_H_Min : NATURAL := 0;
+  CONSTANT Wh_H_Max : NATURAL := 255;
+  CONSTANT Wh_S_Max : NATURAL := 120;
+  CONSTANT Wh_V_Min : NATURAL := 200;
   CONSTANT Enable_Compression  : BOOLEAN := true;
   CONSTANT Max_Area            : NATURAL := 4;
   CONSTANT Min_Area            : NATURAL := 2;
   CONSTANT Min_Pixel_Num       : NATURAL := ((Max_Area**2)/2)*1;
-  CONSTANT Blob_Min_H  : NATURAL := 5;
-  CONSTANT Blob_Min_W  : NATURAL := 5;
-  CONSTANT Blob_Max_H  : NATURAL := 40;
-  CONSTANT Blob_Max_W  : NATURAL := 80;
+  CONSTANT Blob_Min_H  : NATURAL := 3;
+  CONSTANT Blob_Min_W  : NATURAL := 3;
+  CONSTANT Blob_Max_H  : NATURAL := 20;
+  CONSTANT Blob_Max_W  : NATURAL := 40;
   CONSTANT Cone_31_Dist_Mult : NATURAL := 3;
   CONSTANT Cone_32_Dist_Mult : NATURAL := 2;
-  CONSTANT Capture_Compression : NATURAL :=  2;
-  CONSTANT Capture_Output      : NATURAL :=  6;
+  CONSTANT Capture_Output      : NATURAL := 6;
+  CONSTANT Force_Mono          : BOOLEAN := false;
   CONSTANT Capture_Color_Depth : NATURAL := 1;
-  CONSTANT Full_Image : BOOLEAN := true;
-  CONSTANT Color_Out  : BOOLEAN := true;
-  SIGNAL Color_Select : NATURAL range 0 to 3 := 2;
-  SIGNAL Cone_Select  : NATURAL range 0 to 1 := 1;
+  CONSTANT Capture_Compression : NATURAL := 2;
+  CONSTANT Full_Image          : BOOLEAN := true;
+  SIGNAL Color_Select          : NATURAL range 0 to 3 := 2;
   SIGNAL Camera_Stream         : rgb_stream;
   SIGNAL Color_Correction_Stream     : rgb_stream;
+  SIGNAL S_CC_G_Mult : NATURAL := 3;
+  SIGNAL S_CC_G_Div  : NATURAL := 5;
+  SIGNAL S_CC_B_Mult : NATURAL := 1;
+  SIGNAL S_CC_B_Div  : NATURAL := 1;
   SIGNAL RGB2HSV_Stream       : rgb_stream;
   SIGNAL Yellow_Filter_Stream   : rgb_stream;
+  SIGNAL S_Ye_H_Min : NATURAL := 170;
+  SIGNAL S_Ye_H_Max : NATURAL := 45;
+  SIGNAL S_Ye_S_Min : NATURAL := 100;
+  SIGNAL S_Ye_V_Min : NATURAL := 60;
+  SIGNAL S_Bk_H_Min : NATURAL := 0;
+  SIGNAL S_Bk_H_Max : NATURAL := 255;
+  SIGNAL S_Bk_S_Max : NATURAL := 70;
+  SIGNAL S_Bk_V_Max : NATURAL := 60;
+  SIGNAL S_Bl_H_Min : NATURAL := 105;
+  SIGNAL S_Bl_H_Max : NATURAL := 150;
+  SIGNAL S_Bl_S_Min : NATURAL := 120;
+  SIGNAL S_Bl_V_Min : NATURAL := 50;
+  SIGNAL S_Wh_H_Min : NATURAL := 0;
+  SIGNAL S_Wh_H_Max : NATURAL := 255;
+  SIGNAL S_Wh_S_Max : NATURAL := 120;
+  SIGNAL S_Wh_V_Min : NATURAL := 200;
   SIGNAL Black_Filter_Stream   : rgb_stream;
   SIGNAL Blue_Filter_Stream   : rgb_stream;
   SIGNAL White_Filter_Stream   : rgb_stream;
@@ -77,7 +117,6 @@ ARCHITECTURE BEHAVIORAL OF Object_Recognition IS
   SIGNAL Blob_Out           : Blob_Data;
   SIGNAL Square_oStream : rgb_stream;
   SIGNAL Cross_oStream : rgb_stream;
-  SIGNAL Cone_Out          : Cone_Data;
   SIGNAL Cross1_oStream : rgb_stream;
   SIGNAL Combine_Stream : rgb_stream;
   SIGNAL ISSP_source  : std_logic_vector (7 downto 0);
@@ -95,7 +134,7 @@ ARCHITECTURE BEHAVIORAL OF Object_Recognition IS
   SIGNAL Camera_Capture_Read_Row       : NATURAL          range 0 to 479;
   SIGNAL Camera_Capture_Read_Data      : STD_LOGIC_VECTOR (23 downto 0);
   SIGNAL Camera_Capture_SDRAM_Read_Ena : STD_LOGIC;
-  CONSTANT RGB   : BOOLEAN := (Capture_Output < 2 OR Capture_Output > 4) AND Color_Out;
+  CONSTANT RGB   : BOOLEAN := (Capture_Output < 2 OR Capture_Output > 4) AND NOT Force_Mono;
   SIGNAL HDMI_Out_VS_PCLK   : STD_LOGIC;
   SIGNAL HDMI_Out_VS_SCLK   : STD_LOGIC;
   SIGNAL HDMI_Out_VS_R      : STD_LOGIC_VECTOR (7 downto 0);
@@ -375,6 +414,28 @@ BEGIN
 
   Camera_Enable <= '1';
 
+   S_CC_G_Mult <= TO_INTEGER(UNSIGNED(ISSP1_source)) when Debug_Mode = 1 else CC_G_Mult;
+   S_CC_G_Div  <= TO_INTEGER(UNSIGNED(ISSP2_source)) when Debug_Mode = 1 else CC_G_Div;
+   S_CC_B_Mult <= TO_INTEGER(UNSIGNED(ISSP3_source)) when Debug_Mode = 1 else CC_B_Mult;
+   S_CC_B_Div  <= TO_INTEGER(UNSIGNED(ISSP4_source)) when Debug_Mode = 1 else CC_B_Div;
+
+   S_Ye_H_Min <= TO_INTEGER(UNSIGNED(ISSP1_source)) when Debug_Mode = 2 else Ye_H_Min;
+    S_Ye_H_Max <= TO_INTEGER(UNSIGNED(ISSP2_source)) when Debug_Mode = 2 else Ye_H_Max;
+   S_Ye_S_Min <= TO_INTEGER(UNSIGNED(ISSP3_source)) when Debug_Mode = 2 else Ye_S_Min;
+    S_Ye_V_Min <= TO_INTEGER(UNSIGNED(ISSP4_source)) when Debug_Mode = 2 else Ye_V_Min;
+     S_Bk_H_Min <= TO_INTEGER(UNSIGNED(ISSP1_source)) when Debug_Mode = 3 else Bk_H_Min;
+   S_Bk_H_Max <= TO_INTEGER(UNSIGNED(ISSP2_source)) when Debug_Mode = 3 else Bk_H_Max;
+    S_Bk_S_Max <= TO_INTEGER(UNSIGNED(ISSP3_source)) when Debug_Mode = 3 else Bk_S_Max;
+    S_Bk_V_Max <= TO_INTEGER(UNSIGNED(ISSP4_source)) when Debug_Mode = 3 else Bk_V_Max;
+   S_Bl_H_Min <= TO_INTEGER(UNSIGNED(ISSP1_source)) when Debug_Mode = 4 else Bl_H_Min;
+   S_Bl_H_Max <= TO_INTEGER(UNSIGNED(ISSP2_source)) when Debug_Mode = 4 else Bl_H_Max;
+   S_Bl_S_Min <= TO_INTEGER(UNSIGNED(ISSP3_source)) when Debug_Mode = 4 else Bl_S_Min;
+    S_Bl_V_Min <= TO_INTEGER(UNSIGNED(ISSP4_source)) when Debug_Mode = 4 else Bl_V_Min;
+     S_Wh_H_Min <= TO_INTEGER(UNSIGNED(ISSP1_source)) when Debug_Mode = 5 else Wh_H_Min;
+   S_Wh_H_Max <= TO_INTEGER(UNSIGNED(ISSP2_source)) when Debug_Mode = 5 else Wh_H_Max;
+   S_Wh_S_Max <= TO_INTEGER(UNSIGNED(ISSP3_source)) when Debug_Mode = 5 else Wh_S_Max;
+   S_Wh_V_Min <= TO_INTEGER(UNSIGNED(ISSP4_source)) when Debug_Mode = 5 else Wh_V_Min;
+
   Square_iStream.R         <= (others => Area_Compression_Pixel(color_select));
   Square_iStream.G         <= (others => Area_Compression_Pixel(color_select));
   Square_iStream.B         <= (others => Area_Compression_Pixel(color_select));
@@ -388,13 +449,6 @@ BEGIN
   Blob_Out.X1    <= Blob_data_array(color_select).X1;
   Blob_Out.Y0    <= Blob_data_array(color_select).Y0;
   Blob_Out.Y1    <= Blob_data_array(color_select).Y1;
-
-
-  Cone_Out.Busy  <= cone_data_array(cone_select).Busy;
-  Cone_Out.Cones <= cone_data_array(cone_select).Cones;
-  Cone_Out.X     <= cone_data_array(cone_select).X;
-  Cone_Out.Y     <= cone_data_array(cone_select).Y;
-  Cone_Out.Addr  <= cone_data_array(cone_select).Addr;
 
   Combine_Stream.R         <= (others => (Area_Compression_Pixel(0) OR Area_Compression_Pixel(1)));
   Combine_Stream.G         <= (others => (Area_Compression_Pixel(2) OR Area_Compression_Pixel(1)));
@@ -413,11 +467,11 @@ BEGIN
   Square_oStream when Capture_Output = 5 else
   Cross_oStream when Capture_Output = 6 else
   Combine_Stream;
-  ISSP_probe  <= STD_LOGIC_VECTOR(TO_UNSIGNED(Cone_Out.Cones, 32))           when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Blobs, 32));
-  ISSP1_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Cone_Out.X, 32))               when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.X0, 32));
-  ISSP2_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Cone_Out.Y, 32))               when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Y0, 32));
-  ISSP3_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Cone_Out.Addr, 32))            when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.X1-Blob_Out.X0, 32));
-  ISSP4_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(blob_data_array(2).Blobs, 32)) when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Y1-Blob_Out.Y0, 32));
+  ISSP_probe  <= STD_LOGIC_VECTOR(TO_UNSIGNED(cone_data_array(0).Cones, 32)) when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Blobs, 32))          when Capture_Output = 5 else (others => '0');
+  ISSP1_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(cone_data_array(1).Cones, 32)) when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.X0, 32))             when Capture_Output = 5 else (others => '0');
+  ISSP2_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(cone_data_array(0).X, 32))     when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Y0, 32))             when Capture_Output = 5 else (others => '0');
+  ISSP3_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(cone_data_array(1).X, 32))     when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.X1-Blob_Out.X0, 32)) when Capture_Output = 5 else (others => '0');
+  ISSP4_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(cone_data_array(0).Y, 32))     when Capture_Output = 6 else STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Out.Y1-Blob_Out.Y0, 32)) when Capture_Output = 5 else (others => '0');
   CSI_Camera1 : CSI_Camera
   GENERIC MAP (
       CLK_Frequency => CLK_Frequency,
@@ -443,11 +497,11 @@ BEGIN
     R_Multiplier => 1,
     R_Divider    => 1,
     R_Add        => 0,
-    G_Multiplier => 3,
-    G_Divider    => 5,
+    G_Multiplier => S_CC_G_Mult,
+    G_Divider    => S_CC_G_Div,
     G_Add        => 0,
-    B_Multiplier => 1,
-    B_Divider    => 1,
+    B_Multiplier => S_CC_B_Mult,
+    B_Divider    => S_CC_B_Div,
     B_Add        => 0,
     iStream      => Camera_Stream,
     oStream      => Color_Correction_Stream
@@ -471,11 +525,11 @@ BEGIN
 
   ) PORT MAP (
     CLK => CLK,
-    H_Min      => 170,
-    H_Max      => 45,
-    S_Min      => 100,
+    H_Min      => S_Ye_H_Min,
+    H_Max      => S_Ye_H_Max,
+    S_Min      => S_Ye_S_Min,
     S_Max      => 255,
-    V_Min      => 60,
+    V_Min      => S_Ye_V_Min,
     V_Max      => 255,
     iStream    => RGB2HSV_Stream,
     oStream    => Yellow_Filter_Stream
@@ -488,12 +542,12 @@ BEGIN
 
   ) PORT MAP (
     CLK => CLK,
-    H_Min      => 0,
-    H_Max      => 255,
+    H_Min      => S_Bk_H_Min,
+    H_Max      => S_Bk_H_Max,
     S_Min      => 0,
-    S_Max      => 70,
+    S_Max      => S_Bk_S_Max,
     V_Min      => 0,
-    V_Max      => 60,
+    V_Max      => S_Bk_V_Max,
     iStream    => RGB2HSV_Stream,
     oStream    => Black_Filter_Stream
 
@@ -505,11 +559,11 @@ BEGIN
 
   ) PORT MAP (
     CLK => CLK,
-    H_Min      => 105,
-    H_Max      => 150,
-    S_Min      => 120,
+    H_Min      => S_Bl_H_Min,
+    H_Max      => S_Bl_H_Max,
+    S_Min      => S_Bl_S_Min,
     S_Max      => 255,
-    V_Min      => 50,
+    V_Min      => S_Bl_V_Min,
     V_Max      => 255,
     iStream    => RGB2HSV_Stream,
     oStream    => Blue_Filter_Stream
@@ -522,11 +576,11 @@ BEGIN
 
   ) PORT MAP (
     CLK => CLK,
-    H_Min      => 0,
-    H_Max      => 255,
+    H_Min      => S_Wh_H_Min,
+    H_Max      => S_Wh_H_Max,
     S_Min      => 0,
-    S_Max      => 120,
-    V_Min      => 200,
+    S_Max      => S_Wh_S_Max,
+    V_Min      => S_Wh_V_Min,
     V_Max      => 255,
     iStream    => RGB2HSV_Stream,
     oStream    => White_Filter_Stream

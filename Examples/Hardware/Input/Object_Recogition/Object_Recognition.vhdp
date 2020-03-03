@@ -25,30 +25,30 @@ Main
     --4 = Threshold Blue   (ISSP1 = H- ISSP2 = H+ ISSP3 = S- ISSP4 = V- -> S+ = 255 V+ = 255)
     --5 = Threshold White  (ISSP1 = H- ISSP2 = H+ ISSP3 = S+ ISSP4 = V- -> S- = 0   V+ = 255)
     
-    CONSTANT CC_G_Mult : NATURAL := 3;
+    CONSTANT CC_G_Mult : NATURAL := 3;   --(Green * ...) / ...
     CONSTANT CC_G_Div  : NATURAL := 5;
-    CONSTANT CC_B_Mult : NATURAL := 1;
+    CONSTANT CC_B_Mult : NATURAL := 1;   --(Blue  * ...) / ...
     CONSTANT CC_B_Div  : NATURAL := 1;
     
-    CONSTANT Ye_H_Min : NATURAL := 170;
-    CONSTANT Ye_H_Max : NATURAL := 45;
-    CONSTANT Ye_S_Min : NATURAL := 100;
-    CONSTANT Ye_V_Min : NATURAL := 60;
+    CONSTANT Ye_H_Min : NATURAL := 170;  --Hue mininmum value for yellow
+    CONSTANT Ye_H_Max : NATURAL := 45;   --Hue maximum value for yellow
+    CONSTANT Ye_S_Min : NATURAL := 100;  --Saturation minimum value for yellow
+    CONSTANT Ye_V_Min : NATURAL := 60;   --Brightness minimum value for yellow
     
-    CONSTANT Bk_H_Min : NATURAL := 0;
-    CONSTANT Bk_H_Max : NATURAL := 255;
-    CONSTANT Bk_S_Max : NATURAL := 70;
-    CONSTANT Bk_V_Max : NATURAL := 60;
+    CONSTANT Bk_H_Min : NATURAL := 0;    --Hue mininmum value for black
+    CONSTANT Bk_H_Max : NATURAL := 255;  --Hue maximum value for black
+    CONSTANT Bk_S_Max : NATURAL := 70;   --Saturation maximum value for black
+    CONSTANT Bk_V_Max : NATURAL := 60;   --Brightness maximum value for black
     
-    CONSTANT Bl_H_Min : NATURAL := 105;
-    CONSTANT Bl_H_Max : NATURAL := 150;
-    CONSTANT Bl_S_Min : NATURAL := 120;
-    CONSTANT Bl_V_Min : NATURAL := 50;
+    CONSTANT Bl_H_Min : NATURAL := 105;  --Hue mininmum value for blue
+    CONSTANT Bl_H_Max : NATURAL := 150;  --Hue maximum value for blue
+    CONSTANT Bl_S_Min : NATURAL := 120;  --Saturation minimum value for blue
+    CONSTANT Bl_V_Min : NATURAL := 50;   --Brightness minimum value for blue
     
-    CONSTANT Wh_H_Min : NATURAL := 0;
-    CONSTANT Wh_H_Max : NATURAL := 255;
-    CONSTANT Wh_S_Max : NATURAL := 120;
-    CONSTANT Wh_V_Min : NATURAL := 200;
+    CONSTANT Wh_H_Min : NATURAL := 0;    --Hue mininmum value for white
+    CONSTANT Wh_H_Max : NATURAL := 255;  --Hue maximum value for white
+    CONSTANT Wh_S_Max : NATURAL := 120;  --Saturation maximum value for white
+    CONSTANT Wh_V_Min : NATURAL := 200;  --Brightness minimum value for white
     
     --Compression (AreaLimitedCompression)
     CONSTANT Enable_Compression  : BOOLEAN := true;  --Uses more RAM, decreases noise

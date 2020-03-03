@@ -45,10 +45,7 @@ set_global_assignment -name VHDL_FILE Generated/I2C_Master_Interface.vhd
 set_global_assignment -name VHDL_FILE Generated/Image_Data_Package.vhd
 set_global_assignment -name VHDL_FILE Generated/Object_Recognition.vhd
 set_global_assignment -name VHDL_FILE Generated/RGB2HSV_Filter.vhd
-set_global_assignment -name VHDL_FILE Generated/Stream2VS.vhd
-set_global_assignment -name VHDL_FILE HDMI/Stream_PLL.vhd
 set_global_assignment -name VHDL_FILE HDMI/VS_PLL.vhd
-set_global_assignment -name QIP_FILE HDMI/Stream_PLL.qip
 set_global_assignment -name QIP_FILE HDMI/VS_PLL.qip
 set_global_assignment -name VERILOG_FILE HDMI/DVI_OUT.v
 set_global_assignment -name VERILOG_FILE HDMI/TMDS_ENCODE.v
