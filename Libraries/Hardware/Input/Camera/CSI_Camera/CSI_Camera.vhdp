@@ -24,10 +24,7 @@
     
     Important:   -The Enable pin (11) has to be set to '1' manually
                  -CLK_Lane and Data_Lane are differential I/Os. Connect positive pins with the signals.
-                 -To add the negative pins, add this for each pin to your qsf file in the project folder,
-                  replace <Signal_Name> with the actual name and replace <N_Pin> with the corresponding negativ pin:
-                    set_instance_assignment -name IO_STANDARD LVDS -to <Signal_Name>
-                    set_location_assignment PIN_<N_Pin> -to "<Signal_Name>(n)"
+                 -To add the negative pins, use "Connections" in this file and connect [signal name](n).
     
     Description: -This component initializies a Raspberry Pi Camera with an I2C interface and
                   outputs the received camera data.
@@ -64,10 +61,14 @@ Component CSI_Camera
 {
     Connections
     {
-        CLK_Lane,
-        Data_Lane,
-        SCL,
-        SDA,
+        CLK_Lane        => HS_Dif_5,  --B2_P
+        CLK_Lane(n)     => HS_Dif_6,  --B2_N
+        Data_Lane[0]    => HS_Dif_7,  --B3_P
+        Data_Lane[0](n) => HS_Dif_8,  --B3_N
+        Data_Lane[1]    => HS_Dif_9,  --B4_P
+        Data_Lane[1](n) => HS_Dif_10, --B4_N
+        SCL             => HS_Dif_2,  --B0_N
+        SDA             => HS_Dif_1,  --B0_P
     }
 
     --Send initial data on startup
