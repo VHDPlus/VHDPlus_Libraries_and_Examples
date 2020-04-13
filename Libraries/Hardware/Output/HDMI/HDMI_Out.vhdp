@@ -23,6 +23,11 @@
     WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
     
     Description: This component takes a video stream and outputs via HDMI
+    
+    Important:   -To add the negative pins, add this for each pin to your qsf file in the project folder,
+                  replace <Signal_Name> with the actual name and replace <N_Pin> with the corresponding negativ pin:
+                    set_instance_assignment -name IO_STANDARD LVDS -to <Signal_Name>
+                    set_location_assignment PIN_<N_Pin> -to "<Signal_Name>(n)"
  */
 
 Component HDMI_Out
@@ -37,26 +42,26 @@ Component HDMI_Out
     VS_VS      : IN  STD_LOGIC;
     VS_DE      : IN  STD_LOGIC;
     
-    oHDMI_DATA : OUT STD_LOGIC_VECTOR(2 downto 0);
-    oHDMI_CLK  : OUT STD_LOGIC;
-    iHDMI_HPD  : IN  STD_LOGIC
+    HDMI_DATA : OUT STD_LOGIC_VECTOR(2 downto 0);
+    HDMI_CLK  : OUT STD_LOGIC;
+    HDMI_HPD  : IN  STD_LOGIC
 )
 {
     Connections
     {
-        oHDMI_CLK        => HS_Dif_3,
-        oHDMI_CLK(n)     => HS_Dif_4,
+        HDMI_CLK        => HS_Dif_3,   --B1_P
+        HDMI_CLK(n)     => HS_Dif_4,   --B1_N
         
-        oHDMI_DATA[0]    => HS_Dif_15,
-        oHDMI_DATA[0](n) => HS_Dif_16,
+        HDMI_DATA[0]    => HS_Dif_15,  --A1_P
+        HDMI_DATA[0](n) => HS_Dif_16,  --A1_N
         
-        oHDMI_DATA[1]    => HS_Dif_17,
-        oHDMI_DATA[1](n) => HS_Dif_18,
+        HDMI_DATA[1]    => HS_Dif_17,  --A2_P
+        HDMI_DATA[1](n) => HS_Dif_18,  --A2_N
         
-        oHDMI_DATA[2]    => HS_Dif_19,
-        oHDMI_DATA[2](n) => HS_Dif_20,
+        HDMI_DATA[2]    => HS_Dif_19,  --A3_P
+        HDMI_DATA[2](n) => HS_Dif_20,  --A3_N
         
-        iHDMI_HPD        => HS_Dif_21,
+        HDMI_HPD        => HS_Dif_21,  --A4_P
     }
     
     AttributeDeclaration
@@ -97,9 +102,9 @@ Component HDMI_Out
             iVS       => VS_VS,
             iDE       => VS_DE,
             
-            oDVI_DATA => oHDMI_DATA,
-            oDVI_CLK  => oHDMI_CLK,
-            iDVI_HPD  => iHDMI_HPD
+            oDVI_DATA => HDMI_DATA,
+            oDVI_CLK  => HDMI_CLK,
+            iDVI_HPD  => HDMI_HPD
         );
     }
 }

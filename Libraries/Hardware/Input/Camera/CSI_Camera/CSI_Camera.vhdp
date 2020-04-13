@@ -46,6 +46,7 @@ Component CSI_Camera
     (
         CLK_Frequency : NATURAL := 12000000;
         Row_Buf       : BOOLEAN := false; --true = saves last row in buffer, creates own Pixel CLK and spreads pixels even
+        CLK_as_PCLK   : BOOLEAN := false; --true = saves last row in buffer, uses CLK as Pixel CLK and spreads pixels even
     );
     
     Reset     : IN STD_LOGIC := '0';                --Initialized on falling edge (or on startup if Reset = '0')
@@ -69,6 +70,7 @@ Component CSI_Camera
         Data_Lane[1](n) => HS_Dif_10, --B4_N
         SCL             => HS_Dif_2,  --B0_N
         SDA             => HS_Dif_1,  --B0_P
+        Enable          => HS_Dif_22, --A4_N
     }
 
     --Send initial data on startup
@@ -318,12 +320,12 @@ Component CSI_Camera
     
     SIGNAL New_Pixel : STD_LOGIC;
     
-    New_Pixel <= New_Pixel_Reg_O when Row_Buf else New_Pixel_Reg;
+    New_Pixel <= New_Pixel_Reg_O when Row_Buf OR CLK_as_PCLK else New_Pixel_Reg;
 
     --Output current data
-    oStream.R <= Pixel_R_Reg_O when Row_Buf else Pixel_R_Reg;
-    oStream.G <= Pixel_G_Reg_O when Row_Buf else Pixel_G_Reg;
-    oStream.B <= Pixel_B_Reg_O when Row_Buf else Pixel_B_Reg;
+    oStream.R <= Pixel_R_Reg_O when Row_Buf OR CLK_as_PCLK else Pixel_R_Reg;
+    oStream.G <= Pixel_G_Reg_O when Row_Buf OR CLK_as_PCLK else Pixel_G_Reg;
+    oStream.B <= Pixel_B_Reg_O when Row_Buf OR CLK_as_PCLK else Pixel_B_Reg;
     oStream.New_Pixel <= New_Pixel;
     oStream.Column <= Column;
     oStream.Row <= Row;
@@ -450,12 +452,12 @@ Component CSI_Camera
     
     --2624x1952 -> 640x480
     CONSTANT pixel_clk_divider : NATURAL := CLK_Frequency/(Image_FPS*1200*Image_Width);
-    Generate (if pixel_clk_divider < 2)
+    Generate (if pixel_clk_divider < 2 OR CLK_as_PCLK)
     {
         New_Pixel_Div <= CLK;
     }
     
-    Generate (if pixel_clk_divider > 1)
+    Generate (if pixel_clk_divider > 1 AND NOT CLK_as_PCLK)
     {
         Process
         (
