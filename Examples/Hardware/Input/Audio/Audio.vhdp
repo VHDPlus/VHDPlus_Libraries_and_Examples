@@ -1,0 +1,52 @@
+Main
+(
+    IRQ   : IN STD_LOGIC;
+    SDA   : INOUT STD_LOGIC;
+    SCL   : INOUT STD_LOGIC;
+    MCLK  : OUT STD_LOGIC;
+    BCLK  : IN STD_LOGIC;
+    LRCLK : IN STD_LOGIC;
+    SDOUT : IN STD_LOGIC;
+    SDIN  : OUT STD_LOGIC;
+    
+)
+{
+    SIGNAL Audio_Codec_Component_ADC_L : UNSIGNED  (15 downto 0);
+    SIGNAL Audio_Codec_Component_ADC_R : UNSIGNED  (15 downto 0);
+    SIGNAL Audio_Codec_Component_DAC_L : UNSIGNED  (15 downto 0);
+    SIGNAL Audio_Codec_Component_DAC_R : UNSIGNED  (15 downto 0);
+    NewComponent Audio_Codec_Component
+    (
+        Reset => '0',
+        IRQ   => IRQ,
+        SDA   => SDA,
+        SCL   => SCL,
+        MCLK  => MCLK,
+        BCLK  => BCLK,
+        LRCLK => LRCLK,
+        SDOUT => SDOUT,
+        SDIN  => SDIN,
+        ADC_L => Audio_Codec_Component_ADC_L,
+        ADC_R => Audio_Codec_Component_ADC_R,
+        DAC_L => Audio_Codec_Component_DAC_L,
+        DAC_R => Audio_Codec_Component_DAC_R,
+    );
+    
+    Process ()
+    {
+        Thread
+        {
+            StepFor(VARIABLE i : Integer range 0 to 15 := 0; i < 15; i := i + 1)
+            {
+                Wait(100us);
+            }
+            StepFor(; i > 0; i := i - 1)
+            {
+                Wait(100us);
+            }
+        }
+        
+        Audio_Codec_Component_DAC_L <= TO_UNSIGNED(i*1000, 16);
+        Audio_Codec_Component_DAC_R <= TO_UNSIGNED(i*1000, 16);
+    }
+}

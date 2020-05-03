@@ -1,0 +1,325 @@
+/*
+This Component is designed for the VHDPlus Audio Extension
+ */
+
+Component Audio_Codec_Component
+(
+    Generic
+    (
+        --General
+        CLK_Frequency    : NATURAL := 12000000;     --10MHz - 60MHz
+        
+        --Settings
+        Sampling_Rate    : NATURAL := 48;           --   8 -  48 (kHz)
+        Microphone_Ena   : BOOLEAN := true;
+        Line_In_Ena      : BOOLEAN := true;
+        Differential_Out : BOOLEAN := true;         --If false: connect negative of both speakers with LOUT_N
+        
+        DAC_Volume       : INTEGER := 0;            --   0 - -15 (dB)
+        ADC_Volume       : INTEGER := 3;            --  +3 - -12 (dB)
+        Line_In_Gain     : INTEGER := 20;           -- +24 - -6  (dB)
+        Mic_In_Gain      : INTEGER := 20;           -- +50 -  0  (dB)
+    );
+    
+    Reset           : IN    STD_LOGIC;
+    
+    IRQ             : IN    STD_LOGIC;  --Falling edge if audio jack detected
+    SDA             : INOUT STD_LOGIC;  --I2C SDA for settings
+    SCL             : INOUT STD_LOGIC;  --I2C SCL for settings
+    
+    MCLK            : OUT   STD_LOGIC;  --Master CLK (12MHz)
+    BCLK            : IN    STD_LOGIC;  --Bit CLK (rising edge to read bit)
+    LRCLK           : IN    STD_LOGIC;  --Left/Right CLK ('0' = Left)
+    SDOUT           : IN    STD_LOGIC;  --ADC Output
+    SDIN            : OUT   STD_LOGIC;  --DAC Input
+    
+    ADC_L           : OUT   UNSIGNED(15 downto 0);
+    ADC_R           : OUT   UNSIGNED(15 downto 0);
+    DAC_L           : IN    UNSIGNED(15 downto 0);
+    DAC_R           : IN    UNSIGNED(15 downto 0);
+)
+{
+    CONSTANT Audio_Mode : STD_LOGIC_VECTOR := "1";          --1 = Audio 0 = Voice (max 24kHz in voice mode)
+    CONSTANT ADC_Filter : STD_LOGIC_VECTOR := "000";        --Datasheet P.34 AVFLT
+    CONSTANT DAC_Filter : STD_LOGIC_VECTOR := "000";        --Datasheet P.34 DVFLT
+    
+    CONSTANT Sidetone_Mix  : STD_LOGIC_VECTOR := "00";      --00 = no sidtone, 01 = Left, 10 = Right, 11 = Both ADC
+    CONSTANT Sidetone_Gain : STD_LOGIC_VECTOR := "00000";   --Datasheet P.35 DVST
+    
+    CONSTANT DAC_Mute    : STD_LOGIC_VECTOR := "0";         --1 = Mute
+    CONSTANT DAC_Gain    : STD_LOGIC_VECTOR := "00";        --If Audio_Mode = 0: 01 = +6dB, 10 = +12dB, 11 = +18dB
+    
+    CONSTANT Line_L_Mute : STD_LOGIC_VECTOR := "0";         --0 = Line input is connected to the headphone amplifiers
+    CONSTANT Line_R_Mute : STD_LOGIC_VECTOR := "0";         --0 = Line input is connected to the headphone amplifiers
+    
+    CONSTANT Volume      : STD_LOGIC_VECTOR := "000000";    --Datasheet P.38 VOLL/VOLR
+    
+    Connections
+    {
+        IRQ => LS_4,
+        SDA => LS_1,
+        SCL => LS_2,
+        MCLK => LS_7,
+        BCLK => LS_8,
+        LRCLK => LS_6,
+        SDOUT => LS_3,
+        SDIN => LS_5,
+    }
+    
+    MCLK <= CLK;
+    
+    --Send initial data on startup
+    Process Init
+    (
+        VARIABLE state  : NATURAL range 0 to 5 := 5;
+        VARIABLE count  : NATURAL range 0 to CLK_Frequency/1000 := 0;
+    )
+    {
+        If(Reset = '1')
+        {
+            address <= (others => '0');
+            state := 5;
+            count := 0;
+            I2C_Master_Interface_Enable <= '0';
+        }
+        Else
+        {
+            If(state = 0)
+            {
+                I2C_Master_Interface_Address <= "0110000";      --Write Address (0x30)
+                I2C_Master_Interface_RW      <= '0';            --Write
+                I2C_Master_Interface_Data_Wr <= sreg(15 downto 8);
+                I2C_Master_Interface_Enable  <= '1';
+                state := 1;
+            }
+            Elsif(state = 1)
+            {
+                If(I2C_Master_Interface_Busy = '1')
+                {
+                    I2C_Master_Interface_Data_Wr <= sreg(7 downto 0);
+                    state := 2;
+                }
+            }
+            Elsif(state = 2)
+            {
+                If(I2C_Master_Interface_Busy = '0')
+                {
+                    I2C_Master_Interface_Enable  <= '0';
+                    state := 3;
+                }
+            }
+            Elsif(state = 3)
+            {
+                If(I2C_Master_Interface_Busy = '1')
+                {
+                    state := 4;
+                }
+            }
+            Elsif(state = 4)
+            {
+                If(I2C_Master_Interface_Busy = '0')
+                {
+                    If(address /= x"13")
+                    {
+                        address <= STD_LOGIC_VECTOR(UNSIGNED(address)+1);
+                        state   := 5;
+                    }
+                }
+            }
+            Else
+            {
+                If(count < CLK_Frequency/1000)
+                {
+                    count := count + 1;
+                }
+                Else
+                {
+                    count := 0;
+                    state := 0;
+                }
+            }
+        }
+    }
+    
+    SIGNAL address : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    SIGNAL sreg    : STD_LOGIC_VECTOR(15 downto 0) := x"0000";
+    
+    CONSTANT PCLK_Div : NATURAL := ((CLK_Frequency-1)/20000000)+1;
+    CONSTANT NI_VALUE : NATURAL := (65536*96*1000*Sampling_Rate*PCLK_Div)/CLK_Frequency;
+    
+    --Initial data to send
+    Process Init_Register ()
+    {
+        Case(address)
+        {
+            When(x"00"){ sreg <=  x"0402"; }    --Interrupt Enable
+            When(x"01")                         --Divider for PCLK (1-3)
+            {
+                sreg <= x"05" & STD_LOGIC_VECTOR(TO_UNSIGNED(PCLK_Div, 8));
+            }
+            When(x"02")                         --Sampling Rate
+            {
+                sreg <= x"06" & STD_LOGIC_VECTOR(TO_UNSIGNED(NI_VALUE, 16))(15 downto 8);
+            }
+            When(x"03")
+            {
+                sreg <= x"07" & STD_LOGIC_VECTOR(TO_UNSIGNED(NI_VALUE, 16))(7 downto 0);
+            }
+            When(x"04"){ sreg <=  x"0890"; }    --LRCLK + BCLK = Output, LRCLK low = Left, BCLK rising edge, start on second edge
+            When(x"05"){ sreg <=  x"0902"; }    --Interface Mode = I2S
+            When(x"06"){ sreg <=  x"0A" & Audio_Mode & ADC_Filter & "0" & DAC_Filter; }
+            When(x"07"){ sreg <=  x"0B" & Sidetone_Mix & "0" & Sidetone_Gain; }
+            When(x"08"){ sreg <=  x"0C" & "0" & DAC_Mute & DAC_Gain & STD_LOGIC_VECTOR(TO_UNSIGNED(abs(DAC_Volume),4)); }
+            When(x"09"){ sreg <=  x"0D" & STD_LOGIC_VECTOR(TO_UNSIGNED(abs(ADC_Volume-3),4)) & STD_LOGIC_VECTOR(TO_UNSIGNED(abs(ADC_Volume-3),4)); }
+            When(x"0A"){ sreg <=  x"0E" & "0" & Line_L_Mute & "00" & STD_LOGIC_VECTOR(TO_UNSIGNED(abs(Line_In_Gain/2-12),4)); }
+            When(x"0B"){ sreg <=  x"0F" & "0" & Line_R_Mute & "00" & STD_LOGIC_VECTOR(TO_UNSIGNED(abs(Line_In_Gain/2-12),4)); }
+            When(x"0C"){ sreg <=  x"10" & "00" & Volume; }
+            When(x"0D"){ sreg <=  x"11" & "00" & Volume; }
+            When(x"0E" | x"0F") --Mic L/R Gain
+            {
+                If(Mic_In_Gain > 30)
+                {
+                    sreg <= STD_LOGIC_VECTOR(UNSIGNED(address)+4) & "011" & STD_LOGIC_VECTOR(TO_UNSIGNED(abs(Mic_In_Gain-50),5));
+                }
+                Elsif(Mic_In_Gain > 20)
+                {
+                    sreg <= STD_LOGIC_VECTOR(UNSIGNED(address)+4) & "010" & STD_LOGIC_VECTOR(TO_UNSIGNED(abs(Mic_In_Gain-40),5));
+                }
+                Else
+                {
+                    sreg <= STD_LOGIC_VECTOR(UNSIGNED(address)+4) & "001" & STD_LOGIC_VECTOR(TO_UNSIGNED(abs(Mic_In_Gain-20),5));
+                }
+            }
+            When(x"10")
+            {
+                If(Microphone_Ena AND Line_In_Ena)
+                {
+                    sreg <=  x"14" & "11110000";
+                }
+                Elsif(Microphone_Ena AND NOT Line_In_Ena)
+                {
+                    sreg <=  x"14" & "01010000";
+                }
+                Elsif(NOT Microphone_Ena AND Line_In_Ena)
+                {
+                    sreg <=  x"14" & "10100000";
+                }
+                Else
+                {
+                    sreg <=  x"1400";
+                }
+            }
+            When(x"11"){ sreg <=  x"1500"; }    --Disable Digital Mic
+            When(x"12")
+            {
+                If(Differential_Out)  --x"160C" for single-ended
+                {
+                    sreg <=  x"1608";
+                }
+                Else
+                {
+                    sreg <=  x"160A";
+                }
+            }
+            When(x"13"){ sreg <=  x"17EF"; }    --Enable Operation
+            When(others){sreg <=  x"FFFF"; }
+        }
+    }
+    
+    SIGNAL I2C_Master_Interface_Enable        : STD_LOGIC;
+    SIGNAL I2C_Master_Interface_Address       : STD_LOGIC_VECTOR (6 DOWNTO 0); --0x30 = write 0x31 = read
+    SIGNAL I2C_Master_Interface_RW            : STD_LOGIC;
+    SIGNAL I2C_Master_Interface_Data_WR       : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL I2C_Master_Interface_Busy          : STD_LOGIC;
+    SIGNAL I2C_Master_Interface_Data_RD       : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    
+    NewComponent I2C_Master_Interface
+    (
+        CLK_Frequency => 12000000,
+        Bus_CLK       => 400000,
+        
+        Reset         => '0',
+        Enable        => I2C_Master_Interface_Enable,
+        Address       => I2C_Master_Interface_Address,
+        RW            => I2C_Master_Interface_RW,
+        Data_WR       => I2C_Master_Interface_Data_WR,
+        Busy          => I2C_Master_Interface_Busy,
+        Data_RD       => I2C_Master_Interface_Data_RD,
+        SDA           => SDA,
+        SCL           => SCL,
+    );
+
+    Process ADC_Receive ()
+    {
+        VARIABLE ADC_L_Reg : UNSIGNED(15 downto 0);
+        VARIABLE ADC_R_Reg : UNSIGNED(15 downto 0);
+        If(rising_edge(BCLK))
+        {
+            SIGNAL   Read_Ena  : STD_LOGIC := '0';
+            VARIABLE LRCLK_Reg : STD_LOGIC := '0';
+            VARIABLE Bit_Count : NATURAL range 0 to 15 := 15;
+            If(LRCLK /= LRCLK_Reg)      --Prepare for read
+            {
+                ADC_L <= ADC_L_Reg;
+                ADC_R <= ADC_R_Reg;
+                Read_Ena <= '1';
+                Bit_Count := 15;
+            }
+            LRCLK_Reg := LRCLK;
+            
+            If(Read_Ena = '1')          --Read data
+            {
+                If(Bit_Count = 0)      --Last bit read
+                {
+                    Read_Ena <= '0';
+                }
+                
+                If(LRCLK = '0')
+                {
+                    ADC_L_Reg(Bit_Count) := SDOUT;
+                }
+                Else
+                {
+                    ADC_R_Reg(Bit_Count) := SDOUT;
+                }
+                
+                Bit_Count := Bit_Count - 1;
+            }
+        }
+    }
+    
+    Process DAC_Send ()
+    {
+        If(falling_edge(BCLK))
+        {
+            SIGNAL   Write_Ena  : STD_LOGIC := '0';
+            VARIABLE LRCLK_Reg : STD_LOGIC := '0';
+            VARIABLE Bit_Count : NATURAL range 0 to 15 := 15;
+            If(LRCLK /= LRCLK_Reg)      --Prepare for read
+            {
+                Write_Ena <= '1';
+                Bit_Count := 15;
+            }
+            LRCLK_Reg := LRCLK;
+            
+            If(Write_Ena = '1')          --Read data
+            {
+                If(Bit_Count = 0)      --Last bit read
+                {
+                    Write_Ena <= '0';
+                }
+                
+                If(LRCLK = '0')
+                {
+                    SDIN <= DAC_L(Bit_Count);
+                }
+                Else
+                {
+                    SDIN <= DAC_R(Bit_Count);
+                }
+                
+                Bit_Count := Bit_Count - 1;
+            }
+        }
+    }
+}
