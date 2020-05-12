@@ -55,16 +55,25 @@
                 uart_rxd                   : IN    STD_LOGIC := 'X';
                 uart_txd                   : OUT   STD_LOGIC;
               
-                i2c_sda_in                 : IN    STD_LOGIC := 'X';
-                i2c_scl_in                 : IN    STD_LOGIC := 'X';
-                i2c_sda_oe                 : OUT   STD_LOGIC;
-                i2c_scl_oe                 : OUT   STD_LOGIC;
+                i2c_sda                    : INOUT STD_LOGIC := 'Z';
+                i2c_scl                    : INOUT STD_LOGIC := 'Z';
 
                 spi_MISO                   : IN    STD_LOGIC := 'X';
                 spi_MOSI                   : OUT   STD_LOGIC;
                 spi_SCLK                   : OUT   STD_LOGIC;
                 spi_SS_n                   : OUT   STD_LOGIC;
                 
+               -Add this to your main code to connect the i2c I/Os:
+                SIGNAL i2c_sda_in : STD_LOGIC;
+                SIGNAL i2c_scl_in : STD_LOGIC;
+                SIGNAL i2c_sda_oe : STD_LOGIC;
+                SIGNAL i2c_scl_oe : STD_LOGIC;
+
+                i2c_scl_in  <= i2c_scl;
+                i2c_scl     <= i2c_scl_oe when i2c_scl_oe = '0' else 'Z';
+                i2c_sda_in  <= i2c_sda;
+                i2c_sda     <= i2c_sda_oe when i2c_sda_oe = '0' else 'Z';
+
                -Connect the I/Os like that:
                 clk_in_clk              => CLK,
                 reset_reset_n           => Reset,
