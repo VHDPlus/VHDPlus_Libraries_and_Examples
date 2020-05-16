@@ -70,9 +70,9 @@
                 SIGNAL i2c_scl_oe : STD_LOGIC;
 
                 i2c_scl_in  <= i2c_scl;
-                i2c_scl     <= i2c_scl_oe when i2c_scl_oe = '0' else 'Z';
+                i2c_scl     <= '0' when i2c_scl_oe = '1' else 'Z';
                 i2c_sda_in  <= i2c_sda;
-                i2c_sda     <= i2c_sda_oe when i2c_sda_oe = '0' else 'Z';
+                i2c_sda     <= '0' when i2c_sda_oe = '1' else 'Z';
 
                -Connect the I/Os like that:
                 clk_in_clk              => CLK,
@@ -113,7 +113,10 @@
                -Click on Finish
                
                -Right click [project name]_bsp and click on Nios II/BSP Editor
-               -Select none for stderr, click on generate and exit
+               -Select none for stderr
+               -Select for stdin and stdout jtag_uart_0 if you want to use the eclipse console or 
+                uart_0 to use the uart interface.
+               -Click on generate and exit
                -Download this project: https://github.com/dimag0g/nios_duino
                -Replace [project name]/hello_world.c with the content of software/nios_duino (with drag&drop)
                -Copy Libraries/NIOSDuino/inc/avalon_pwm_regs.h into the arduino folder
