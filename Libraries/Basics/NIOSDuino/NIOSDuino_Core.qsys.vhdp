@@ -33,8 +33,6 @@
                 sdram_addr                 : OUT   STD_LOGIC_VECTOR(11 downto 0);
                 sdram_ba                   : OUT   STD_LOGIC_VECTOR(1 downto 0);
                 sdram_cas_n                : OUT   STD_LOGIC;
-                sdram_cke                  : OUT   STD_LOGIC;
-                sdram_cs_n                 : OUT   STD_LOGIC;
                 sdram_dq                   : INOUT STD_LOGIC_VECTOR(15 downto 0) := (others => 'X');
                 sdram_dqm                  : OUT   STD_LOGIC_VECTOR(1 downto 0);
                 sdram_ras_n                : OUT   STD_LOGIC;
@@ -85,8 +83,8 @@
                 sdram_addr              => sdram_addr,
                 sdram_ba                => sdram_ba,
                 sdram_cas_n             => sdram_cas_n,
-                sdram_cke               => sdram_cke,
-                sdram_cs_n              => sdram_cs_n,
+                sdram_cke               => open,
+                sdram_cs_n              => open,
                 sdram_dq                => sdram_dq,
                 sdram_dqm               => sdram_dqm,
                 sdram_ras_n             => sdram_ras_n,
