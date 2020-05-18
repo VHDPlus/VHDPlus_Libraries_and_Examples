@@ -23,10 +23,10 @@
     WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
     
     Description: -This component takes video data (pixel + column/row) and saves it in the RAM. The data can be accessed parallely
-	             -With Compession you can set the resolution to save and with Width the color depth, so you can save RAM
-				 -If Full_Image is true, the resolution is decreased and if Full_Image is false, the resolution stays the same, but
-				  the area to output is reduced
-				 -If RGB is false, only the R value is saved
+                 -With Compession you can set the resolution to save and with Width the color depth, so you can save RAM
+                 -If Full_Image is true, the resolution is decreased and if Full_Image is false, the resolution stays the same, but
+                  the area to output is reduced
+                 -If RGB is false, only the R value is saved
  */
 
 Component Camera_Capture
@@ -59,9 +59,9 @@ Component Camera_Capture
 
     TYPE column_type IS ARRAY (xWidth-1 downto 0) OF STD_LOGIC_VECTOR((Width)-1 downto 0);
     TYPE frame_type IS ARRAY (yWidth-1 downto 0) OF column_type;
-    SIGNAL image_r : frame_type := (others => (others => (others => '0')));
-    SIGNAL image_g : frame_type := (others => (others => (others => '0')));
-    SIGNAL image_b : frame_type := (others => (others => (others => '0')));
+    SIGNAL image_r : frame_type;
+    SIGNAL image_g : frame_type;
+    SIGNAL image_b : frame_type;
 
     SIGNAL RAM_Out_Col  : NATURAL range 0 to xWidth-1 := 0;
     SIGNAL RAM_Out_Row  : NATURAL range 0 to yWidth-1 := 0;

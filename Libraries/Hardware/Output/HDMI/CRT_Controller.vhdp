@@ -37,27 +37,39 @@ Component CRT_Controller
     Read_Row    : OUT    NATURAL range 0 to 479 := 0;
     Read_Data   : IN     STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
     Read_Ena    : OUT    STD_LOGIC := '0';
+    
+    SYS_CLK     : OUT    STD_LOGIC := '0';
 
     --Video stream output
-    VS_PCLK    : OUT    STD_LOGIC;
-    VS_SCLK    : OUT    STD_LOGIC;
-    VS_R       : OUT    STD_LOGIC_VECTOR (7 downto 0);
-    VS_G       : OUT    STD_LOGIC_VECTOR (7 downto 0);
-    VS_B       : OUT    STD_LOGIC_VECTOR (7 downto 0);
-    VS_HS      : OUT    STD_LOGIC;
-    VS_VS      : OUT    STD_LOGIC;
-    VS_DE      : OUT    STD_LOGIC;
+    VS_PCLK     : OUT    STD_LOGIC;
+    VS_SCLK     : OUT    STD_LOGIC;
+    VS_R        : OUT    STD_LOGIC_VECTOR (7 downto 0);
+    VS_G        : OUT    STD_LOGIC_VECTOR (7 downto 0);
+    VS_B        : OUT    STD_LOGIC_VECTOR (7 downto 0);
+    VS_HS       : OUT    STD_LOGIC;
+    VS_VS       : OUT    STD_LOGIC;
+    VS_DE       : OUT    STD_LOGIC;
 )
 {
-    VS_PCLK <= PLL_c0;
+    SYS_CLK <= PLL_c0;
+    VS_PCLK <= PLL_c0_2;
     VS_SCLK <= PLL_c1;
     
+    Process ()
+    {
+        If(rising_edge(PLL_c0))
+        {
+            PLL_c0_2 <= NOT PLL_c0_2;
+        }
+    }
+    
     SIGNAL PLL_c0     : STD_LOGIC;
+    SIGNAL PLL_c0_2   : STD_LOGIC;
     SIGNAL PLL_c1     : STD_LOGIC;
     NewComponent VS_PLL
     (
         inclk0 => CLK,
-        c0     => PLL_c0, --25MHz
+        c0     => PLL_c0, --50MHz
         c1     => PLL_c1, --250MHz
     );
     
@@ -75,11 +87,11 @@ Component CRT_Controller
     SIGNAL yCountReg : INTEGER range 0 to maxV := 0;
     
     --Pixel CLK = Request next pixel
-    Read_Ena <= PLL_c0 when xCountReg < porchHF/image_size_div AND yCountReg < porchVF/image_size_div else '0';
+    Read_Ena <= PLL_c0_2 when xCountReg < porchHF/image_size_div AND yCountReg < porchVF/image_size_div else '0';
     
     Process ()
     {
-        If(rising_edge(PLL_c0))
+        If(rising_edge(PLL_c0_2))
         {
             VARIABLE xCount : INTEGER range 0 to maxH := 0;
             VARIABLE yCount : INTEGER range 0 to maxV := 0;
