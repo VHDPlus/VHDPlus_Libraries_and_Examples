@@ -1,13 +1,20 @@
 <?xml version="1.0"?>
-<ArrayOfProjectEntry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>\Shift_Register.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Hardware\Output\Shift_Register\Example</ProjectPath>
-    <IsExpanded>true</IsExpanded>
-  </ProjectEntry>
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>Shift_Register_Example.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Hardware\Output\Shift_Register\Example</ProjectPath>
-    <IsExpanded>true</IsExpanded>
-  </ProjectEntry>
-</ArrayOfProjectEntry>
+<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Header>Shift_Register_Example</Header>
+  <Items xsi:type="ProjectFolder">
+    <Header>Generated</Header>
+    <Items xsi:type="ProjectFile">
+      <Header>Shift_Register.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>Shift_Register_Example.vhd</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>Shift_Register.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>Shift_Register_Example.vhdp</Header>
+  </Items>
+  <SelectedExtensionsSave />
+</ProjectRoot>
