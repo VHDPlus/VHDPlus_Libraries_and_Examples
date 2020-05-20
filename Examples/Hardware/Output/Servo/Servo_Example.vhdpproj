@@ -1,13 +1,11 @@
 <?xml version="1.0"?>
-<ArrayOfProjectEntry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>Servo.vhdp</Path>
-    <IsExpanded>false</IsExpanded>
-    <Saved>true</Saved>
-  </ProjectEntry>
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>Servo_Example.vhdp</Path>
-    <IsExpanded>true</IsExpanded>
-    <Saved>true</Saved>
-  </ProjectEntry>
-</ArrayOfProjectEntry>
+<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Header>Servo_Example</Header>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>Servo.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>Servo_Example.vhdp</Header>
+  </Items>
+  <SelectedExtensionsSave />
+</ProjectRoot>

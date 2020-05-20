@@ -1,13 +1,11 @@
 <?xml version="1.0"?>
-<ArrayOfProjectEntry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>\LCD.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Extensions\LCD\Example</ProjectPath>
-    <IsExpanded>false</IsExpanded>
-  </ProjectEntry>
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>LCD_Example.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Extensions\LCD\Example</ProjectPath>
-    <IsExpanded>false</IsExpanded>
-  </ProjectEntry>
-</ArrayOfProjectEntry>
+<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Header>LCD_Example</Header>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>LCD.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>LCD_Example.vhdp</Header>
+  </Items>
+  <SelectedExtensionsSave />
+</ProjectRoot>
