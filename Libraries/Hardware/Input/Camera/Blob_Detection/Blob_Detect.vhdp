@@ -30,17 +30,17 @@ Component Blob_Detect
 (
     Generic
     (
-        Blob_Number     : NATURAL := 32;
-        Blob_Buffer     : NATURAL := 8;
-        Edge_Reg_Size   : NATURAL := 3;
+        Blob_Number     : NATURAL := 32;            --Maximum number of blobs to save in ram
+        Blob_Buffer     : NATURAL := 8;             --Size of buffer while trying to find blobs
+        Edge_Reg_Size   : NATURAL := 3;             --Number of blob edges to save while busy
 
-        Min_Blob_Width  : NATURAL := 4;
+        Min_Blob_Width  : NATURAL := 2;
         Min_Blob_Height : NATURAL := 2;
         Max_Blob_Width  : NATURAL := 20;
-        Max_Blob_Height : NATURAL := 15;
+        Max_Blob_Height : NATURAL := 20;
         
-        Upscale_Mult    : NATURAL := 4;
-        Upscale_Start   : NATURAL := 100; --Upscale_End - Height increases scale of blobs
+        Upscale_Mult    : NATURAL := 1;             --If > 1, the size of the blobs has to be bigger on the bottom by this factor
+        Upscale_Start   : NATURAL := 0;             --After this Pixel Row the size increases
     );
     New_Pixel : IN STD_LOGIC;
     Pixel_In  : IN STD_LOGIC; --'1' for object and '0' for surrounding area
@@ -214,14 +214,14 @@ Component Blob_Detect
 
             If(Pixel_In = '1' AND Pixel_In_Reg = '0')
             {
-                start_x_reg(0) := Column;
                 start_x_reg(1 to Edge_Reg_Size-1) := start_x_reg(0 to Edge_Reg_Size-2);
+                start_x_reg(0) := Column;
             }
             
             If(Pixel_In = '0' AND Pixel_In_Reg = '1')
             {
-                end_x_reg(0) := Column;
                 end_x_reg(1 to Edge_Reg_Size-1) := end_x_reg(0 to Edge_Reg_Size-2);
+                end_x_reg(0) := Column;
                 If(reg_length < Edge_Reg_Size)
                 {
                     reg_length := reg_length + 1;
@@ -250,7 +250,7 @@ Component Blob_Detect
             VARIABLE calc_min_w : NATURAL range 0 to Image_Width-1;
             
             VARIABLE scale : NATURAL range 1 to Upscale_Mult+1 := 1;
-            If(Row > Upscale_Start)
+            If(Row > Upscale_Start AND Upscale_Mult > 1)
             {
                 scale := (((Row-Upscale_Start)*Upscale_Mult) / (Image_Height-Upscale_Start))+1;
             }
@@ -355,7 +355,7 @@ Component Blob_Detect
                         Elsif(y1_reg < Row-1 OR copy)
                         {
                             --Delete in buffer and copy to main buffer if big enoght
-                            If(y1_reg-y0_reg >= calc_min_h AND x1_reg-x0_reg >= calc_min_w)
+                            If(y1_reg-y0_reg >= calc_min_h AND x1_reg-x0_reg >= calc_min_w AND y1_reg-y0_reg <= calc_max_h AND x1_reg-x0_reg <= calc_max_w)
                             {
                                 blob_in <= blob_reg(find_i);
                                 in_blob_num <= cur_blob;

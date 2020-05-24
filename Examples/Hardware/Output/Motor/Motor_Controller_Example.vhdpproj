@@ -1,16 +1,8 @@
 <?xml version="1.0"?>
-<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <Header>Motor_Controller_Example</Header>
-  <Items xsi:type="ProjectFileVHDP">
-    <Header>Motor_Controller.vhdp</Header>
-  </Items>
-  <Items xsi:type="ProjectFileVHDP">
-    <Header>Motor_Controller_Example.vhdp</Header>
-  </Items>
-  <Items xsi:type="ProjectFileVHDP">
-    <Header>Motor_Encoder.vhdp</Header>
-  </Items>
-  <Items xsi:type="ProjectFileVHDP">
-    <Header>PWM.vhdp</Header>
-  </Items>
-</ProjectRoot>
+<ArrayOfProjectEntry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <ProjectEntry xsi:type="ProjectFile">
+    <Path>test.vhdp</Path>
+    <ProjectPath>C:\Users\LeonB\Documents\GitHub\VHDPlus_Libraries_and_Examples\Examples\Hardware\Output\Motor</ProjectPath>
+    <IsExpanded>false</IsExpanded>
+  </ProjectEntry>
+</ArrayOfProjectEntry>
