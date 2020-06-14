@@ -7,10 +7,22 @@ Main
     BCLK  : IN STD_LOGIC;
     LRCLK : IN STD_LOGIC;
     SDOUT : IN STD_LOGIC;
-    SDIN  : OUT STD_LOGIC;
+    SDIN  : BUFFER STD_LOGIC;
     
+    Debug_LRCLK  : OUT STD_LOGIC;
+    Debug_BCLK   : OUT STD_LOGIC;
+    Debug_SDOUT  : OUT STD_LOGIC;
+    Debug_SDIN   : OUT STD_LOGIC;
+    
+    LED   : OUT STD_LOGIC;
 )
 {
+    Debug_LRCLK <= LRCLK;
+    Debug_BCLK <= BCLK;
+    Debug_SDOUT <= SDOUT;
+    Debug_SDIN <= SDIN;
+    LED   <= LRCLK;
+
     SIGNAL Audio_Codec_Component_ADC_L : UNSIGNED  (15 downto 0);
     SIGNAL Audio_Codec_Component_ADC_R : UNSIGNED  (15 downto 0);
     SIGNAL Audio_Codec_Component_DAC_L : UNSIGNED  (15 downto 0);
@@ -49,4 +61,15 @@ Main
         Audio_Codec_Component_DAC_L <= TO_UNSIGNED(i*1000, 16);
         Audio_Codec_Component_DAC_R <= TO_UNSIGNED(i*1000, 16);
     }
+    
+    ISSP_probe(15 downto 0) <= STD_LOGIC_VECTOR(Audio_Codec_Component_ADC_L);
+    ISSP_probe(31 downto 16) <= STD_LOGIC_VECTOR(Audio_Codec_Component_ADC_R);
+    
+    SIGNAL ISSP_source : std_logic_vector (7 downto 0);
+    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0);
+    NewComponent ISSP
+    (
+        source => ISSP_source,
+        probe  => ISSP_probe,
+    );
 }

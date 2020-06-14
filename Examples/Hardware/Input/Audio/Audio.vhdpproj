@@ -1,10 +1,8 @@
 <?xml version="1.0"?>
 <ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Header>Audio</Header>
-  <fileWatcherIgnore />
   <Items xsi:type="ProjectFolder">
     <Header>Generated</Header>
-    <fileWatcherIgnore />
     <Items xsi:type="ProjectFile">
       <Header>Audio.vhd</Header>
     </Items>
@@ -17,7 +15,15 @@
   </Items>
   <Items xsi:type="ProjectFolder">
     <Header>Libraries</Header>
-    <fileWatcherIgnore />
+    <Items xsi:type="ProjectFolder">
+      <Header>ISSP</Header>
+      <Items xsi:type="ProjectFile">
+        <Header>ISSP.qsys</Header>
+      </Items>
+      <Items xsi:type="ProjectFileVHDP">
+        <Header>ISSP.qsys.vhdp</Header>
+      </Items>
+    </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>I2C.vhdp</Header>
     </Items>
@@ -28,4 +34,6 @@
   <Items xsi:type="ProjectFileVHDP">
     <Header>Audio_Codec.vhdp</Header>
   </Items>
+  <SelectedExtensionsSave />
+  <IOVoltage>0</IOVoltage>
 </ProjectRoot>
