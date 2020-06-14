@@ -86,6 +86,9 @@
         <Header>ADC_QSYS.qsys.vhdp</Header>
       </Items>
     </Items>
+	<Items xsi:type="ProjectFileVHDP">
+      <Header>Audio_Codec.vhdp</Header>
+    </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>Encoder.vhdp</Header>
     </Items>
