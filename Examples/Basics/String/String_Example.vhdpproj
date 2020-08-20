@@ -1,10 +1,8 @@
 <?xml version="1.0"?>
 <ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Header>String_Example</Header>
-  <fileWatcherIgnore />
   <Items xsi:type="ProjectFolder">
     <Header>Libraries</Header>
-    <fileWatcherIgnore />
     <Items xsi:type="ProjectFileVHDP">
       <Header>BinaryToBcd.vhdp</Header>
     </Items>
@@ -30,4 +28,6 @@
   <Items xsi:type="ProjectFileVHDP">
     <Header>String_Example.vhdp</Header>
   </Items>
+  <SelectedExtensionsSave />
+  <IOVoltage>0</IOVoltage>
 </ProjectRoot>

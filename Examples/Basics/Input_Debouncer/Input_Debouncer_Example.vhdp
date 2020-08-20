@@ -1,51 +1,51 @@
-﻿/*
+/*
     Name: Input Debouncer Example
     Rev: 1.0
     Creator: Leon Beier
     Date: 05.08.2019
     Copyright (c) 2019 Protop Solutions UG. All right reserved.
-	
-	Permission is hereby granted, free of charge, to any person obtaining a copy of 
-	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
-	HDL Code without restriction, including without limitation the rights to use, 
-	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
-	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
-	subject to the following conditions:
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of 
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+    HDL Code without restriction, including without limitation the rights to use, 
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+    subject to the following conditions:
 
     The above copyright notice and this permission notice shall be included in all
-	copies or substantial portions of the HDL Code.
+    copies or substantial portions of the HDL Code.
 
     THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
-	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
-	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
-	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
-	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
 */
 
 Main
 (
-	BTN : IN     STD_LOGIC := '0';
-	LED : BUFFER STD_LOGIC := '0';
+    BTN : IN     STD_LOGIC := '0';
+    LED : BUFFER STD_LOGIC := '0';
 )
 {
-	SIGNAL BTN_Sig : STD_LOGIC := '0';
-	
-	NewComponent Input_Debouncer 
-	(
-		Input_Number => 1,
+    SIGNAL BTN_Sig : STD_LOGIC := '0';
+    
+    NewComponent Input_Debouncer 
+    (
+        Input_Number => 1,
 
-		Inputs(0)    => BTN,
-		Outputs(0)   => BTN_Sig,
-	);
-	
-	Process ()
-	{
-		Thread
-		{
-			While(BTN_Sig = '1') {} 
-			LED <= NOT LED;
-			While(BTN_Sig = '0') {} --No Wait, because already debounced
-		}
-	}
+        Inputs(0)    => BTN,
+        Outputs(0)   => BTN_Sig,
+    );
+    
+    Process ()
+    {
+        Thread
+        {
+            While(BTN_Sig = '1') {} 
+            LED <= NOT LED;
+            While(BTN_Sig = '0') {} --No Wait, because already debounced
+        }
+    }
 }

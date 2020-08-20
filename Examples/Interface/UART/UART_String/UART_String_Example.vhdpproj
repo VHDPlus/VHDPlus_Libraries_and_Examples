@@ -1,18 +1,21 @@
 <?xml version="1.0"?>
-<ArrayOfProjectEntry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>\UART.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Interface\UART\Example</ProjectPath>
-    <IsExpanded>false</IsExpanded>
-  </ProjectEntry>
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>\UART_String.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Interface\UART\Example</ProjectPath>
-    <IsExpanded>false</IsExpanded>
-  </ProjectEntry>
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>\UART_String_Example.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Interface\UART\Example</ProjectPath>
-    <IsExpanded>false</IsExpanded>
-  </ProjectEntry>
-</ArrayOfProjectEntry>
+<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Header>UART_String_Example</Header>
+  <Items xsi:type="ProjectFolder">
+    <Header>Libraries</Header>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>UART.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>UART_Array.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>UART_String.vhdp</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>UART_String_Example.vhdp</Header>
+  </Items>
+  <SelectedExtensionsSave />
+  <IOVoltage>0</IOVoltage>
+</ProjectRoot>
