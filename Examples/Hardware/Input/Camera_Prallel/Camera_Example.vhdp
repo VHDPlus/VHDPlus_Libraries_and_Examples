@@ -161,10 +161,10 @@ Main
             While (HSYNC_ENA = '1'){}
             While (HSYNC_ENA = '0'){}
             outputImage := '1';
-            StepFor(VARIABLE row : INTEGER range 0 to 480 := 0; row < 480; row := row + 1)
+            SeqFor(VARIABLE row : INTEGER range 0 to 480 := 0; row < 480; row := row + 1)
             {
                 While (PIXEL_ENA = '0'){}
-                StepFor(VARIABLE col : INTEGER range 0 to 1280 := 0; col < 1280; col := col + 1){} --2x640 to have 2 cycles for one pixel
+                SeqFor(VARIABLE col : INTEGER range 0 to 1280 := 0; col < 1280; col := col + 1){} --2x640 to have 2 cycles for one pixel
                 While (PIXEL_ENA = '1'){}
             }
             outputImage := '0';
