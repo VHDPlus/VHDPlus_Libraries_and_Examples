@@ -101,7 +101,7 @@ Main
             
             While(true)
             {
-                For(i IN 0 to 31)
+                ParFor(i IN 0 to 31)
                 {
                     If(Spectrum_Analyzer_data_o(i) > 127){LED_Matrix_Panel_Bitmap(i)(0) <= '1';}Else{LED_Matrix_Panel_Bitmap(i)(0) <= '0';}
                     If(Spectrum_Analyzer_data_o(i) > 64) {LED_Matrix_Panel_Bitmap(i)(1) <= '1';}Else{LED_Matrix_Panel_Bitmap(i)(1) <= '0';}
