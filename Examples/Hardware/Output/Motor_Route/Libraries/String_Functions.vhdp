@@ -1,7 +1,7 @@
 Class
 {
     --Creates the RAM instance for the string
-    StepFunction newString
+    SeqFunction newString
     (
         oString : String_Type;
     )
@@ -25,7 +25,7 @@ Class
     }
     
     --Creates a ROM instance with the string value (e.g. "example")
-    StepFunction assignString
+    SeqFunction assignString
     (
         strValue : STD_LOGIC_VECTOR;
         oString  : String_Type;
@@ -50,7 +50,7 @@ Class
     
     --iString1 + iString2 = oString
     --String = RAM interface + string length
-    StepFunction stringConcat
+    SeqFunction stringConcat
     (
         iString1 : String_Type;
         
@@ -60,7 +60,7 @@ Class
     )
     {
         oString.Write <= '1';
-        StepFor(oString.Length <= 0; oString.Length < iString1.Length; oString.Length <= oString.Length + 1)
+        SeqFor(oString.Length <= 0; oString.Length < iString1.Length; oString.Length <= oString.Length + 1)
         {
             iString1.Address <= oString.Length;
             Step
@@ -69,7 +69,7 @@ Class
                 oString.Data_IN <= iString1.Data_OUT;
             }
         }
-        StepFor(; oString.Length < iString1.Length + iString2.Length; oString.Length <= oString.Length + 1)
+        SeqFor(; oString.Length < iString1.Length + iString2.Length; oString.Length <= oString.Length + 1)
         {
             iString2.Address <= oString.Length - iString1.Length;
             Step
@@ -82,7 +82,7 @@ Class
     }
     
     --oString + iString = oString
-    StepFunction stringAppend
+    SeqFunction stringAppend
     (
         iString  : String_Type;
         
@@ -90,7 +90,7 @@ Class
     )
     {
         oString.Write <= '1';
-        StepFor(VARIABLE appendCount : NATURAL range 0 to 255 := 0; appendCount < iString.Length; appendCount := appendCount + 1)
+        SeqFor(VARIABLE appendCount : NATURAL range 0 to 255 := 0; appendCount < iString.Length; appendCount := appendCount + 1)
         {
             iString.Address <= appendCount;
             Step
@@ -104,7 +104,7 @@ Class
     }
     
     --oString + iChar = oString (e.g. iChar = s"\n")
-    StepFunction charAppend
+    SeqFunction charAppend
     (
         iChar   : STD_LOGIC_VECTOR(7 downto 0);
         
@@ -123,7 +123,7 @@ Class
     
     --Converts natural to string
     --Important: Needs BinaryToBcd and BinaryToBsdDigit
-    StepFunction naturalToString
+    SeqFunction naturalToString
     (
         iNatural : NATURAL;
         oString  : String_Type;
@@ -140,7 +140,7 @@ Class
         bcdEna <= '0';
         While(bcdBus = '1'){}
         oString.Length <= 0;
-        StepFor(VARIABLE charConvCounter : NATURAL range 0 to bcdDec'LENGTH/4 := bcdDec'LENGTH/4-1; charConvCounter > 0; charConvCounter := charConvCounter - 1)
+        SeqFor(VARIABLE charConvCounter : NATURAL range 0 to bcdDec'LENGTH/4 := bcdDec'LENGTH/4-1; charConvCounter > 0; charConvCounter := charConvCounter - 1)
         {
             If(oString.Length > 0 OR charConvCounter = 1 OR bcdDec((charConvCounter*4 - 1) downto (charConvCounter*4 - 4)) /= "0000")
             {
@@ -155,7 +155,7 @@ Class
     
     --Converts natural to string
     --Important: Creates BinaryToBcd with Signals -> bcdEna, ... are only for naming the signals
-    StepFunction naturalToStringInst
+    SeqFunction naturalToStringInst
     (
         iNatural : NATURAL;
         oString  : String_Type;
@@ -190,7 +190,7 @@ Class
             bcdEna <= '0';
             While(bcdBus = '1'){}
             oString.Length <= 0;
-            StepFor(VARIABLE charConvCounter : NATURAL range 0 to bcdDec'LENGTH/4 := bcdDec'LENGTH/4-1; charConvCounter > 0; charConvCounter := charConvCounter - 1)
+            SeqFor(VARIABLE charConvCounter : NATURAL range 0 to bcdDec'LENGTH/4 := bcdDec'LENGTH/4-1; charConvCounter > 0; charConvCounter := charConvCounter - 1)
             {
                 If(oString.Length > 0 OR charConvCounter = 1 OR bcdDec((charConvCounter*4 - 1) downto (charConvCounter*4 - 4)) /= "0000")
                 {
@@ -205,14 +205,14 @@ Class
     }
     
     --Converts string to natural ("12345\r\n" is converted to 12345 but "\n123" to 0)
-    StepFunction stringToNatural
+    SeqFunction stringToNatural
     (
         iString  : String_Type;
         oNatural : NATURAL;
     )
     {
         oNatural <= 0;
-        StepFor(VARIABLE convertCharCount : NATURAL range 0 to 255 := 0; convertCharCount < iString.Length; convertCharCount := convertCharCount + 1)
+        SeqFor(VARIABLE convertCharCount : NATURAL range 0 to 255 := 0; convertCharCount < iString.Length; convertCharCount := convertCharCount + 1)
         {
             iString.Address <= convertCharCount;
             Step
@@ -231,7 +231,7 @@ Class
     
     --Writes a part of a string in a different string
     --"123456789" startindex = 3 length = 3 => "456"
-    StepFunction substring
+    SeqFunction substring
     (
         iString    : String_Type;
         startindex : NATURAL;
@@ -240,7 +240,7 @@ Class
     )
     {
         oString.Length <= 0;
-        StepFor(VARIABLE substringCount : NATURAL range 0 to 255 := startindex; substringCount < length+startindex; substringCount := substringCount + 1)
+        SeqFor(VARIABLE substringCount : NATURAL range 0 to 255 := startindex; substringCount < length+startindex; substringCount := substringCount + 1)
         {
             iString.Address <= substringCount;
             Step
@@ -256,7 +256,7 @@ Class
     
     --Finds the first appearance of the character/string after the startindex
     --"123456789" value = s"23" valueLen = 2 startIndex = 0 -> index = 1
-    StepFunction indexOf
+    SeqFunction indexOf
     (
         iString    : String_Type;
         value      : STD_LOGIC_VECTOR;
@@ -267,12 +267,12 @@ Class
     {
         CONSTANT valueVar : STD_LOGIC_VECTOR(valueLen*8-1 downto 0) := value;
         index <= -1;
-        StepFor(VARIABLE indexCount : NATURAL range 0 to 255 := startIndex; indexCount < iString.Length; indexCount := indexCount + 1)
+        SeqFor(VARIABLE indexCount : NATURAL range 0 to 255 := startIndex; indexCount < iString.Length; indexCount := indexCount + 1)
         {
             iString.Address <= indexCount;
             Step
             {
-                StepFor(VARIABLE stringCheck : NATURAL range 1 to valueLen := 1; stringCheck < valueLen AND iString.Data_OUT = valueVar((valueLen-stringCheck)*8+7 downto (valueLen-stringCheck)*8); stringCheck := stringCheck + 1)
+                SeqFor(VARIABLE stringCheck : NATURAL range 1 to valueLen := 1; stringCheck < valueLen AND iString.Data_OUT = valueVar((valueLen-stringCheck)*8+7 downto (valueLen-stringCheck)*8); stringCheck := stringCheck + 1)
                 {
                     iString.Address <= indexCount+stringCheck;
                 }
@@ -287,14 +287,14 @@ Class
     }
     
     --Converts string to one STD_LOGIC_VECTOR (e.g. for led matrix or LCD display)
-    StepFunction stringToVector
+    SeqFunction stringToVector
     (
         iString       : String_Type;
         oVector       : STD_LOGIC_VECTOR;
     )
     {
         iString.Write <= '0';
-        StepFor(VARIABLE StV_i : NATURAL range 0 to 255 := 0; StV_i < iString.Length; StV_i := StV_i + 1)
+        SeqFor(VARIABLE StV_i : NATURAL range 0 to 255 := 0; StV_i < iString.Length; StV_i := StV_i + 1)
         {
             iString.Address <= StV_i;
             Step

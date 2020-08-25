@@ -48,11 +48,11 @@ Main
     {
         Thread
         {
-            StepFor(VARIABLE i : Integer range 0 to 15 := 0; i < 15; i := i + 1)
+            SeqFor(VARIABLE i : Integer range 0 to 15 := 0; i < 15; i := i + 1)
             {
                 Wait(100us);
             }
-            StepFor(; i > 0; i := i - 1)
+            SeqFor(; i > 0; i := i - 1)
             {
                 Wait(100us);
             }

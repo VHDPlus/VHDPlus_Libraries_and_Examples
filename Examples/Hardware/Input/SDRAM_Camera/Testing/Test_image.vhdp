@@ -46,10 +46,10 @@ Component Test_Image_Generator
             SIGNAL out_pixel_buf : STD_LOGIC_VECTOR(23 downto 0);
             Thread
             {
-                StepFor(row_count <= 0; row_count < 480/image_size_div-1; row_count <= row_count + 1)
+                SeqFor(row_count <= 0; row_count < 480/image_size_div-1; row_count <= row_count + 1)
                 {
                     out_pixel_buf <= (others => '0');
-                    StepFor(colum_count <= 0; colum_count < 640/image_size_div-1; colum_count <= colum_count + 1)
+                    SeqFor(colum_count <= 0; colum_count < 640/image_size_div-1; colum_count <= colum_count + 1)
                     {
                         out_pixel_buf <= STD_LOGIC_VECTOR(UNSIGNED(out_pixel_buf)+((2**24)/(639/image_size_div)));
                     }

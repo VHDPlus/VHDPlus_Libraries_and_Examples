@@ -56,7 +56,7 @@ Main
         Thread
         {
             While(btn = '1') {} --wait while button not pressed
-            StepFor(VARIABLE i : INTEGER := 0; i < Route_Length; i := i + 1)
+            SeqFor(VARIABLE i : INTEGER := 0; i < Route_Length; i := i + 1)
             {
                 --set route part
                 Motor_Controller_Drive_L <= Route_L(i);

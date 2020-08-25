@@ -204,7 +204,7 @@ Component Motor_Route_Drive
             While(Route_Start = '0') {} --wait while Route_Start '0'
             Route_Error <= '0';
             Route_Finished <= '0';
-            StepFor(VARIABLE i : INTEGER := 0; i < Route_Length AND Route_Error = '0'; i := i + 1)
+            SeqFor(VARIABLE i : INTEGER := 0; i < Route_Length AND Route_Error = '0'; i := i + 1)
             {
                 --set route part
                 Motor_Controller_Drive_L <= Route_L(i);
@@ -411,7 +411,7 @@ Component Motor_Route_Drive
         }
     }
     
-    StepFunction Turn_Right_Check
+    SeqFunction Turn_Right_Check
     (
         Left_nClear : BOOLEAN;
         Turn_Length : NATURAL;
@@ -440,7 +440,7 @@ Component Motor_Route_Drive
         NewFunction driveRoute (Motor_Controller_RST_Drive, Motor_Controller_Finished);
     }
     
-    StepFunction Turn_Left_Check
+    SeqFunction Turn_Left_Check
     (
         Left_nClear : BOOLEAN;
         Turn_Length : NATURAL;
@@ -469,7 +469,7 @@ Component Motor_Route_Drive
         NewFunction driveRoute (Motor_Controller_RST_Drive, Motor_Controller_Finished);
     }
     
-    StepFunction Drive_Back
+    SeqFunction Drive_Back
     (
         Back_Length : NATURAL;
         Back_Speed  : NATURAL;
@@ -486,7 +486,7 @@ Component Motor_Route_Drive
         NewFunction driveRoute (RST_Drive, Finished);
     }
     
-    StepFunction Turn_Left
+    SeqFunction Turn_Left
     (
         Turn_Length : NATURAL;
         Turn_Speed  : NATURAL;
@@ -503,7 +503,7 @@ Component Motor_Route_Drive
         NewFunction driveRoute (RST_Drive, Finished);
     }
     
-    StepFunction Turn_Right
+    SeqFunction Turn_Right
     (
         Turn_Length : NATURAL;
         Turn_Speed  : NATURAL;

@@ -189,7 +189,7 @@ Component Motor_Controller
     
     --Starts route definded by Drive_L/Drive_R and Drive_Speed.
     --You still have to wait until Finished is '1'
-    StepFunction startRoute
+    SeqFunction startRoute
     (
         rst_drive : STD_LOGIC;
         motor_fin : STD_LOGIC;
@@ -201,7 +201,7 @@ Component Motor_Controller
     }
     
     --Starts route definded by Drive_L/Drive_R and Drive_Speed and waits until finished is '1'
-    StepFunction driveRoute
+    SeqFunction driveRoute
     (
         rst_drive : STD_LOGIC;
         motor_fin : STD_LOGIC;

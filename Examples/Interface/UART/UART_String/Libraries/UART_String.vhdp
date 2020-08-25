@@ -108,7 +108,7 @@ Component UART_String
         RX_Error      => UART_Interface_rx_error,
     );
     
-    StepFunction printString
+    SeqFunction printString
     (
         str   : STD_LOGIC_VECTOR;
         len   : NATURAL;

@@ -188,7 +188,7 @@ Component Cone_Detection
                 
                 Thread
                 {
-                    StepFor(Cur_Blob1_Addr := 0; Cur_Blob1_Addr <= iBlobs_1; Cur_Blob1_Addr := Cur_Blob1_Addr + 1)
+                    SeqFor(Cur_Blob1_Addr := 0; Cur_Blob1_Addr <= iBlobs_1; Cur_Blob1_Addr := Cur_Blob1_Addr + 1)
                     {
                         VARIABLE Blob1_X0  : NATURAL range 0 to Image_Width-1;
                         VARIABLE Blob1_X1  : NATURAL range 0 to Image_Width-1;
@@ -246,7 +246,7 @@ Component Cone_Detection
                         VARIABLE found : BOOLEAN := false;
                         found := false;
 
-                        StepFor(Cur_Blob_Addr1 := 0; Cur_Blob_Addr1 <= iBlobs_1 AND NOT found; Cur_Blob_Addr1 := Cur_Blob_Addr1 + 1)
+                        SeqFor(Cur_Blob_Addr1 := 0; Cur_Blob_Addr1 <= iBlobs_1 AND NOT found; Cur_Blob_Addr1 := Cur_Blob_Addr1 + 1)
                         {
                             --1. B3_Y1 < B1_Y1
                             --2. Dist3 < MaxDist3
@@ -299,7 +299,7 @@ Component Cone_Detection
                             }
                         }
                         
-                        StepFor(Cur_Blob_Addr2 := 0; Cur_Blob_Addr2 <= iBlobs_2 AND NOT found; Cur_Blob_Addr2 := Cur_Blob_Addr2 + 1)
+                        SeqFor(Cur_Blob_Addr2 := 0; Cur_Blob_Addr2 <= iBlobs_2 AND NOT found; Cur_Blob_Addr2 := Cur_Blob_Addr2 + 1)
                         {
                             --1. B2_Y1 < B1_Y1
                             --2. Dist2 < MaxDist2

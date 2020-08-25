@@ -71,7 +71,7 @@ Component UART_Interface
         TX,
     }
     
-    StepFunction printString
+    SeqFunction printString
     (
         iString  : String_Type;
         
@@ -80,7 +80,7 @@ Component UART_Interface
         tx_ena   : STD_LOGIC;
     )
     {
-        StepFor(VARIABLE printString_i : NATURAL := 0; printString_i < iString.Length; printString_i := printString_i + 1)
+        SeqFor(VARIABLE printString_i : NATURAL := 0; printString_i < iString.Length; printString_i := printString_i + 1)
         {
             iString.Address <= printString_i;
             Step
@@ -94,7 +94,7 @@ Component UART_Interface
         }
     }
     
-    StepFunction readString
+    SeqFunction readString
     (
         oString  : String_Type;
 
