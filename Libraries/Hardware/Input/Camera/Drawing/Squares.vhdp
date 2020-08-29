@@ -130,9 +130,9 @@ Component Draw_Squares
 			oStream.Row       <= iStream.Row;
 			
 			--Draw square
-			If((((iStream.Column >= X0 - Width/2 AND iStream.Column <= X0 + Width/2) OR (iStream.Column >= X1 - Width/2 AND iStream.Column <= X1 + Width/2)) AND (iStream.Row >= Y0 AND iStream.Row <= Y1)) OR
-				(((iStream.Row >= Y0 - Width/2 AND iStream.Row <= Y0 + Width/2) OR (iStream.Row >= Y1 - Width/2 AND iStream.Row <= Y1 + Width/2)) AND (iStream.Column >= X0 AND iStream.Column <= X1)))
-			{
+			If(Squares > 0 AND ((((iStream.Column >= X0 - Width/2 AND iStream.Column <= X0 + Width/2) OR (iStream.Column >= X1 - Width/2 AND iStream.Column <= X1 + Width/2)) AND (iStream.Row >= Y0 AND iStream.Row <= Y1)) OR
+                    (((iStream.Row >= Y0 - Width/2 AND iStream.Row <= Y0 + Width/2) OR (iStream.Row >= Y1 - Width/2 AND iStream.Row <= Y1 + Width/2)) AND (iStream.Column >= X0 AND iStream.Column <= X1))))
+            {
 				oStream.R <= Color(23 downto 16);
 				oStream.G <= Color(15 downto 8);
 				oStream.B <= Color(7 downto 0);

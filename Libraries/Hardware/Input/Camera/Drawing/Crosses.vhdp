@@ -126,8 +126,8 @@ Component Draw_Crosses
 			oStream.Row       <= iStream.Row;
 			
 			--Draw square
-			If(((iStream.Column >= X - Width/2 AND iStream.Column <= X + Width/2) AND (iStream.Row >= Y - Length/2 AND iStream.Row <= Y + Length/2)) OR
-				((iStream.Column >= X - Length/2 AND iStream.Column <= X + Length/2) AND (iStream.Row >= Y - Width/2 AND iStream.Row <= Y + Width/2)))
+			If(Crosses > 0 AND (((iStream.Column >= X - Width/2 AND iStream.Column <= X + Width/2) AND (iStream.Row >= Y - Length/2 AND iStream.Row <= Y + Length/2)) OR
+				((iStream.Column >= X - Length/2 AND iStream.Column <= X + Length/2) AND (iStream.Row >= Y - Width/2 AND iStream.Row <= Y + Width/2))))
 			{
 				oStream.R <= Color(23 downto 16);
 				oStream.G <= Color(15 downto 8);
