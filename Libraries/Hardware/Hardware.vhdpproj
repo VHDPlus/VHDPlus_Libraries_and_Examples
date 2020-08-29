@@ -138,6 +138,9 @@
         <Header>CRT_Controller.vhdp</Header>
       </Items>
       <Items xsi:type="ProjectFileVHDP">
+        <Header>CRT_Controller_Passthrough.vhdp</Header>
+      </Items>
+      <Items xsi:type="ProjectFileVHDP">
         <Header>HDMI_Out.vhdp</Header>
       </Items>
       <Items xsi:type="ProjectFileVHDP">

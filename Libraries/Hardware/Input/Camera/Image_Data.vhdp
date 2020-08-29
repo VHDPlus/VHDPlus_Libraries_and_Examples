@@ -23,15 +23,25 @@
     WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
     
     Description: -This component has to be included in every project that uses a camera
-	             -Here the camera data stream datatype is defined and the image size and FPS
-				  for the entire project
+                 -Here the camera data stream datatype is defined and the image size and FPS
+                  for the entire project
  */
 
 Package Image_Data_Package
 {
-    CONSTANT Image_Width  : NATURAL := 640; --640 or 320
-    CONSTANT Image_Height : NATURAL := 480; --480 or 240
-    CONSTANT Image_FPS    : NATURAL := 50;  -- <= 50fps recommended
+    --Tested combinations:
+    
+    --CRT_Controller_Passthrough:
+    --(1280x960 15fps)
+    --(1280x720 15fps)
+    --640x480 35fps
+    
+    --Camera_Capture with CRT_Controller:
+    --640x480 50fps
+    
+    CONSTANT Image_Width  : NATURAL := 640; --1280, 640 or 320
+    CONSTANT Image_Height : NATURAL := 480;  --960, 480 or 240
+    CONSTANT Image_FPS    : NATURAL := 35;  
     
     TYPE rgb_data IS RECORD
     R : STD_LOGIC_VECTOR(7 downto 0);
