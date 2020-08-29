@@ -170,12 +170,12 @@ Component CSI_Camera
         Case(address)
         {
             When(x"00"){ sreg <=  x"010000"; } --Standby
-            When(x"01"){ sreg <=  x"010301"; }
+            When(x"01"){ sreg <=  x"010301"; } --Reset
             When(x"02"){ sreg <=  x"303408"; } --MIPI 8-bit mode
             When(x"03"){ sreg <=  x"303541"; } --Clk / 4 + MIPI CLK / 1
             When(x"04"){ sreg <=  x"303646"; } --PLL * 70
             When(x"05"){ sreg <=  x"303c11"; } --PLL change pump = 1 + PLL / 1
-            When(x"06"){ sreg <=  x"3106f5"; }
+            When(x"06"){ sreg <=  x"3106f5"; } --PLL_SCLK/2
             When(x"07"){ sreg <=  x"382107"; } --Horizontal binning enable, Sensor mirror & ISP mirror
             When(x"08"){ sreg <=  x"382041"; } --Sensor vflip + debug mode = 4
             When(x"09"){ sreg <=  x"3827ec"; }
@@ -183,28 +183,28 @@ Component CSI_Camera
             When(x"0B"){ sreg <=  x"361259"; }
             When(x"0C"){ sreg <=  x"361800"; }
             When(x"0D"){ sreg <=  x"500006"; } --White pixel cancellation enable + Black pixel cancellation
-            When(x"0E"){ sreg <=  x"500100"; } --Effects and auto white disable
-            When(x"0F"){ sreg <=  x"500240"; }
+            When(x"0E"){ sreg <=  x"500101"; } --Auto white balance (01 = enable)
+            When(x"0F"){ sreg <=  x"500241"; } --41 = enable 40 = disable
             When(x"10"){ sreg <=  x"500308"; }
             When(x"11"){ sreg <=  x"5a0008"; }
             When(x"12"){ sreg <=  x"300000"; }
             When(x"13"){ sreg <=  x"300100"; }
             When(x"14"){ sreg <=  x"300200"; }
-            When(x"15"){ sreg <=  x"301608"; }
-            When(x"16"){ sreg <=  x"3017e0"; }
-            When(x"17"){ sreg <=  x"301844"; }
+            When(x"15"){ sreg <=  x"301608"; } --mipi_pad_enable
+            When(x"16"){ sreg <=  x"3017e0"; } --pgm_vcm = 11, pgm_lptx = 10 (High speed mode voltage)
+            When(x"17"){ sreg <=  x"301844"; } --power down phy hs tx, lp rx
             When(x"18"){ sreg <=  x"301cf8"; }
             When(x"19"){ sreg <=  x"301df0"; }
             When(x"1A"){ sreg <=  x"3a1800"; }
-            When(x"1B"){ sreg <=  x"3a19f8"; }
-            When(x"1C"){ sreg <=  x"3c0180"; }
-            When(x"1D"){ sreg <=  x"3b070c"; }
-            When(x"1E"){ sreg <=  x"380c07"; }
+            When(x"1B"){ sreg <=  x"3a19f8"; } --gain ceiling
+            When(x"1C"){ sreg <=  x"3c0180"; } --50/60 HZ detection manual mode
+            When(x"1D"){ sreg <=  x"3b070c"; } --flex_inv
+            When(x"1E"){ sreg <=  x"380c07"; } --Total horizontal size
             When(x"1F"){ sreg <=  x"380d68"; }
-            When(x"20"){ sreg <=  x"380e03"; }
+            When(x"20"){ sreg <=  x"380e03"; } --Total vertical size
             When(x"21"){ sreg <=  x"380fd8"; }
-            When(x"22"){ sreg <=  x"381431"; }
-            When(x"23"){ sreg <=  x"381531"; }
+            When(x"22"){ sreg <=  x"381431"; } --Horzontal subsample
+            When(x"23"){ sreg <=  x"381531"; } --Vertical subsample
             When(x"24"){ sreg <=  x"370864"; }
             When(x"25"){ sreg <=  x"370952"; }
             When(x"26"){
@@ -227,10 +227,6 @@ Component CSI_Camera
             When(x"2F"){ sreg <=  x"38053f"; }
             When(x"30"){ sreg <=  x"380607"; } --Y address end = 1952 (0x7 & 0xA1)
             When(x"31"){ sreg <=  x"3807a1"; }
-            --When(x"2E"){ sreg <=  x"380403"; } --X address end = 2624 (0xa & 0x3f)
-            --When(x"2F"){ sreg <=  x"380520"; }
-            --When(x"30"){ sreg <=  x"380602"; } --Y address end = 1952 (0x7 & 0xA1)
-            --When(x"31"){ sreg <=  x"38070D"; }
             When(x"32"){ sreg <=  x"381108"; } --ISP horizontal offset = 8
             When(x"33"){ sreg <=  x"381302"; } --ISP vertical offset = 2
             When(x"34"){ sreg <=  x"36302e"; }
