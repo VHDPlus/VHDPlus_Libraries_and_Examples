@@ -135,10 +135,10 @@
       <Header>HDMI</Header>
       <fileWatcherIgnore />
       <Items xsi:type="ProjectFileVHDP">
-        <Header>CRT_Controller.vhdp</Header>
+        <Header>VS_Converter.vhdp</Header>
       </Items>
       <Items xsi:type="ProjectFileVHDP">
-        <Header>CRT_Controller_Passthrough.vhdp</Header>
+        <Header>VS_RAM_Interface.vhdp</Header>
       </Items>
       <Items xsi:type="ProjectFileVHDP">
         <Header>HDMI_Out.vhdp</Header>
@@ -154,6 +154,12 @@
       </Items>
       <Items xsi:type="ProjectFileVHDP">
         <Header>VS_PLL.vhd</Header>
+      </Items>
+	  <Items xsi:type="ProjectFileVHDP">
+        <Header>VS_RAM_PLL.qip</Header>
+      </Items>
+      <Items xsi:type="ProjectFileVHDP">
+        <Header>VS_RAM_PLL.vhd</Header>
       </Items>
     </Items>
     <Items xsi:type="ProjectFileVHDP">

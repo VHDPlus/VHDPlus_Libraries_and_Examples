@@ -25,7 +25,7 @@
     Description: This component takes a VGA 24bit RAM interface for image data and creates an video stream with 25MHz pixel clk
  */
 
-Component CRT_Controller
+Component VS_RAM_Interface
 (
     Generic
     (
@@ -66,7 +66,7 @@ Component CRT_Controller
     SIGNAL PLL_c0     : STD_LOGIC;
     SIGNAL PLL_c0_2   : STD_LOGIC;
     SIGNAL PLL_c1     : STD_LOGIC;
-    NewComponent VS_PLL
+    NewComponent VS_RAM_PLL
     (
         inclk0 => CLK,
         c0     => PLL_c0, --50MHz

@@ -25,7 +25,7 @@
     Description: This component takes a VGA 24bit RAM interface for image data and creates an video stream with 25MHz pixel clk
  */
 
-Component CRT_Controller_Passthrough
+Component VS_Converter
 (
     --Camera stream input
     iStream     : IN     rgb_stream;
