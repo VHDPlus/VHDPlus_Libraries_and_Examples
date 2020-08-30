@@ -371,10 +371,10 @@ Component CSI_Camera
     Pixel_G_Reg_O <= Cur_Pixel_Reg(15 downto 8);
     Pixel_B_Reg_O <= Cur_Pixel_Reg(7 downto 0);
     
-    SIGNAL RAM_Addr_A : STD_LOGIC_VECTOR(9 downto 0);
-    SIGNAL RAM_Addr_B : STD_LOGIC_VECTOR(9 downto 0);
-    RAM_Addr_A <= STD_LOGIC_VECTOR(TO_UNSIGNED(buf_col,10));
-    RAM_Addr_B <= STD_LOGIC_VECTOR(TO_UNSIGNED(Column,10));
+    SIGNAL RAM_Addr_A : STD_LOGIC_VECTOR(10 downto 0);
+    SIGNAL RAM_Addr_B : STD_LOGIC_VECTOR(10 downto 0);
+    RAM_Addr_A <= STD_LOGIC_VECTOR(TO_UNSIGNED(buf_col,11));
+    RAM_Addr_B <= STD_LOGIC_VECTOR(TO_UNSIGNED(Column,11));
     
     --Row Buffer
     NewComponent ALTSYNCRAM
@@ -385,12 +385,12 @@ Component CSI_Camera
         clock_enable_output_b => "BYPASS",
         intended_device_family => "unused",
         lpm_type => "altsyncram",
-        numwords_a => 1024,
-        numwords_b => 1024,
+        numwords_a => 2048,
+        numwords_b => 2048,
         operation_mode => "DUAL_PORT",
         outdata_reg_b => "CLOCK1",
-        widthad_a => 10,
-        widthad_b => 10,
+        widthad_a => 11,
+        widthad_b => 11,
         width_a => 24,
         width_b => 24,
         
@@ -511,17 +511,17 @@ Component CSI_Camera
         clock_enable_input_b               => "BYPASS",
         clock_enable_output_b              => "BYPASS",
         intended_device_family             => "unused",
-        numwords_a                         => 1024,
-        numwords_b                         => 1024,
+        numwords_a                         => 2048,
+        numwords_b                         => 2048,
         operation_mode                     => "DUAL_PORT",
         width_a                            => 32,
         width_b                            => 32,
         width_byteena_a                    => 1,
-        widthad_a                          => 10,
-        widthad_b                          => 10,
+        widthad_a                          => 11,
+        widthad_b                          => 11,
 
-        address_a                          => RAM_Addr(9 downto 0),
-        address_b                          => RAM_Addr(9 downto 0),
+        address_a                          => RAM_Addr(10 downto 0),
+        address_b                          => RAM_Addr(10 downto 0),
         clock0                             => CLK_Lane,
         data_a                             => RAM_DATA_A,
         q_b                                => RAM_Data_Out,
