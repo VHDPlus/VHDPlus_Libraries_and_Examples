@@ -377,31 +377,62 @@ Component CSI_Camera
     RAM_Addr_B <= STD_LOGIC_VECTOR(TO_UNSIGNED(Column,11));
     
     --Row Buffer
-    NewComponent ALTSYNCRAM
-    (
-        address_reg_b => "CLOCK1",
-        clock_enable_input_a => "BYPASS",
-        clock_enable_input_b => "BYPASS",
-        clock_enable_output_b => "BYPASS",
-        intended_device_family => "unused",
-        lpm_type => "altsyncram",
-        numwords_a => 2048,
-        numwords_b => 2048,
-        operation_mode => "DUAL_PORT",
-        outdata_reg_b => "CLOCK1",
-        widthad_a => 11,
-        widthad_b => 11,
-        width_a => 24,
-        width_b => 24,
-        
-        address_a => RAM_Addr_A,
-        address_b => RAM_Addr_B,
-        clock0 => New_Pixel_Reg,
-        clock1 => New_Pixel_Reg_O,
-        data_a => Cur_Pixel_Reg_I,
-        wren_a => '1',
-        q_b => Cur_Pixel_Reg,
-    );
+    Generate (if Image_Width > 1024)
+    {
+        NewComponent ALTSYNCRAM
+        (
+            address_reg_b => "CLOCK1",
+            clock_enable_input_a => "BYPASS",
+            clock_enable_input_b => "BYPASS",
+            clock_enable_output_b => "BYPASS",
+            intended_device_family => "unused",
+            lpm_type => "altsyncram",
+            numwords_a => 2048,
+            numwords_b => 2048,
+            operation_mode => "DUAL_PORT",
+            outdata_reg_b => "CLOCK1",
+            widthad_a => 11,
+            widthad_b => 11,
+            width_a => 24,
+            width_b => 24,
+            
+            address_a => RAM_Addr_A,
+            address_b => RAM_Addr_B,
+            clock0 => New_Pixel_Reg,
+            clock1 => New_Pixel_Reg_O,
+            data_a => Cur_Pixel_Reg_I,
+            wren_a => '1',
+            q_b => Cur_Pixel_Reg,
+        );
+    }
+    Generate (if Image_Width <= 1024)
+    {
+        NewComponent ALTSYNCRAM
+        (
+            address_reg_b => "CLOCK1",
+            clock_enable_input_a => "BYPASS",
+            clock_enable_input_b => "BYPASS",
+            clock_enable_output_b => "BYPASS",
+            intended_device_family => "unused",
+            lpm_type => "altsyncram",
+            numwords_a => 1024,
+            numwords_b => 1024,
+            operation_mode => "DUAL_PORT",
+            outdata_reg_b => "CLOCK1",
+            widthad_a => 10,
+            widthad_b => 10,
+            width_a => 24,
+            width_b => 24,
+            
+            address_a => RAM_Addr_A(9 downto 0),
+            address_b => RAM_Addr_B(9 downto 0),
+            clock0 => New_Pixel_Reg,
+            clock1 => New_Pixel_Reg_O,
+            data_a => Cur_Pixel_Reg_I,
+            wren_a => '1',
+            q_b => Cur_Pixel_Reg,
+        );
+    }
 
     Process ()
     {
@@ -504,29 +535,58 @@ Component CSI_Camera
     SIGNAL RAM_WREN_A        : STD_LOGIC;
     RAM_WREN_A <= (Received_Byte AND Combine_Bytes);
 
-    NewComponent ALTSYNCRAM
-    (
-        address_reg_b                      => "CLOCK0",
-        clock_enable_input_a               => "BYPASS",
-        clock_enable_input_b               => "BYPASS",
-        clock_enable_output_b              => "BYPASS",
-        intended_device_family             => "unused",
-        numwords_a                         => 2048,
-        numwords_b                         => 2048,
-        operation_mode                     => "DUAL_PORT",
-        width_a                            => 32,
-        width_b                            => 32,
-        width_byteena_a                    => 1,
-        widthad_a                          => 11,
-        widthad_b                          => 11,
+    Generate (if Image_Width > 1024)
+    {
+        NewComponent ALTSYNCRAM
+        (
+            address_reg_b                      => "CLOCK0",
+            clock_enable_input_a               => "BYPASS",
+            clock_enable_input_b               => "BYPASS",
+            clock_enable_output_b              => "BYPASS",
+            intended_device_family             => "unused",
+            numwords_a                         => 2048,
+            numwords_b                         => 2048,
+            operation_mode                     => "DUAL_PORT",
+            width_a                            => 32,
+            width_b                            => 32,
+            width_byteena_a                    => 1,
+            widthad_a                          => 11,
+            widthad_b                          => 11,
 
-        address_a                          => RAM_Addr(10 downto 0),
-        address_b                          => RAM_Addr(10 downto 0),
-        clock0                             => CLK_Lane,
-        data_a                             => RAM_DATA_A,
-        q_b                                => RAM_Data_Out,
-        wren_a                             => RAM_WREN_A,
-    );
+            address_a                          => RAM_Addr(10 downto 0),
+            address_b                          => RAM_Addr(10 downto 0),
+            clock0                             => CLK_Lane,
+            data_a                             => RAM_DATA_A,
+            q_b                                => RAM_Data_Out,
+            wren_a                             => RAM_WREN_A,
+        );
+    }
+    Generate (if Image_Width <= 1024)
+    {
+        NewComponent ALTSYNCRAM
+        (
+            address_reg_b                      => "CLOCK0",
+            clock_enable_input_a               => "BYPASS",
+            clock_enable_input_b               => "BYPASS",
+            clock_enable_output_b              => "BYPASS",
+            intended_device_family             => "unused",
+            numwords_a                         => 1024,
+            numwords_b                         => 1024,
+            operation_mode                     => "DUAL_PORT",
+            width_a                            => 32,
+            width_b                            => 32,
+            width_byteena_a                    => 1,
+            widthad_a                          => 10,
+            widthad_b                          => 10,
+
+            address_a                          => RAM_Addr(9 downto 0),
+            address_b                          => RAM_Addr(9 downto 0),
+            clock0                             => CLK_Lane,
+            data_a                             => RAM_DATA_A,
+            q_b                                => RAM_Data_Out,
+            wren_a                             => RAM_WREN_A,
+        );
+    }
 
     RAM_Data <= (others => '0') when Start_Reg(1) = '1' else RAM_Data_Out;
 
