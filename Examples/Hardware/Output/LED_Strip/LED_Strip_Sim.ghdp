@@ -1,0 +1,34 @@
+Component LED_Strip_tb()
+{
+    SIGNAL finished : STD_LOGIC:= '0';
+    CONSTANT period_time : TIME := 83333 ps;
+
+    Process Sim_finished()
+    {
+        wait for 100 ms;
+        finished <= '1';
+        wait;
+    }
+
+    NewComponent LED_Strip
+    (
+        Data_Out => Data_Out,
+        CLK => CLK,
+    );
+
+    SIGNAL Data_Out : STD_LOGIC ;
+    SIGNAL CLK : STD_LOGIC := '0';
+
+
+    Process Sim_CLK()
+    {
+        While(finished /= '1')
+        {
+            CLK <= '0';
+            wait for period_time/2;
+            CLK <= '1';
+            wait for period_time/2;
+        }
+        wait;
+    }
+}

@@ -1,0 +1,48 @@
+Component Gaussian_Row_Filter
+(
+    Generic
+    (
+        CLK_Edge    : BOOLEAN := true; --true = rising edge
+        Row_Width   : NATURAL := 2;    --2^Row_Width = number of pixels
+    );
+    iStream    : in   rgb_stream;
+    oStream    : out  rgb_stream;
+)
+{
+    oStream.New_Pixel <= iStream.New_Pixel;
+    
+    SIGNAL New_Pixel_Buf : STD_LOGIC;
+    New_Pixel_Buf <= iStream.New_Pixel when CLK_Edge else NOT iStream.New_Pixel;
+    
+    TYPE Pixel_Buffer_type IS ARRAY (0 to Row_Width-1) OF rgb_data;
+    SIGNAL Pixel_Buffer : Pixel_Buffer_type;
+    
+    Process ()
+    {
+        If(rising_edge(New_Pixel_Buf))
+        {
+            VARIABLE i : NATURAL range 0 to 2**Row_Width-1 := 0;
+            If(i < 2**Row_Width-1) { i := i + 1; }
+            Else { i := 0; }
+            
+            VARIABLE r_sum : NATURAL range 0 to 255*(2**Row_Width) := 0;
+            VARIABLE g_sum : NATURAL range 0 to 255*(2**Row_Width) := 0;
+            VARIABLE b_sum : NATURAL range 0 to 255*(2**Row_Width) := 0;
+            
+            r_sum := r_sum - TO_INTEGER(UNSIGNED(Pixel_Buffer(i).R)) + TO_INTEGER(UNSIGNED(iStream.R));
+            g_sum := g_sum - TO_INTEGER(UNSIGNED(Pixel_Buffer(i).G)) + TO_INTEGER(UNSIGNED(iStream.G));
+            b_sum := b_sum - TO_INTEGER(UNSIGNED(Pixel_Buffer(i).B)) + TO_INTEGER(UNSIGNED(iStream.B));
+            
+            Pixel_Buffer(i).R <= iStream.R;
+            Pixel_Buffer(i).G <= iStream.G;
+            Pixel_Buffer(i).B <= iStream.B;
+            
+            oStream.Column <= iStream.Column;
+            oStream.Row    <= iStream.Row;
+            
+            oStream.R      <= STD_LOGIC_VECTOR(TO_UNSIGNED(r_sum, 8+Row_Width))(7+Row_Width downto Row_Width);
+            oStream.G      <= STD_LOGIC_VECTOR(TO_UNSIGNED(g_sum, 8+Row_Width))(7+Row_Width downto Row_Width);
+            oStream.B      <= STD_LOGIC_VECTOR(TO_UNSIGNED(b_sum, 8+Row_Width))(7+Row_Width downto Row_Width);
+        }
+    }
+}

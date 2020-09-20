@@ -41,12 +41,7 @@ Component Camera_Capture
     );
 
     --Camera data
-    New_Pixel   : IN     STD_LOGIC := '0';
-    Column      : IN     NATURAL range 0 to Image_Width-1 := 0;
-    Row         : IN     NATURAL range 0 to Image_Height-1 := 0;
-    Pixel_R     : IN     STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
-    Pixel_G     : IN     STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
-    Pixel_B     : IN     STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    iStream     : IN     rgb_stream;
 
     --RAM Output interface
     Read_Column : IN     NATURAL range 0 to 639 := 0;
@@ -83,7 +78,7 @@ Component Camera_Capture
     Read_Data(7  downto 8-Width)  <= RAM_Data_Out((Width)-1   downto 0) when RGB else RAM_Data_Out((Width*3)-1 downto Width*2);
     
     SIGNAL New_Pixel_Buf : STD_LOGIC;
-    New_Pixel_Buf <= New_Pixel when CLK_Edge else NOT New_Pixel;
+    New_Pixel_Buf <= iStream.New_Pixel when CLK_Edge else NOT iStream.New_Pixel;
     
     Process Pixel_Capture
     (
@@ -95,11 +90,11 @@ Component Camera_Capture
     {
         If(rising_edge(New_Pixel_Buf))
         {
-            Column_buf <= Column * (640/Image_Width);
-            Row_buf    <= Row * (480/Image_Height);
-            Pixel_R_buf <= Pixel_R;
-            Pixel_G_buf <= Pixel_G;
-            Pixel_B_buf <= Pixel_B;
+            Column_buf <= iStream.Column * (640/Image_Width);
+            Row_buf    <= iStream.Row * (480/Image_Height);
+            Pixel_R_buf <= iStream.R;
+            Pixel_G_buf <= iStream.G;
+            Pixel_B_buf <= iStream.B;
             
             If(Row_prev /= Row_buf)
             {
@@ -132,7 +127,7 @@ Component Camera_Capture
             VARIABLE RAM_Addr_Row : NATURAL range 0 to yWidth-1 := 0;
             If(Full_Image)
             {
-                If(skip_row = Compression/2 AND skip_col = Compression/2)
+                If(skip_row = Compression-1 AND skip_col = Compression/2)
                 {
                     RAM_Data_In_R := Pixel_R_buf(7 downto 8-Width);
                     RAM_Data_In_G := Pixel_G_buf(7 downto 8-Width);

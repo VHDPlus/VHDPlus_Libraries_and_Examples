@@ -41,6 +41,8 @@ Component FPS_Counter
     SIGNAL new_frame : STD_LOGIC;
     new_frame <= '1' when iStream.Row = 2 else '0';
     --new_frame <= '1' when iStream.Column = 0 else '0';
+	--new_frame <= STD_LOGIC_VECTOR(TO_UNSIGNED(iStream.Column, 10))(9);
+    --new_frame <= STD_LOGIC_VECTOR(TO_UNSIGNED(iStream.Row, 9))(8);
     SIGNAL fps_count : NATURAL range 0 to CLK_Frequency;
     SIGNAL fps_rst   : STD_LOGIC;
     

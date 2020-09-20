@@ -1,0 +1,449 @@
+/*
+        Name: Bluetooth
+        Rev: 1.0
+        Creator: Leon Beier
+        Date: 20.09.2020
+        Copyright (c) 2020 Protop Solutions UG. All right reserved.
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy of
+        this hdl code and associated documentation files (the "HDL Code"), to deal in the
+        HDL Code without restriction, including without limitation the rights to use,
+        copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+        HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+        subject to the following conditions:
+    
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the HDL Code.
+    
+        THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+        FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+        COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+        AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+        WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+        
+        Attention: -Interface/UART.vhdp must be added to the project
+                   -The data transfer works with a UART/UART_String/UART_Array Component in your own code
+                   -If this module is not used, On/Off must be set to GND
+                   -The RX input and TX output must be connected to TX_Comp and RX_Comp
+                   -This module is used to use the on/off function and to set the settings of the module
+                   -Module settings are only set after changing Config from '0' to '1'
+                   -Settings have to be written only once, after that they are saved
+    
+        Insert:    -Right click on Bluetooth.vhdp and add to active project
+                   -Right click on UART.vhdp and add to active project
+                   -Create a NewComponent from Bluetooth_Controller
+                   -Set Parameters (can also be left at default values)
+                   -Right click on the name "Bluetooth_Controller" and create signals for the component
+                   -Add a UART interface to your code and connect the RX/TX I/Os of your UART component with RX_Comp/TX_Comp
+                    
+        Function:  -Set Power to '1' to turn on the module
+                   -Set Config from '0' to '1' to configure it
+                   -Use your UART component like you are writing to a console.
+                    This will be transmitted to the device that is connected to the bluetooth module
+*/
+
+Component Bluetooth_Controller
+(
+    Generic
+    (
+        Module_Name     : STD_LOGIC_VECTOR := s"HC-05";
+        Module_Role     : STD_LOGIC_VECTOR := s"0";              --0 = Slave, 1 = Master, 2 = Slave-Loop
+        Connect_Addr    : STD_LOGIC_VECTOR := s"1234,56,abcdef"; --(12:34:56:AB:CD:EF on Phone) (NAP, UAP, LAP from Slave - AT+ADDR? to get Address from HC-05 Slave) (Ignor if this one is a Slave)
+        Module_Pin      : STD_LOGIC_VECTOR := s"1234";
+        Module_Baudrate : STD_LOGIC_VECTOR := s"38400";
+        Module_Stop     : STD_LOGIC_VECTOR := s"0";              --0 = 1 bit, 1 = 2 bits
+        Module_Parity   : STD_LOGIC_VECTOR := s"0";              --0 = None Parity, 1 = Odd Parity, 2 = Even Parity
+        
+        --0 = Reset, 1 = Clear Paired Devices, 2 = Name, 3 = Role (Slave/Master), 4 = Connect to bound addresses, 5 = Address to connect, 6 = Pin, 7 = UART
+        Change          : STD_LOGIC_VECTOR := "11111111";        --Changes only Settings if dedicated bit is '1'
+        
+        CLK_Freq        : INTEGER       := 12000000;            --frequency of system clock in Hertz
+        Baudrate        : INTEGER       := 38400;
+        Parity          : INTEGER       := 0;                   --0 for no parity, 1 for parity
+        Parity_EO       : STD_LOGIC     := '0';                 --'0' for even, '1' for odd parity
+    );
+    
+    --User interface
+    Reset       : IN    STD_LOGIC;                              --active high reset
+    
+    Config      : IN    STD_LOGIC;                              --Sends Configuration to Module
+    Power       : IN    STD_LOGIC;                              --'0' turn off Module and pulls all Outputs to '0'
+    
+    --HC-05 pins
+    RX          : IN    STD_LOGIC;                              --receive pin of module
+    TX          : OUT   STD_LOGIC;                              --transmit pin of module
+
+    Mode        : OUT   STD_LOGIC;                              --'1' while booting activates Command Mode
+    ON_OFF      : BUFFER STD_LOGIC;                             --'0' turns on Module
+
+    --User UART component interface
+    RX_Comp     : OUT   STD_LOGIC;                              --receive pin output to component
+    TX_Comp     : IN    STD_LOGIC;                              --transmit pin input from component
+)
+{
+    Connections
+    {
+        RX,
+        TX,
+        Mode,
+        ON_OFF,
+    }
+    
+    CONSTANT waitDivider            : NATURAL := 1;
+    
+    SIGNAL UART_Interface_tx_data   : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL UART_Interface_tx_ena    : STD_LOGIC := '0';
+    SIGNAL UART_Interface_tx_busy   : STD_LOGIC;
+    SIGNAL UART_Interface_rx_data   : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL UART_Interface_rx_busy   : STD_LOGIC;
+    SIGNAL UART_Interface_rx_error  : STD_LOGIC;
+    
+    CONSTANT max_bytes : NATURAL := 48;
+    type memory_t is array(max_bytes-1 downto 0) of std_logic_vector(7 downto 0);
+    
+    --takes vector and converts it into byte array (vector has to be converted to STD_LOGIC_VECTOR(255 downto 0) with same value)
+    Function convert_vector
+    (
+        return memory_t;
+        vector_in       : STD_LOGIC_VECTOR(max_bytes*8-1 downto 0);
+        vector_length   : NATURAL range 0 to max_bytes;
+    )
+    {
+        VARIABLE tmp : memory_t := (others => (others => '0'));
+        For(addr_pos IN 0 to vector_length-1)
+        {
+            tmp((vector_length-1)-addr_pos) := vector_in((addr_pos+1)*8-1 downto (addr_pos)*8);
+        }
+        return tmp;
+    }
+    
+    --Setting Commands----------------------
+
+        --Command to change Name (AT+NAME=)
+    CONSTANT name_str   : STD_LOGIC_VECTOR := x"41542b4e414d453d" & Module_Name & x"0d0a";
+    CONSTANT name_com   : memory_t := convert_vector(std_logic_vector(resize(unsigned(name_str), max_bytes*8)), name_str'Length/8);
+    
+        --Command to change Role (AT+ROLE=)
+    CONSTANT role_str   : STD_LOGIC_VECTOR := x"41542b524f4c453d" & Module_Role & x"0d0a";
+    CONSTANT role_com   : memory_t := convert_vector(std_logic_vector(resize(unsigned(role_str), max_bytes*8)), role_str'Length/8);
+    
+        --Command to change Connect Addr (AT+BIND=)
+    CONSTANT addr_str   : STD_LOGIC_VECTOR := x"41542b42494e443d" & Connect_Addr & x"0d0a";
+    CONSTANT addr_com   : memory_t := convert_vector(std_logic_vector(resize(unsigned(addr_str), max_bytes*8)), addr_str'Length/8);
+    
+        --Command to change Pin (AT+PSWD="..")
+    CONSTANT pin_str    : STD_LOGIC_VECTOR := x"41542b505357443d22" & Module_Pin & x"220d0a";
+    CONSTANT pin_com    : memory_t := convert_vector(std_logic_vector(resize(unsigned(pin_str), max_bytes*8)), pin_str'Length/8);
+    
+        --Command to change UART Parameters (AT+UART=)
+    CONSTANT uart_str   : STD_LOGIC_VECTOR := x"41542b554152543d" & Module_Baudrate & x"2c" & Module_Stop & x"2c" & Module_Parity & x"2c" & x"0d0a";
+    CONSTANT uart_com    : memory_t := convert_vector(std_logic_vector(resize(unsigned(uart_str), max_bytes*8)), uart_str'Length/8);
+    
+        --Connect Commands----------------------
+        --Slave  (AT+RMAAD & AT+ROLE=0) (Address has to be read with AT+ADDR command or Smartphone App)
+        --Master (AT+RMAAD & AT+ROLE=1 & AT+CMODE=0 & AT+BIND=) (Connect_Addr has to be slave Address)
+    
+        --Command to reset device (AT+ORGL)
+    CONSTANT reset_str  : STD_LOGIC_VECTOR := x"41542b4f52474c" & x"0d0a";
+    CONSTANT reset_com  : memory_t := convert_vector(std_logic_vector(resize(unsigned(reset_str), max_bytes*8)), reset_str'Length/8);
+    
+        --Command to clear paired devices (AT+RMAAD)
+    CONSTANT clear_str  : STD_LOGIC_VECTOR := x"41542b524d414144" & x"0d0a";
+    CONSTANT clear_com  : memory_t := convert_vector(std_logic_vector(resize(unsigned(clear_str), max_bytes*8)), clear_str'Length/8);
+    
+        --Command to connect only to specified Bluetooth address (AT+CMODE=0)
+    CONSTANT cmode_str  : STD_LOGIC_VECTOR := x"41542b434d4f44453d30" & x"0d0a";
+    CONSTANT cmode_com  : memory_t := convert_vector(std_logic_vector(resize(unsigned(cmode_str), max_bytes*8)), cmode_str'Length/8);
+    
+    SIGNAL tx_addr      : NATURAL range 0 to max_bytes*8-1;
+    SIGNAL tx_enable    : STD_LOGIC := '0';
+    SIGNAL tx_busy      : STD_LOGIC := '0';
+    SIGNAL tx_bytes     : NATURAL range 0 to max_bytes;
+    SIGNAL tx_do        : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    
+    SIGNAL message_id   : NATURAL range 0 to 7; --0 = Reset, 1 = Clear, 2 = Name, 3 = Role, 4 = CMode, 5 = Addr, 6 = Pin, 7 = UART
+    
+    SIGNAL Restart      : STD_LOGIC := '0';
+    SIGNAL Send_Busy    : STD_LOGIC := '0';
+    
+    SIGNAL TX_Reg       : STD_LOGIC := '1';
+    SIGNAL RX_Reg       : STD_LOGIC := '1';
+    SIGNAL Mode_Reg     : STD_LOGIC := '0';     --'1' = Command Mode
+    
+    NewComponent UART_Interface 
+    (
+        CLK_Frequency => CLK_Freq,
+        Baud_Rate     => Baudrate,
+        OS_Rate       => 16,
+        D_Width       => 8,
+        Parity        => Parity,
+        Parity_EO     => Parity_EO,
+    
+        Reset         => Reset,
+        RX            => RX,
+        TX            => TX_Reg,
+        TX_Enable     => UART_Interface_tx_ena,
+        TX_Busy       => UART_Interface_rx_busy,
+        TX_Data       => UART_Interface_rx_data,
+        RX_Busy       => UART_Interface_tx_busy,
+        RX_Data       => UART_Interface_tx_data,
+        RX_Error      => UART_Interface_rx_busy,
+    );
+
+    ON_OFF <= '1'     when (Power = '0' OR Restart = '1' OR Reset = '1') else '0';
+    
+    TX     <= '0'     when ON_OFF    = '1' else
+    TX_Reg  when Send_Busy = '1' else TX_Comp;
+    
+    RX_Reg <= RX      when Send_Busy = '1' else '0';
+    
+    RX_Comp<= RX      when Send_Busy = '0' else '0';
+    
+    Mode   <= '0'     when ON_OFF    = '1' else Mode_Reg;
+    
+    Process Send_Process
+    (
+        VARIABLE l_conf     : STD_LOGIC := '0';
+        
+        VARIABLE operation  : STD_LOGIC := '0';
+        
+        VARIABLE wait_tx : STD_LOGIC := '0';
+        
+        VARIABLE command_cnt : NATURAL range 0 to 8 := 0;
+        
+        VARIABLE restart_start  : STD_LOGIC := '0';
+        VARIABLE restart_wait    : STD_LOGIC := '0';
+        VARIABLE restart_cnt    : NATURAL range 0 to CLK_Freq/waitDivider;
+    )
+    {
+        If(Reset = '1')
+        {
+            operation   := '0';
+            wait_tx     := '0';
+            command_cnt := 0;
+            tx_enable   <= '0';
+            restart_start := '0';
+            restart_cnt := 0;
+            Restart  <= '0';
+            Mode_Reg <= '0';
+        }
+        Else
+        {
+            If(Config = '1' AND l_conf = '0')       --recognize rising edge of config/connect
+            {
+                operation := '1';
+                restart_start := '1';
+                Restart <= '1';
+                Mode_Reg <= '1';
+                restart_cnt := 0;
+            }
+            l_conf  := Config;
+            
+            If(restart_wait = '1')
+            {
+                If(restart_cnt < CLK_Freq/waitDivider)              --Waits 1s after sending settings
+                {
+                    restart_cnt := restart_cnt + 1;
+                }
+                Else
+                {
+                    Send_Busy     <= '0';
+                    restart_start := '1';
+                    restart_wait  := '0';
+                    restart_cnt   := 0;
+                    Restart       <= '1';
+                    Mode_Reg      <= '0';
+                }
+            }
+            Elsif(restart_start = '1')                  --Waits 1s while resetting
+            {
+                If(restart_cnt < CLK_Freq/waitDivider)
+                {
+                    restart_cnt := restart_cnt + 1;
+                }
+                Else
+                {
+                    restart_start := '0';
+                    Restart  <= '0';
+                }
+            }
+            Elsif(restart_cnt > 0)                      --Waits 1s after resetting
+            {
+                restart_cnt := restart_cnt - 1;
+            }
+            Else
+            {
+                If(wait_tx = '0')
+                {
+                    If(operation = '1')         --Send Settings
+                    {
+                        If(command_cnt = 4 AND Module_Role = x"30")     --Doesn't have to send CMode and Addr if module is Slave
+                        {
+                            command_cnt := command_cnt + 2;
+                        }
+                        
+                        For(i IN 0 to 7)
+                        {
+                            If(i >= command_cnt)
+                            {
+                                If(Change(i) = '1')
+                                {
+                                    command_cnt := i;
+                                    exit;
+                                }
+                                Elsif(i = 7)
+                                {
+                                    command_cnt := 8;
+                                }
+                            }
+                        }
+                        
+                        If(command_cnt = 8)
+                        {
+                            command_cnt := 0;
+                            operation   := '0';
+                            restart_wait := '1';
+                        }
+                        Else
+                        {
+                            tx_enable <= '1';
+                            Send_Busy <= '1';
+                        }
+                    }
+                    
+                    Case(command_cnt)       --set tx_bytes depending on message
+                    {
+                        When(0)
+                        {
+                            tx_bytes <= reset_str'LENGTH/8;
+                        }
+                        When(1)
+                        {
+                            tx_bytes <= clear_str'LENGTH/8;
+                        }
+                        When(2)
+                        {
+                            tx_bytes <= name_str'LENGTH/8;
+                        }
+                        When(3)
+                        {
+                            tx_bytes <= role_str'LENGTH/8;
+                        }
+                        When(4)
+                        {
+                            tx_bytes <= cmode_str'LENGTH/8;
+                        }
+                        When(5)
+                        {
+                            tx_bytes <= addr_str'LENGTH/8;
+                        }
+                        When(6)
+                        {
+                            tx_bytes <= pin_str'LENGTH/8;
+                        }
+                        When(7)
+                        {
+                            tx_bytes <= uart_str'LENGTH/8;
+                        }
+                        When(others)
+                        {
+                            null;
+                        }
+                    }
+                    
+                    message_id <= command_cnt;
+                    
+                    If(tx_busy = '1')
+                    {
+                        tx_enable <= '0';
+                        wait_tx := '1';
+                    }
+                }
+                Else
+                {
+                    If(tx_busy = '0')       --wait until message sent
+                    {
+                        wait_tx := '0';
+                        command_cnt := command_cnt + 1;
+                        restart_cnt := CLK_Freq/waitDivider;
+                    }
+                }
+            }
+        }
+    }
+    
+    Process TX_Controller
+    (
+        VARIABLE ena_prev       : STD_LOGIC := '0';
+        VARIABLE byte_cnt       : NATURAL range 0 to Max_Bytes := 0;
+        VARIABLE tx_bytes_buf   : NATURAL range 0 to Max_Bytes := 0;
+        VARIABLE tx_state       : NATURAL range 0 to 2 := 0;
+    )
+    {
+        If(Reset = '1')
+        {
+            tx_state                := 0;
+            tx_busy                 <= '0';
+            UART_Interface_tx_ena   <= '0';
+            byte_cnt                := 0;
+            ena_prev                := '0';
+        }
+        Else
+        {
+            Case(tx_state)
+            {
+                When(0)
+                {
+                    If(ena_prev = '0' AND tx_enable = '1' AND tx_bytes > 0) --Waits for rising edge of tx_enable
+                    {
+                        tx_state := 1;                              --Starts transmission
+                        tx_busy  <= '1';
+                        byte_cnt := 0;
+                        tx_bytes_buf := tx_bytes;
+                        tx_addr  <= byte_cnt;
+                    }
+                    ena_prev := tx_enable;
+                }
+                When(1)
+                {
+                    If(UART_Interface_tx_busy = '0')                --Checks if data can be transmitted
+                    {
+                        UART_Interface_tx_data <= tx_do;
+                        UART_Interface_tx_ena  <= '1';              --starts transmission of one byte
+                        tx_state               := 2;
+                    }
+                }
+                When(2)
+                {
+                    If(UART_Interface_tx_busy = '1')                --Checks if data is transmittiong
+                    {
+                        UART_Interface_tx_ena  <= '0';
+                        
+                        If(byte_cnt = tx_bytes_buf-1)               --Checks if all bytes transmitted
+                        {
+                            tx_state := 0;
+                            tx_busy  <= '0';
+                        }
+                        Else
+                        {
+                            tx_state := 1;
+                            byte_cnt := byte_cnt + 1;               --Updates byte to transmit
+                            tx_addr <= byte_cnt;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    --0 = Reset, 1 = Clear, 2 = Name, 3 = Role, 4 = CMode, 5 = Addr, 6 = Pin, 7 = UART
+    tx_do <= reset_com (tx_addr) when message_id = 0 else
+    clear_com (tx_addr) when message_id = 1 else
+    name_com  (tx_addr) when message_id = 2 else
+    role_com  (tx_addr) when message_id = 3 else
+    cmode_com (tx_addr) when message_id = 4 else
+    addr_com  (tx_addr) when message_id = 5 else
+    pin_com   (tx_addr) when message_id = 6 else
+    uart_com  (tx_addr) when message_id = 7;
+}

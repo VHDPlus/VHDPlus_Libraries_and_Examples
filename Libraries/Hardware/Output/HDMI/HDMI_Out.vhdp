@@ -95,8 +95,8 @@ Component HDMI_Out
             iPCLK     => VS_PCLK,
             iSCLK     => VS_SCLK,
             
-            iRED      => VS_R,
-            iGRN      => VS_G,
+            iRED      => VS_G,
+            iGRN      => VS_R,
             iBLU      => VS_B,
             iHS       => VS_HS,
             iVS       => VS_VS,

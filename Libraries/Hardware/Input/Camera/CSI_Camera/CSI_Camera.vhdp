@@ -45,7 +45,6 @@ Component CSI_Camera
     Generic
     (
         CLK_Frequency : NATURAL := 12000000;
-        Row_Buf       : BOOLEAN := false; --true = saves last row in buffer, creates own Pixel CLK and spreads pixels even
         CLK_as_PCLK   : BOOLEAN := false; --true = saves last row in buffer, uses CLK as Pixel CLK and spreads pixels even
     );
     
@@ -316,20 +315,20 @@ Component CSI_Camera
     
     SIGNAL New_Pixel : STD_LOGIC;
     
-    New_Pixel <= New_Pixel_Reg_O when Row_Buf OR CLK_as_PCLK else New_Pixel_Reg;
-
-    --Output current data
-    oStream.R <= Pixel_R_Reg_O when Row_Buf OR CLK_as_PCLK else Pixel_R_Reg;
-    oStream.G <= Pixel_G_Reg_O when Row_Buf OR CLK_as_PCLK else Pixel_G_Reg;
-    oStream.B <= Pixel_B_Reg_O when Row_Buf OR CLK_as_PCLK else Pixel_B_Reg;
-    oStream.New_Pixel <= New_Pixel;
-    oStream.Column <= Column;
-    oStream.Row <= Row;
-
     Pixel_R_Reg  <= STD_LOGIC_VECTOR(Pixel1.R(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.R(Convert_Type));
     Pixel_G_Reg  <= STD_LOGIC_VECTOR(Pixel1.G(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.G(Convert_Type));
     Pixel_B_Reg  <= STD_LOGIC_VECTOR(Pixel1.B(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.B(Convert_Type));
     New_Pixel_Reg <= '0' when Start_Reg(1) = '1' else First_New_Pixel(0) OR Second_New_Pixel;
+    
+    New_Pixel <= New_Pixel_Reg_O when CLK_as_PCLK else New_Pixel_Reg;
+
+    --Output current data
+    oStream.New_Pixel <= New_Pixel;
+    oStream.Column <= Column;
+    oStream.Row <= Row;
+    oStream.R <= Pixel_R_Reg_O when CLK_as_PCLK else Pixel_R_Reg;
+    oStream.G <= Pixel_G_Reg_O when CLK_as_PCLK else Pixel_G_Reg;
+    oStream.B <= Pixel_B_Reg_O when CLK_as_PCLK else Pixel_B_Reg;
 
     --Keep track of current row and column
     Process Cam_RX ()
@@ -338,7 +337,7 @@ Component CSI_Camera
         {
             SIGNAL Column : NATURAL range 0 to Image_Width-1 := 0;
             SIGNAL Row    : NATURAL range 0 to Image_Height-1 := 0;
-            
+
             If(start_buf /= start_buf_reg)
             {
                 Column <= 0;
@@ -375,6 +374,20 @@ Component CSI_Camera
     SIGNAL RAM_Addr_B : STD_LOGIC_VECTOR(10 downto 0);
     RAM_Addr_A <= STD_LOGIC_VECTOR(TO_UNSIGNED(buf_col,11));
     RAM_Addr_B <= STD_LOGIC_VECTOR(TO_UNSIGNED(Column,11));
+    
+    SIGNAL Pixel_Clk_Start : BOOLEAN := false;
+    Pixel_Clk_Start <= true when buf_col = 1 else false when Column = 0 else Pixel_Clk_Start;
+    
+    SIGNAL Pixel_Clk_Enable : BOOLEAN := false;
+    Process ()
+    {
+        If(falling_edge(CLK))
+        {
+            Pixel_Clk_Enable <= Column < Image_Width-1 OR Pixel_Clk_Start;
+        }
+    }
+    
+    New_Pixel_Reg_O <= CLK when Pixel_Clk_Enable else '0';
     
     --Row Buffer
     Generate (if Image_Width > 1024)
@@ -458,56 +471,6 @@ Component CSI_Camera
             }
             
             Cur_Pixel_Reg_I <= Pixel_R_Reg & Pixel_G_Reg & Pixel_B_Reg;
-        }
-    }
-    
-    SIGNAL Pixel_Clk_Enable : BOOLEAN := false;
-    Process ()
-    {
-        If(falling_edge(New_Pixel_Div))
-        {
-            Pixel_Clk_Enable <= Column < Image_Width-1 OR Pixel_Clk_Start;
-        }
-    }
-
-    SIGNAL Pixel_Clk_Start : BOOLEAN := false;
-    Pixel_Clk_Start <= true when buf_col = 1 else false when Column = 0 else Pixel_Clk_Start;
-    
-    SIGNAL New_Pixel_Div : STD_LOGIC;
-    
-    New_Pixel_Reg_O <= New_Pixel_Div when Pixel_Clk_Enable else '0';
-    
-    --2624x1952 -> 640x480
-    CONSTANT pixel_clk_divider : NATURAL := CLK_Frequency/(Image_FPS*1200*Image_Width);
-    Generate (if pixel_clk_divider < 2 OR CLK_as_PCLK)
-    {
-        New_Pixel_Div <= CLK;
-    }
-    
-    Generate (if pixel_clk_divider > 1 AND NOT CLK_as_PCLK)
-    {
-        Process
-        (
-            VARIABLE div_count  : NATURAL range 0 to pixel_clk_divider-1 := 0;
-        )
-        {
-            If(div_count < pixel_clk_divider-1)
-            {
-                div_count := div_count + 1;
-            }
-            Else
-            {
-                div_count := 0;
-            }
-            
-            If(div_count < pixel_clk_divider/2)
-            {
-                New_Pixel_Div <= '1';
-            }
-            Else
-            {
-                New_Pixel_Div <= '0';
-            }
         }
     }
 

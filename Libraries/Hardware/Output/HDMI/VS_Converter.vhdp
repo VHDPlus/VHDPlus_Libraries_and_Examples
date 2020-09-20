@@ -49,20 +49,19 @@ Component VS_Converter
     NewComponent VS_PLL
     (
         inclk0 => CLK,
-        c0     => PLL_c0, --25MHz
-        c1     => PLL_c1, --250MHz
+        c0     => PLL_c0, --28MHz
+        c1     => PLL_c1, --280MHz
     );
 
     CONSTANT porchHF : NATURAL := Image_Width; --start of horizntal front porch
     CONSTANT syncH   : NATURAL := Image_Width+20; --start of horizontal sync
     CONSTANT porchHB : NATURAL := Image_Width+120; --start of horizontal back porch
-    CONSTANT maxH    : NATURAL := 2712; --total length of line
+    CONSTANT maxH    : NATURAL := 1896; --total length of line
     
     CONSTANT porchVF : NATURAL := Image_Height; --start of vertical front porch
     CONSTANT syncV   : NATURAL := Image_Height+10; --start of vertical sync
     CONSTANT porchVB : NATURAL := Image_Height+15; --start of vertical back porch
-    CONSTANT maxV    : NATURAL := 1959; --total rows
-    
+    CONSTANT maxV    : NATURAL := 984; --total rows
     
     SIGNAL xCountReg : INTEGER range 0 to maxH := 0;
     SIGNAL yCountReg : INTEGER range 0 to maxV := 0;
@@ -79,7 +78,7 @@ Component VS_Converter
             }
             
             VARIABLE Col_Reg : NATURAL range 0 to Image_Width-1 := 0;
-            If(iStream.Column < Col_Reg)
+            If(iStream.Column < Col_Reg OR xCount > maxH)
             {
                 xCount := 0;
                 If(yCount < maxV)

@@ -1,0 +1,61 @@
+Main
+(
+    Data_Out      : OUT STD_LOGIC;
+)
+{
+    CONSTANT LEDs : NATURAL := 20;
+    
+    SIGNAL LED_Strip_Pixel_CLK     : STD_LOGIC;
+    SIGNAL LED_Strip_Address       : NATURAL          range 0 to LEDs-1;
+    SIGNAL LED_Strip_Pixel         : STD_LOGIC_VECTOR (23 downto 0) := x"000000";
+    NewComponent LED_Strip_Interface
+    (
+        CLK_Frequency => 12000000,
+        LEDs          => LEDs,
+        WS2812        => true,
+        
+        Data_Out      => Data_Out,
+        Pixel_CLK     => LED_Strip_Pixel_CLK,
+        Address       => LED_Strip_Address,
+        Pixel         => LED_Strip_Pixel,
+    );
+
+    CONSTANT Colors : NATURAL := 6;
+    TYPE Colors_type IS ARRAY (0 to Colors-1) OF STD_LOGIC_VECTOR(23 downto 0);
+    CONSTANT Colors_Arr : Colors_type :=
+    (
+        x"FF0000",
+        x"7F7F00",
+        x"00FF00",
+        x"007F7F",
+        x"0000FF",
+        x"7F007F"
+    );
+    
+    Process ()
+    {
+        Thread
+        {
+            For(VARIABLE color : NATURAL range 0 to Colors := 0; color < Colors; color := color + 1)
+            {
+                For(VARIABLE i : INTEGER range 0 to LEDs := 0; i < LEDs; i := i + 1)
+                {
+                    Wait(20ms);  --Every 20ms one Pixel more
+                }
+                For(; i > 0; i := i - 1)
+                {
+                    Wait(20ms);  --Every 20ms one Pixel less
+                }
+            }
+        }
+        
+        If(LED_Strip_Address < i)
+        {
+            LED_Strip_Pixel <= Colors_Arr(color);
+        }
+        Else
+        {
+            LED_Strip_Pixel <= x"000000";
+        }
+    }
+}

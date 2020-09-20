@@ -60,6 +60,9 @@
           <Header>Gaussian_Filter.vhdp</Header>
         </Items>
         <Items xsi:type="ProjectFileVHDP">
+		  <Header>Gaussian_Row_Filter.vhdp</Header>
+        </Items>
+        <Items xsi:type="ProjectFileVHDP">
           <Header>RGB2HSV.vhdp</Header>
         </Items>
       </Items>
@@ -88,6 +91,9 @@
     </Items>
 	<Items xsi:type="ProjectFileVHDP">
       <Header>Audio_Codec.vhdp</Header>
+    </Items>
+	<Items xsi:type="ProjectFileVHDP">
+      <Header>Bluetooth.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>Encoder.vhdp</Header>
@@ -170,6 +176,9 @@
     </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>Shift_Register.vhdp</Header>
+    </Items>
+	<Items xsi:type="ProjectFileVHDP">
+      <Header>LED_Strip_Interface.vhdp</Header>
     </Items>
   </Items>
 </ProjectRoot>

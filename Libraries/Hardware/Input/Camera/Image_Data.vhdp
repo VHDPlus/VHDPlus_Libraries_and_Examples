@@ -31,17 +31,18 @@ Package Image_Data_Package
 {
     --Tested combinations:
     
-    --CRT_Controller_Passthrough:
-    --(1280x960 15fps)
-    --(1280x720 15fps)
-    --640x480 35fps
+    --VS_Converter (only works with some HDMI Displays):
+    --Tested on Raspberry Pi 1024*600 HDMI Touchdisplay with TFP401
+    --1280x960 20fps
+    --1280x720 20fps
+    --640x480 40fps
     
-    --Camera_Capture with CRT_Controller:
+    --Camera_Capture with VS_RAM_Interface:
     --640x480 50fps
     
     CONSTANT Image_Width  : NATURAL := 640; --1280, 640 or 320
     CONSTANT Image_Height : NATURAL := 480;  --960, 480 or 240
-    CONSTANT Image_FPS    : NATURAL := 35;  
+    CONSTANT Image_FPS    : NATURAL := 30;  
     
     TYPE rgb_data IS RECORD
     R : STD_LOGIC_VECTOR(7 downto 0);
