@@ -39,10 +39,10 @@
     
     Function:  -Configuration:
                 1. Set Brightness to a value between 0 and 15 and Shutdown to '0' for normal operation
-                2. Change Config from '0' to '1' (e.g. call Step{ Config <= '0' } before)
+                2. Change Config from '0' to '1' (e.g. call Step{ Config <= '0'; } before)
                -Display:
                 1. Set Panel_Bitmap to your image (Panel_Bitmap(0) <= "11111111"; would light up every LED in the first column. One column has always 8 LEDs )
-                2. Change Update from '0' to '1' (e.g. call Step{ Update <= '0' } before)
+                2. Change Update from '0' to '1' (e.g. call Step{ Update <= '0'; } before)
     
     Example:   LED_Matrix_Example
 */
