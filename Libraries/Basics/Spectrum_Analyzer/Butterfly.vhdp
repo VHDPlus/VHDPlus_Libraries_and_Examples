@@ -11,6 +11,7 @@
 
 Component Butterfly
 (
+    Include();
     in1  : IN SIGNED (15 downto 0) := (others => '0');
     in2  : IN SIGNED (15 downto 0) := (others => '0');
     tf   : IN SIGNED (15 downto 0) := (others => '0');

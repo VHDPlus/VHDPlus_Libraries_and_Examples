@@ -49,6 +49,7 @@
 
 Component UART_String
 (
+    Include();
     Generic
     (
         CLK_Frequency   : INTEGER       := 12000000;            --frequency of system clock in Hertz

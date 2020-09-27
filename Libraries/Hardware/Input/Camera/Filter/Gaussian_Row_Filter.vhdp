@@ -1,5 +1,9 @@
 Component Gaussian_Row_Filter
 (
+    Include
+    (
+        Image_Data_Package.all,
+    );
     Generic
     (
         CLK_Edge    : BOOLEAN := true; --true = rising edge

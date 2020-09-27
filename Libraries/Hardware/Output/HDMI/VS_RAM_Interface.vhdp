@@ -27,6 +27,10 @@
 
 Component VS_RAM_Interface
 (
+    Include
+    (
+        Image_Data_Package.all,
+    );
     Generic
     (
         image_size_div : NATURAL := 1;

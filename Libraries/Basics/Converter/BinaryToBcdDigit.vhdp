@@ -13,6 +13,7 @@
 
 Component BinaryToBcdDigit
 (
+	Include();
 	Reset	: IN	 STD_LOGIC := '0';	--active high reset
 	Enable	: IN	 STD_LOGIC := '0';	--activate operation
 	Binary	: IN	 STD_LOGIC := '0';	--bit shifted into digit

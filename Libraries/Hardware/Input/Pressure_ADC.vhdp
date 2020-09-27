@@ -46,6 +46,7 @@
 
 Component Pressure_ADC
 (
+    Include();
     Generic
     (
         CLK_Frequency    : NATURAL := 12000000;      --system clock

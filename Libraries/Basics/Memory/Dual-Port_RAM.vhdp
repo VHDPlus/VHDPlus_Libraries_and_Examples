@@ -42,6 +42,7 @@
 
 Component Dual_Port_RAM
 (
+	Include();
 	Generic
 	(
 		bits    : NATURAL := 8;     --Number of bits in one block

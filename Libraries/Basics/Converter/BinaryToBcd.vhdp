@@ -38,6 +38,7 @@
 
 Component BinaryToBcd
 (
+	Include();
 	Generic(
 		Bits	: INTEGER := 16;							--size of the binary input numbers in bits
 		Digits	: INTEGER := 5;								--number of BCD digits to convert to

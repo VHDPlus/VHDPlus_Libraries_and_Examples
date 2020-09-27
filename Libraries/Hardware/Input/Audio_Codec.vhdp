@@ -40,6 +40,7 @@
 
 Component Audio_Codec_Component
 (
+    Include();
     Generic
     (
         --General

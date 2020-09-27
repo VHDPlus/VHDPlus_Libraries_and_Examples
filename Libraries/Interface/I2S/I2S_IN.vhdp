@@ -38,6 +38,7 @@
 
 Component I2S_Interface_IN
 (
+	Include();
 	Generic
 	(
 		CLK_Frequency		: NATURAL					:= 12000000; --System Clock frequency

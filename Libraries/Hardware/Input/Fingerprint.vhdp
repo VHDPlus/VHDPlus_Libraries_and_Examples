@@ -51,6 +51,7 @@
 
 Component Fingerprint_Controller
 (
+	Include();
 	Generic
 	(
 		CLK_Frequency	: NATURAL		:= 12000000;	--frequency of system clock in Hertz

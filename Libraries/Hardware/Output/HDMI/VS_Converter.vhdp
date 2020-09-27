@@ -27,6 +27,10 @@
 
 Component VS_Converter
 (
+    Include
+    (
+        Image_Data_Package.all,
+    );
     --Camera stream input
     iStream     : IN     rgb_stream;
 

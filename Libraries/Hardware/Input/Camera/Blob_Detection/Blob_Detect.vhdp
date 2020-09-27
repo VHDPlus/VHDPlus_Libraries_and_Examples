@@ -28,6 +28,10 @@
 
 Component Blob_Detect
 (
+    Include
+    (
+        Image_Data_Package.all,
+    );
     Generic
     (
         Blob_Number     : NATURAL := 32;            --Maximum number of blobs to save in ram

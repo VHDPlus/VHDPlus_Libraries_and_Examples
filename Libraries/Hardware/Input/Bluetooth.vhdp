@@ -45,6 +45,7 @@
 
 Component Bluetooth_Controller
 (
+    Include();
     Generic
     (
         Module_Name     : STD_LOGIC_VECTOR := s"HC-05";

@@ -44,6 +44,10 @@
 
 Component LED_Matrix_Text
 (
+    Include
+    (
+        LED_Matrix_Package.all,
+    );
     Generic
     (
         CLK_Frequency   : NATURAL := 12000000;

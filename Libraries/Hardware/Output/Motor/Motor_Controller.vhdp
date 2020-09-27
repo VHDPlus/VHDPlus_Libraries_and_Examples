@@ -86,6 +86,7 @@
 
 Component Motor_Controller
 (
+    Include();
     Generic
     (
         --General

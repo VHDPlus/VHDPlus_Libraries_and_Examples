@@ -31,6 +31,10 @@
 
 Component Camera_Capture
 (
+    Include
+    (
+        Image_Data_Package.all,
+    );
     Generic
     (
         Compression : NATURAL := 3;  --640/Complression Columns and 480/Compression Rows are saved

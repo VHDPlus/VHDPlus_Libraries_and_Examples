@@ -42,6 +42,10 @@
 
 Component I2C_Array
 (
+	Include
+	(
+		I2C_Data_Array_Package.all,
+	);
 	Generic
 	(
 		CLK_Frequency   : INTEGER := 12000000; --input clock speed from user logic in Hz

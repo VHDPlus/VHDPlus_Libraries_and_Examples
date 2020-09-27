@@ -62,6 +62,10 @@
 
 Component AreaLimitedCompression
 (
+    Include
+    (
+        Image_Data_Package.all,
+    );
     Generic
     (
         Min_Pixel_Num  : NATURAL := 4;  --Minimum number of '1' pixels in area (MAX_Area x MAX_Area pixels) to get '1' as output

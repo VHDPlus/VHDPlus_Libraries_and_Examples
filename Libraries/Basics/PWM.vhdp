@@ -35,6 +35,7 @@
 
 Component PWM_Generator
 (
+	Include();
 	Generic
 	(
 		CLK_Frequency   : INTEGER := 12000000;   --system clock frequency in Hz

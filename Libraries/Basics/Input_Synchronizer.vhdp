@@ -18,6 +18,7 @@
 
 Component Input_Synchronizer
 (
+	Include();
 	Generic
 	(
 		Input_Number    : NATURAL := 1;          --number of inputs that are synchronized

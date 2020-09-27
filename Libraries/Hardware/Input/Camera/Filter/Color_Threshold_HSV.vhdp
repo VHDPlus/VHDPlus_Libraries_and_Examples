@@ -38,6 +38,10 @@
 
 Component Color_Threshold_HSV_Filter
 (
+    Include
+    (
+        Image_Data_Package.all,
+    );
     Generic
     (
         CLK_Edge    : BOOLEAN := true; --true = rising edge

@@ -40,6 +40,10 @@
 
 Component Gaussian_Filter
 (
+    Include
+    (
+        Image_Data_Package.all,
+    );
     Generic
     (
         Filter_Area : NATURAL := 3; --3 = 3x3 pixels used to create one blurred pixel

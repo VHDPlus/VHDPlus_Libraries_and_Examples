@@ -47,6 +47,10 @@
 
 Component Real_Time_Clock
 (
+    Include
+    (
+        Date_Time_Package.all,
+    );
     Package Date_Time_Package
     (
         TYPE Date_Time_Type IS RECORD

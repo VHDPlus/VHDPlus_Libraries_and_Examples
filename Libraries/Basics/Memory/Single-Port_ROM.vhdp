@@ -35,11 +35,13 @@
 
 Component Single_Port_ROM
 (
+    Include();
     Generic
     (
         Data    : STD_LOGIC_VECTOR := x"524f4d204578616d706c65";    --"ROM Example"
+        LWidth  : NATURAL := Data'LENGTH/8; --Only used for String
     );
-    Length   : OUT NATURAL := Data'LENGTH/8;
+    Length   : OUT NATURAL range 0 to LWidth := Data'LENGTH/8;
     Address  : in  natural range 0 to Data'LENGTH/8-1;
     Data_OUT : out std_logic_vector(7 downto 0)  --Data at given Address
 )

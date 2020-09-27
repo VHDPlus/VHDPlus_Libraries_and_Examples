@@ -32,6 +32,10 @@
 
 Component HDMI_Out
 (
+    Include
+    (
+        Image_Data_Package.all,
+    );
     --Video stream output
     VS_PCLK    : IN  STD_LOGIC;
     VS_SCLK    : IN  STD_LOGIC;

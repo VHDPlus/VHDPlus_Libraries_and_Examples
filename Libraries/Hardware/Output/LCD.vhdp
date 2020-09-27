@@ -31,6 +31,7 @@
 
 Component LCD_Controller
 (
+	Include();
 	Generic
 	(
 		CLK_Frequency	: NATURAL := 12000000;

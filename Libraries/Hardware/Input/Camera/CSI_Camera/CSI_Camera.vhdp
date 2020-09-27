@@ -42,6 +42,10 @@
 
 Component CSI_Camera
 (
+    Include
+    (
+        Image_Data_Package.all,
+    );
     Generic
     (
         CLK_Frequency : NATURAL := 12000000;

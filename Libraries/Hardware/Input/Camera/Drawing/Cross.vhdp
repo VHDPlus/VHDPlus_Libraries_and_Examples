@@ -42,6 +42,10 @@
 
 Component Draw_Cross
 (
+    Include
+    (
+        Image_Data_Package.all,
+    );
     Generic
     (
         Width  : NATURAL := 4;

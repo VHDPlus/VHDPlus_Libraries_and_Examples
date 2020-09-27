@@ -23,6 +23,7 @@
 
 Component Encoder_Controller
 (
+    Include();
     Generic
     (
         Positions                       :   INTEGER := 16;      --size of the position counter (i.e. number of positions counted)

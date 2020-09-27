@@ -24,6 +24,7 @@
 
 Component I2C_Master_Interface
 (
+	Include();
 	Generic
 	(
 		CLK_Frequency : INTEGER := 12000000; --input clock speed from user logic in Hz

@@ -41,6 +41,7 @@
 
 Component Ultrasonic_Controller
 (
+    Include();
     Generic
     (
         CLK_Frequency       : NATURAL := 12000000;      --Clock Frequency in HZ

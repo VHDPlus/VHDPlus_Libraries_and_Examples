@@ -41,6 +41,10 @@
 
 Component Draw_Square
 (
+    Include
+    (
+        Image_Data_Package.all,
+    );
     Generic
     (
         Width : NATURAL := 4;

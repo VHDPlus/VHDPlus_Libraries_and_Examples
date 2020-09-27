@@ -37,6 +37,7 @@
 
 Component ADC_MAX10
 (
+	Include();
 	Package ADC_data_package
 	(
 	    TYPE ADC_data_type IS ARRAY (0 to 8) OF NATURAL range 0 to 4095;

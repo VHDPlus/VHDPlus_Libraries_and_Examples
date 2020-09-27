@@ -39,6 +39,7 @@
 
 Component I2S_Interface_OUT
 (
+	Include();
 	Generic
 	(
 		Data_Width 			: integer range 16 to 32 	:= 24;	--Number of data bits in a sample

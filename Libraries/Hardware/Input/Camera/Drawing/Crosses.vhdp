@@ -46,6 +46,10 @@
 
 Component Draw_Crosses
 (
+	Include
+    (
+        Image_Data_Package.all,
+    );
     Generic
     (
         Max_Cross_Number  : NATURAL := 32;

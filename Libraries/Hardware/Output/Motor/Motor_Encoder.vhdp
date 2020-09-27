@@ -47,6 +47,7 @@
 
 Component Motor_Encoder
 (
+    Include();
     Generic
     (
         CLK_Frequency       : NATURAL := 12000000;

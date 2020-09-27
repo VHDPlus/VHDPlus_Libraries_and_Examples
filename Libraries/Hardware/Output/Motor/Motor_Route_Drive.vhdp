@@ -67,6 +67,7 @@
 
 Component Motor_Route_Drive
 (
+    Include();
     Package Route_Array_Package
     (
         TYPE Route_Array IS ARRAY (natural range <>) OF Integer;
