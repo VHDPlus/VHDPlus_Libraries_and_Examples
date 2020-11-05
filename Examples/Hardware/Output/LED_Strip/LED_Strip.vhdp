@@ -1,25 +1,44 @@
 Main
 (
-    Data_Out      : OUT STD_LOGIC;
+    Data_Out      : BUFFER STD_LOGIC;
+    Data_Out_5V   : OUT STD_LOGIC;
 )
 {
-    CONSTANT LEDs : NATURAL := 20;
+    Data_Out_5V <= Data_Out;
     
-    SIGNAL LED_Strip_Pixel_CLK     : STD_LOGIC;
-    SIGNAL LED_Strip_Address       : NATURAL          range 0 to LEDs-1;
-    SIGNAL LED_Strip_Pixel         : STD_LOGIC_VECTOR (23 downto 0) := x"000000";
+    CONSTANT LEDs : NATURAL := 50;
+    
+    SIGNAL LED_Strip_Update           : STD_LOGIC;
+    SIGNAL LED_Strip_Pixel_CLK        : STD_LOGIC;
+    SIGNAL LED_Strip_Address          : NATURAL          range 0 to LEDs-1;
+    SIGNAL LED_Strip_Pixel            : STD_LOGIC_VECTOR (23 downto 0) := x"FF00FF";
     NewComponent LED_Strip_Interface
     (
         CLK_Frequency => 12000000,
         LEDs          => LEDs,
         WS2812        => true,
         
+        Update        => LED_Strip_Update,
         Data_Out      => Data_Out,
         Pixel_CLK     => LED_Strip_Pixel_CLK,
         Address       => LED_Strip_Address,
         Pixel         => LED_Strip_Pixel,
     );
-
+    
+    /*
+    LED_Strip_Pixel <= ISSP_source;
+    ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(LED_Strip_Address, ISSP_probe'LENGTH));
+    
+    SIGNAL ISSP_source : std_logic_vector (23 downto 0);
+    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0);
+    NewComponent ISSP
+    (
+        source => ISSP_source,
+        probe  => ISSP_probe,
+    );
+*/
+    
+    
     CONSTANT Colors : NATURAL := 6;
     TYPE Colors_type IS ARRAY (0 to Colors-1) OF STD_LOGIC_VECTOR(23 downto 0);
     CONSTANT Colors_Arr : Colors_type :=
@@ -40,11 +59,17 @@ Main
             {
                 For(VARIABLE i : INTEGER range 0 to LEDs := 0; i < LEDs; i := i + 1)
                 {
-                    Wait(20ms);  --Every 20ms one Pixel more
+                    LED_Strip_Update <= '1';
+                    Wait(1);
+                    LED_Strip_Update <= '0';
+                    Wait(50ms);  --Every 10ms one Pixel more
                 }
                 For(; i > 0; i := i - 1)
                 {
-                    Wait(20ms);  --Every 20ms one Pixel less
+                    LED_Strip_Update <= '1';
+                    Wait(1);
+                    LED_Strip_Update <= '0';
+                    Wait(50ms);  --Every 10ms one Pixel less
                 }
             }
         }

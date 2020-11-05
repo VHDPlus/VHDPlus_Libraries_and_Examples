@@ -3,13 +3,13 @@
   <Header>Audio</Header>
   <Items xsi:type="ProjectFolder">
     <Header>Generated</Header>
-    <Items xsi:type="ProjectFile">
+    <Items xsi:type="ProjectFileVHDL">
       <Header>Audio.vhd</Header>
     </Items>
-    <Items xsi:type="ProjectFile">
+    <Items xsi:type="ProjectFileVHDL">
       <Header>Audio_Codec_Component.vhd</Header>
     </Items>
-    <Items xsi:type="ProjectFile">
+    <Items xsi:type="ProjectFileVHDL">
       <Header>I2C_Master_Interface.vhd</Header>
     </Items>
   </Items>
@@ -34,6 +34,15 @@
   <Items xsi:type="ProjectFileVHDP">
     <Header>Audio_Codec.vhdp</Header>
   </Items>
-  <SelectedExtensionsSave />
+  <CruviHSExtensions>
+    <string xsi:nil="true" />
+  </CruviHSExtensions>
+  <CruviLSExtensions>
+    <string>LevelShifterExtension</string>
+    <string xsi:nil="true" />
+    <string xsi:nil="true" />
+    <string xsi:nil="true" />
+  </CruviLSExtensions>
   <IOVoltage>0</IOVoltage>
+  <UseShield>false</UseShield>
 </ProjectRoot>

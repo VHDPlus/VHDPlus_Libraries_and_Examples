@@ -1,126 +1,135 @@
-﻿/*
+/*
     Name: ADC_MAX10
     Rev: 1.0
     Creator: Leon Beier
     Date: 06.08.2019
     Copyright (c) 2019 Protop Solutions UG. All right reserved.
-	
-	Permission is hereby granted, free of charge, to any person obtaining a copy of 
-	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
-	HDL Code without restriction, including without limitation the rights to use, 
-	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
-	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
-	subject to the following conditions:
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
 
     The above copyright notice and this permission notice shall be included in all
-	copies or substantial portions of the HDL Code.
+    copies or substantial portions of the HDL Code.
 
-    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
-	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
-	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
-	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
-	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
-	
-	Important: -You need to add ADC_QSYS.qsys and ADC_QSYS.qsys.vhdp too
-	
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important: -You need to add ADC_QSYS.qsys and ADC_QSYS.qsys.vhdp too
+    
     Insertion: -Right click on ADC_QSYS.qsys.vhdp -> Add to project
-			   -Right click on ADC_QSYS.qsys -> Add to project
-    		   -Right click on ADC_MAX10.vhdp -> Add to project
-			   -Add NewComponent of ADC_MAX10 in your code
-			   -Right click the name ADC_MAX10 next to NewComponent and create the needed signal
-	
+               -Right click on ADC_QSYS.qsys -> Add to project
+               -Right click on ADC_MAX10.vhdp -> Add to project
+               -Add NewComponent of ADC_MAX10 in your code
+               -Right click the name ADC_MAX10 next to NewComponent and create the needed signal
+    
     Function:  Data(0) will give the value of A0 and Data(8) of AIN. Voltages from 0 to 3.3V are represented with a value from 0 to 4095.
-	
+    
     Example:   ADC_MAX10_Example
 */
 
 Component ADC_MAX10
 (
-	Include();
-	Package ADC_data_package
-	(
-	    TYPE ADC_data_type IS ARRAY (0 to 8) OF NATURAL range 0 to 4095;
-	);
-	
-	Data : OUT ADC_data_type := (others => 0);
+    Include
+    (
+        ADC_data_package.all,
+    );
+    Package ADC_data_package
+    (
+        TYPE ADC_data_type IS ARRAY (0 to 8) OF NATURAL range 0 to 4095;
+    );
+    
+    Data : OUT ADC_data_type := (others => 0);
 )
 {
-	SIGNAL adc_command_channel        : std_logic_vector (4 downto 0);
-	SIGNAL adc_response_valid         : std_logic;
-	SIGNAL adc_response_data          : std_logic_vector (11 downto 0);
-	
-	NewComponent ADC_QSYS 
-	(
-		clk_clk                    => CLK,
-		reset_reset_n              => '1',
-		adc_command_valid          => '1',
-		adc_command_channel        => adc_command_channel,
-		adc_command_startofpacket  => '1',
-		adc_command_endofpacket    => 'X',
-		adc_response_valid         => adc_response_valid,
-		adc_response_data          => adc_response_data,
-	);
-	
-	Process 
-	(
-		VARIABLE state : NATURAL range 0 to 1 := 0;
-		VARIABLE chan  : NATURAL range 0 to 8 := 0;
-	)
-	{
-		Case (chan)
-		{
-			When(8) --AIN -> Next = A0
-			{
-				adc_command_channel <= "01000";
-			}
-			When(0) --A0 -> Next A1
-			{
-				adc_command_channel <= "00010";
-			}
-			When(1) --A1 -> Next A2
-			{
-				adc_command_channel <= "00101";
-			}
-			When(2) --A2 -> Next A3
-			{
-				adc_command_channel <= "00001";
-			}
-			When(3) --A3 -> Next A4
-			{
-				adc_command_channel <= "00011";
-			}
-			When(4) --A4 -> Next A5
-			{
-				adc_command_channel <= "00111";
-			}
-			When(5) --A5 -> Next A6
-			{
-				adc_command_channel <= "00100";
-			}
-			When(6) --A6 -> Next A7
-			{
-				adc_command_channel <= "00110";
-			}
-			When(7) --A7 -> Next AIN
-			{
-				adc_command_channel <= "00000";
-			}
-		}
-		
-		If(chan < 8)
-		{
-			chan := chan + 1;
-		}
-		Else
-		{
-			chan := 0;
-		}
-		
-		If(adc_response_valid = '1')
-		{
-			Data(chan) <= TO_INTEGER(UNSIGNED(adc_response_data));
-			state := 0;
-		}
-	}
+    SIGNAL adc_command_channel        : std_logic_vector (4 downto 0);
+    SIGNAL adc_response_valid         : std_logic;
+    SIGNAL adc_response_data          : std_logic_vector (11 downto 0);
+    SIGNAL adc_response_channel       : std_logic_vector (4 downto 0);
+    SIGNAL adc_command_startofpacket  : std_logic;
+    SIGNAL adc_command_ready          : std_logic;
+    SIGNAL adc_command_valid          : std_logic;
+    NewComponent ADC_QSYS
+    (
+        clk_clk                    => CLK,
+        reset_reset_n              => '1',
+        adc_command_valid          => adc_command_valid,
+        adc_command_channel        => adc_command_channel,
+        adc_command_startofpacket  => adc_command_startofpacket,
+        adc_command_endofpacket    => 'X',
+        adc_command_ready          => adc_command_ready,
+        adc_response_valid         => adc_response_valid,
+        adc_response_channel       => adc_response_channel,
+        adc_response_data          => adc_response_data,
+    );
+    
+    
+    Process()
+    {
+        Thread
+        {
+            VARIABLE chan  : NATURAL range 0 to 8 := 0;
+            adc_command_valid <= '1';
+            adc_command_channel <= "00000";
+            adc_command_startofpacket <= '1';
+            While(adc_command_ready = '0'){}
+            adc_command_startofpacket <= '0';
+            chan := 1;
+            adc_command_channel <= "00001";
+            While(true)
+            {
+                While(adc_command_ready = '0'){}
+                Step
+                {
+                    If(chan < 8)
+                    {
+                        chan := chan + 1;
+                    }
+                    Else
+                    {
+                        chan := 0;
+                    }
+                    adc_command_channel <= STD_LOGIC_VECTOR(TO_UNSIGNED(chan, adc_command_channel'LENGTH));
+                }
+            }
+        }
+        
+        if(adc_response_valid = '1')
+        {
+            VARIABLE resp  : NATURAL range 0 to 8 := 0;
+            --AN0 = 8
+            --AN1 = 0
+            --AN2 = 5
+            --AN3 = 4
+            --AN4 = 7
+            --AN5 = 6
+            --AN6 = 3
+            --AN7 = 2
+            --AIN = 1
+            Case(adc_response_channel)
+            {
+                When("00000") { resp := 1; }
+                When("00001") { resp := 8; }
+                When("00010") { resp := 7; }
+                When("00011") { resp := 6; }
+                When("00100") { resp := 3; }
+                When("00101") { resp := 2; }
+                When("00110") { resp := 5; }
+                When("00111") { resp := 4; }
+                When("01000") { resp := 0; }
+                When(others)
+                {
+                    resp := 8;
+                }
+            }
+            Data(resp) <= TO_INTEGER(UNSIGNED(adc_response_data));
+        }
+    }
 }

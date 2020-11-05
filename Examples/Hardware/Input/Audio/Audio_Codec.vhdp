@@ -49,7 +49,8 @@ Component Audio_Codec_Component
         Sampling_Rate    : NATURAL := 48;           -- 8 -  48 (kHz)
         Microphone_Ena   : BOOLEAN := true;         -- If Microphone and Line are enabled, the inputs are combined
         Line_In_Ena      : BOOLEAN := true;
-        Differential_Out : BOOLEAN := true;         -- If false: connect negative of both speakers with LOUT_N
+        Differential_Out : BOOLEAN := true;         -- If false: connect negative of both speakers with LOUT_N or use single ended mode
+        Single_Ended     : BOOLEAN := false;        -- Connect negative pins with GND
         
         DAC_Volume       : INTEGER := 0;            --   0 - -15 (dB)
         ADC_Volume       : INTEGER := 3;            --  +3 - -12 (dB)
@@ -254,7 +255,14 @@ Component Audio_Codec_Component
                 }
                 Else
                 {
-                    sreg <=  x"160A";
+                    If(Single_Ended)
+                    {
+                        sreg <=  x"160C";
+                    }
+                    Else
+                    {
+                        sreg <=  x"160A";
+                    }
                 }
             }
             When(x"13"){ sreg <=  x"17EF"; }    --Enable Operation

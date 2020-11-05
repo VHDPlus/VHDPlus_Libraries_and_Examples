@@ -29,6 +29,14 @@ Main
     SIGNAL Audio_Codec_Component_DAC_R : UNSIGNED  (15 downto 0);
     NewComponent Audio_Codec_Component
     (
+        Microphone_Ena   => true,
+        Line_In_Ena      => false,
+        Differential_Out => false,
+        Single_Ended     => true,
+        
+        Mic_In_Gain => 10,
+        ADC_Volume => 0,
+        
         Reset => '0',
         IRQ   => IRQ,
         SDA   => SDA,
@@ -44,6 +52,7 @@ Main
         DAC_R => Audio_Codec_Component_DAC_R,
     );
     
+    /*
     Process ()
     {
         Thread
@@ -58,9 +67,13 @@ Main
             }
         }
         
-        Audio_Codec_Component_DAC_L <= TO_UNSIGNED(i*1000, 16);
-        Audio_Codec_Component_DAC_R <= TO_UNSIGNED(i*1000, 16);
+        Audio_Codec_Component_DAC_L <= TO_UNSIGNED(i*10, 16);
+        Audio_Codec_Component_DAC_R <= TO_UNSIGNED(i*10, 16);
     }
+    */
+    
+    Audio_Codec_Component_DAC_L <= Audio_Codec_Component_ADC_L;
+    Audio_Codec_Component_DAC_R <= Audio_Codec_Component_ADC_L;
     
     ISSP_probe(15 downto 0) <= STD_LOGIC_VECTOR(Audio_Codec_Component_ADC_L);
     ISSP_probe(31 downto 16) <= STD_LOGIC_VECTOR(Audio_Codec_Component_ADC_R);
