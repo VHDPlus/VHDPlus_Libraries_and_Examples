@@ -40,7 +40,6 @@
 
 Component Audio_Codec_Component
 (
-    Include();
     Generic
     (
         --General
@@ -50,7 +49,8 @@ Component Audio_Codec_Component
         Sampling_Rate    : NATURAL := 48;           -- 8 -  48 (kHz)
         Microphone_Ena   : BOOLEAN := true;         -- If Microphone and Line are enabled, the inputs are combined
         Line_In_Ena      : BOOLEAN := true;
-        Differential_Out : BOOLEAN := true;         -- If false: connect negative of both speakers with LOUT_N
+        Differential_Out : BOOLEAN := true;         -- If false: connect negative of both speakers with LOUT_N or use single ended mode
+        Single_Ended     : BOOLEAN := false;        -- Connect negative pins with GND
         
         DAC_Volume       : INTEGER := 0;            --   0 - -15 (dB)
         ADC_Volume       : INTEGER := 3;            --  +3 - -12 (dB)
@@ -70,10 +70,10 @@ Component Audio_Codec_Component
     SDOUT           : IN    STD_LOGIC;  --ADC Output
     SDIN            : OUT   STD_LOGIC;  --DAC Input
     
-    ADC_L           : OUT   UNSIGNED(15 downto 0);
-    ADC_R           : OUT   UNSIGNED(15 downto 0);
-    DAC_L           : IN    UNSIGNED(15 downto 0);
-    DAC_R           : IN    UNSIGNED(15 downto 0);
+    ADC_L           : OUT   SIGNED(15 downto 0);
+    ADC_R           : OUT   SIGNED(15 downto 0);
+    DAC_L           : IN    SIGNED(15 downto 0);
+    DAC_R           : IN    SIGNED(15 downto 0);
 )
 {
     CONSTANT Audio_Mode : STD_LOGIC_VECTOR := "1";          --1 = Audio 0 = Voice (max 24kHz in voice mode)
@@ -255,7 +255,14 @@ Component Audio_Codec_Component
                 }
                 Else
                 {
-                    sreg <=  x"160A";
+                    If(Single_Ended)
+                    {
+                        sreg <=  x"160C";
+                    }
+                    Else
+                    {
+                        sreg <=  x"160A";
+                    }
                 }
             }
             When(x"13"){ sreg <=  x"17EF"; }    --Enable Operation
@@ -288,8 +295,8 @@ Component Audio_Codec_Component
 
     Process ADC_Receive ()
     {
-        VARIABLE ADC_L_Reg : UNSIGNED(15 downto 0);
-        VARIABLE ADC_R_Reg : UNSIGNED(15 downto 0);
+        VARIABLE ADC_L_Reg : SIGNED(15 downto 0);
+        VARIABLE ADC_R_Reg : SIGNED(15 downto 0);
         If(rising_edge(BCLK))
         {
             SIGNAL   Read_Ena  : STD_LOGIC := '0';
