@@ -1,5 +1,3 @@
---Connect your headset after programming
-
 Main
 (
     IRQ   : IN STD_LOGIC;
@@ -37,7 +35,7 @@ Main
         Line_In_Ena      => false,
         Differential_Out => false,
         
-        Mic_In_Gain => 15,
+        Mic_In_Gain => 17,
         ADC_Volume => 0,
         
         Reset => '0',
@@ -55,8 +53,8 @@ Main
         DAC_R => Audio_Codec_Component_DAC_R,
     );
     
-    Audio_Codec_Component_DAC_L <= Audio_Codec_Component_ADC_L when mic_en = '1' else (others => '0');
-    Audio_Codec_Component_DAC_R <= Audio_Codec_Component_ADC_L when mic_en = '1' else (others => '0');
+    Audio_Codec_Component_DAC_L <= Audio_Codec_Component_ADC_L when mic_en = '1' else Audio_Codec_Component_DAC_L;
+    Audio_Codec_Component_DAC_R <= Audio_Codec_Component_ADC_L when mic_en = '1' else Audio_Codec_Component_DAC_R;
     
     --Automatic mute
     Process ()
