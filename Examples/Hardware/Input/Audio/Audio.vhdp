@@ -1,3 +1,5 @@
+--Connect your headset after programming
+
 Main
 (
     IRQ   : IN STD_LOGIC;
@@ -22,19 +24,20 @@ Main
     Debug_SDOUT <= SDOUT;
     Debug_SDIN <= SDIN;
     LED   <= LRCLK;
+    
+    CONSTANT Mute_Threshold : NATURAL := 1000;
 
-    SIGNAL Audio_Codec_Component_ADC_L : UNSIGNED  (15 downto 0);
-    SIGNAL Audio_Codec_Component_ADC_R : UNSIGNED  (15 downto 0);
-    SIGNAL Audio_Codec_Component_DAC_L : UNSIGNED  (15 downto 0);
-    SIGNAL Audio_Codec_Component_DAC_R : UNSIGNED  (15 downto 0);
+    SIGNAL Audio_Codec_Component_ADC_L : SIGNED  (15 downto 0);
+    SIGNAL Audio_Codec_Component_ADC_R : SIGNED  (15 downto 0);
+    SIGNAL Audio_Codec_Component_DAC_L : SIGNED  (15 downto 0);
+    SIGNAL Audio_Codec_Component_DAC_R : SIGNED  (15 downto 0);
     NewComponent Audio_Codec_Component
     (
         Microphone_Ena   => true,
         Line_In_Ena      => false,
         Differential_Out => false,
-        Single_Ended     => true,
         
-        Mic_In_Gain => 10,
+        Mic_In_Gain => 15,
         ADC_Volume => 0,
         
         Reset => '0',
@@ -52,31 +55,44 @@ Main
         DAC_R => Audio_Codec_Component_DAC_R,
     );
     
-    /*
+    Audio_Codec_Component_DAC_L <= Audio_Codec_Component_ADC_L when mic_en = '1' else (others => '0');
+    Audio_Codec_Component_DAC_R <= Audio_Codec_Component_ADC_L when mic_en = '1' else (others => '0');
+    
+    --Automatic mute
     Process ()
     {
         Thread
         {
-            SeqFor(VARIABLE i : Integer range 0 to 15 := 0; i < 15; i := i + 1)
+            SIGNAL mic_en : STD_LOGIC := '0';
+            VARIABLE mic_delay_cnt : NATURAL range 0 to 12000000/4 := 12000000/4; --250ms
+            Wait(500ms);
+            While(true)
             {
-                Wait(100us);
-            }
-            SeqFor(; i > 0; i := i - 1)
-            {
-                Wait(100us);
+                While(abs(Audio_Codec_Component_ADC_L) < Mute_Threshold){}
+                mic_en <= '1';
+                mic_delay_cnt := 0;
+                While(mic_en = '1')
+                {
+                    If(abs(Audio_Codec_Component_ADC_L) > Mute_Threshold)
+                    {
+                        mic_delay_cnt := 0;
+                    }
+                }
+                Wait(50ms);
             }
         }
         
-        Audio_Codec_Component_DAC_L <= TO_UNSIGNED(i*10, 16);
-        Audio_Codec_Component_DAC_R <= TO_UNSIGNED(i*10, 16);
+        If(mic_delay_cnt < 12000000/4)
+        {
+            mic_delay_cnt := mic_delay_cnt + 1;
+        }
+        Else
+        {
+            mic_en <= '0';
+        }
     }
-    */
     
-    Audio_Codec_Component_DAC_L <= Audio_Codec_Component_ADC_L;
-    Audio_Codec_Component_DAC_R <= Audio_Codec_Component_ADC_L;
-    
-    ISSP_probe(15 downto 0) <= STD_LOGIC_VECTOR(Audio_Codec_Component_ADC_L);
-    ISSP_probe(31 downto 16) <= STD_LOGIC_VECTOR(Audio_Codec_Component_ADC_R);
+    ISSP_probe <= x"0000" & STD_LOGIC_VECTOR(Audio_Codec_Component_ADC_L) when Audio_Codec_Component_ADC_L(15) = '0' else x"FFFF" & STD_LOGIC_VECTOR(Audio_Codec_Component_ADC_L);
     
     SIGNAL ISSP_source : std_logic_vector (7 downto 0);
     SIGNAL ISSP_probe  : std_logic_vector (31 downto 0);
