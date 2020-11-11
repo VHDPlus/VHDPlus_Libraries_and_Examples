@@ -33,6 +33,9 @@
     <Items xsi:type="ProjectFileVHDP">
       <Header>Dual-Port_RAM.vhdp</Header>
     </Items>
+	<Items xsi:type="ProjectFileVHDP">
+      <Header>List_RAM.vhdp</Header>
+    </Items>
   </Items>
   <Items xsi:type="ProjectFolder">
     <Header>NIOSDuino</Header>

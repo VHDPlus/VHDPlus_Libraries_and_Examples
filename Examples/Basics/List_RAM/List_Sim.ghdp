@@ -1,0 +1,71 @@
+Component List_tb()
+{
+    SIGNAL finished : STD_LOGIC:= '0';
+    CONSTANT period_time : TIME := 83333 ps;
+
+    Process Sim_finished()
+    {
+        wait for 50000 us;
+        finished <= '1';
+        wait;
+    }
+
+    NewComponent List
+    (
+        CLK => CLK,
+    );
+
+    SIGNAL btn : STD_LOGIC  := '0';
+    SIGNAL CLK : STD_LOGIC := '0';
+
+
+    Process Sim_btn()
+    {
+        While(finished /= '1')
+        {
+            btn <= '0';
+            wait for 2 ms;
+            btn <= '1';
+            wait for 2 ms;
+            btn <= '0';
+            wait for 1 ms;
+            btn <= '1';
+            wait for 4 ms;
+            btn <= '0';
+            wait for 1 ms;
+            btn <= '1';
+            wait for 2 ms;
+            btn <= '0';
+            wait for 1 ms;
+            btn <= '1';
+            wait for 5 ms;
+            btn <= '0';
+            wait for 1 ms;
+            btn <= '1';
+            wait for 2 ms;
+            btn <= '0';
+            wait for 1 ms;
+            btn <= '1';
+            wait for 3 ms;
+            btn <= '0';
+            wait for 1 ms;
+            btn <= '1';
+            wait for 6 ms;
+            btn <= '0';
+            wait for 1 ms;
+        }
+        wait;
+    }
+
+    Process Sim_CLK()
+    {
+        While(finished /= '1')
+        {
+            CLK <= '0';
+            wait for period_time/2;
+            CLK <= '1';
+            wait for period_time/2;
+        }
+        wait;
+    }
+}

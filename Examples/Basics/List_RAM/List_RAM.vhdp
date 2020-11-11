@@ -1,0 +1,265 @@
+/*
+    Name: List RAM
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 11.11.2020
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+    Description: This component allows to save data in the internal block memory with ist functionality
+    
+    Insertion:   -Right click on List_RAM.vhdp -> Add to project
+                 -Add NewComponent of List_RAM in your code
+                 -Set Bits to the number of bits for one data block
+                 -Set Width to the number of data blocks you need
+                 -Right click the name List_RAM next to NewComponent and create the needed signals
+    
+    Function:    Add :   -Set Data_IN to the Data to save
+                         -Set Operation from None to Add
+                         
+                 Insert: -Set Data_IN to the Data to save
+                         -Set Address to the position where the data should be saved
+                          (only positions that already used)
+                         -Set Operation from None to Insert
+                         -Wait while Busy is '1'
+                        
+                 Remove: -Set Address to the position where the item should be deleted
+                         -Set Operation from None to Remove
+                         
+                 Clear:  -Set Operation from None to Clear
+                 
+                 Read:   -Set Address to the position where you want to read the data
+                         -Set Operation from None to Read
+                         -Read the data from Data_Out
+                         
+     Example:    Basics/Memory/List_RAM
+*/
+
+Component List_RAM
+(
+    Package List_Operation_Package
+    (
+        TYPE List_Operation IS (None, Add, Insert, Remove, Clear, Read);
+    );
+    Generic
+    (
+        Width   : NATURAL := 256;   --Number of blocks to save
+        Bits    : NATURAL := 8;     --Number of Bits for one block
+    );
+    
+    Count     : out NATURAL range 0 to Width := 0;
+    
+    Operation : in  List_Operation := None;
+    Busy      : out STD_LOGIC := '0';
+    Address   : in  natural range 0 to Width-1;
+    Data_IN   : in  std_logic_vector(Bits-1 downto 0); --Data that is written into the RAM when write is '1'
+    Data_OUT  : out std_logic_vector(Bits-1 downto 0); --Data at given Address
+)
+{
+    SeqFunction Clear
+    (
+        Operation : List_Operation;
+    )
+    {
+        Operation <= Clear;
+        Step { Operation <= None; }
+    }
+    
+    --Read Data from Data_OUT
+    SeqFunction Read
+    (
+        Position  : natural range 0 to Width-1;
+        
+        Address   : natural range 0 to Width-1;
+        Operation : List_Operation;
+    )
+    {
+        Address <= Position;
+        Operation <= Read;
+        Step { Operation <= None; }
+    }
+    
+    SeqFunction Remove
+    (
+        Position  : natural range 0 to Width-1;
+        
+        Address   : natural range 0 to Width-1;
+        Operation : List_Operation;
+        Busy      : STD_LOGIC;
+    )
+    {
+        Address <= Position;
+        Operation <= Remove;
+        Step { Operation <= None; }
+        While(Busy = '1'){}
+    }
+    
+    SeqFunction Add
+    (
+        Data      : std_logic_vector(Bits-1 downto 0);
+        
+        Operation : List_Operation;
+        Data_In   : std_logic_vector(Bits-1 downto 0);
+    )
+    {
+        Data_In <= Data;
+        Operation <= Add;
+        Step { Operation <= None; }
+    }
+    
+    SeqFunction Insert
+    (
+        Data      : std_logic_vector(Bits-1 downto 0);
+        Position  : natural range 0 to Width-1;
+        
+        Address   : natural range 0 to Width-1;
+        Operation : List_Operation;
+        Data_In   : std_logic_vector(Bits-1 downto 0);
+        Busy      : STD_LOGIC;
+    )
+    {
+        Data_In <= Data;
+        Address <= Position;
+        Operation <= Insert;
+        Step { Operation <= None; }
+        While(Busy = '1'){}
+    }
+    
+    Count <= Count_reg;
+    
+    SIGNAL Count_reg : NATURAL range 0 to Width := 0;
+    
+    type ram_type is array (Width-1 downto 0) of std_logic_vector (Bits-1 downto 0);
+    signal RAM : ram_type;
+
+    Process()
+    {
+        VARIABLE save : STD_LOGIC := '0';
+        VARIABLE addr : INTEGER range -1 to Width := 0;
+        VARIABLE data : STD_LOGIC_VECTOR(Bits-1 downto 0) := (others => '0');
+        
+        VARIABLE Operation_Reg : List_Operation := None;
+        
+        --Add
+        if(Operation = Add AND Operation_Reg /= Add AND Count_reg < Width)
+        {
+            addr := Count_reg;
+            data := Data_IN;
+            Count_reg <= Count_reg + 1;
+            save := '1';
+        }
+        
+        --Insert
+        VARIABLE inse : STD_LOGIC := '0';
+        If(inse = '1')
+        {
+            addr := addr - 1;
+            If(addr > inse_addr)
+            {
+                read_addr := addr - 2;
+                data := read_data;
+            }
+            Else
+            {
+                data := inse_data;
+                inse := '0';
+            }
+            
+            save := '1';
+        }
+        VARIABLE inse_data : STD_LOGIC_VECTOR(Bits-1 downto 0) := (others => '0');
+        VARIABLE inse_addr : NATURAL range 0 to Width-1 := 0;
+        if(Operation = Insert AND Operation_Reg /= Insert AND Count_reg < Width AND Address < Count_reg)
+        {
+            inse_data := Data_IN;
+            inse_addr := Address;
+            inse      := '1';
+            addr      := Count_reg + 1;
+            read_addr := addr - 2;
+            
+            Count_reg <= Count_reg + 1;
+        }
+        
+        --Remove
+        VARIABLE remo : STD_LOGIC := '0';
+        --Remove Process
+        If(remo = '1')
+        {
+            addr := addr + 1;
+            If(addr < Count_reg-1)
+            {
+                read_addr := addr + 2;
+            }
+            Else
+            {
+                remo := '0';
+            }
+            data := read_data;
+            save := '1';
+        }
+        --Start Remove
+        if(Operation = Remove AND Operation_Reg /= Remove AND Count_reg > 0 AND Address < Count_reg)
+        {
+            addr := Address;
+            If(addr < Count_reg-1)
+            {
+                remo := '1';
+                read_addr := addr + 1;
+            }
+            addr := addr - 1;
+            Count_reg <= Count_reg - 1;
+        }
+        
+        --Clear
+        if(Operation = Clear AND Operation_Reg /= Clear)
+        {
+            Count_reg <= 0;
+        }
+        
+        --RAM save
+        If(save = '1')
+        {
+            save := '0';
+            RAM(addr) <= data;
+        }
+        
+        --Read
+        VARIABLE read_en  : STD_LOGIC := '0';
+        if(Operation = Read AND Operation_Reg /= Read)
+        {
+            read_addr := Address;
+            read_en   := '1';
+        }
+        
+        --RAM read
+        VARIABLE read_addr : NATURAL range 0 to Width-1 := 0;
+        VARIABLE read_data : std_logic_vector(Bits-1 downto 0);
+        read_data := RAM(read_addr);
+        
+        If(read_en = '1')
+        {
+            read_en := '0';
+            Data_OUT <= read_data;
+        }
+        
+        Busy <= remo OR inse;
+        
+        Operation_Reg := Operation;
+    }
+}

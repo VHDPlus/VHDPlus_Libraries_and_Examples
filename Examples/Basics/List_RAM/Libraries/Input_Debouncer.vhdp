@@ -1,0 +1,61 @@
+/*
+    Name: Input Debouncer
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 09.06.2019
+
+	This file is a derivation of the implementation found at: https://www.digikey.com/eewiki/download/attachments/4980758/debounce.vhd?version=3&modificationDate=1332165966183&api=v2
+
+    Insertion: -Right click on Input_Debouncer.vhdp -> Add to project
+			   -Add NewComponent of Input_Debouncer in your code
+			   -Remove Couter_Size or set your own size to wait a longer or shorter time for debouncing
+			   -Set Input_Number depending on the number of inputs you want to debounce
+			   -Connect your inputs with the instance IOs (you can write Inputs(0) => ... Inputs(1) => ...)
+			   -Create signals as replacement for the inputs and connect them with Outputs
+	
+    Function:  -If the input changes the Component waits 1/(CLK frequency/2^Counter_Size) seconds before setting the output. 
+	            If the input changes in this time the time to wait begins again until the input stays stable.
+*/
+
+Component Input_Debouncer
+(
+	Include();
+	Generic
+	(
+		Counter_Size	: INTEGER := 19;		--(19 bits = 1/(12MHz/2^19) = 45ms) determines the time to wait after an input change
+		Input_Number	: POSITIVE := 1;
+	);
+	Inputs		: IN  STD_LOGIC_VECTOR(Input_Number-1 downto 0) := (others => '0');
+	Outputs		: OUT STD_LOGIC_VECTOR(Input_Number-1 downto 0) := (others => '0');
+)
+{
+	AttributeDeclaration
+	{
+		TYPE InputBufferArray IS ARRAY (Input_Number-1 downto 0) OF STD_LOGIC_VECTOR(1 DOWNTO 0);
+		SIGNAL InputBuffer : InputBufferArray;
+		
+		TYPE CounterArray IS ARRAY (Input_Number-1 downto 0) OF UNSIGNED(Counter_Size-1 DOWNTO 0);
+		SIGNAL Counter : CounterArray;
+	}
+	
+	Process Debounce_Process ()
+	{
+		For(i IN 0 to Input_Number-1)
+		{
+			If((InputBuffer(i)(0) XOR InputBuffer(i)(1))='1')		--reset counter because input is changing
+			{
+				Counter(i) <= (others => '0');
+			}
+			Elsif(Counter(i) < (2**Counter_Size)-1)                 --stable input time is not yet met
+			{
+				Counter(i) <= Counter(i) + 1;
+			}
+			Else											        --stable input time is met
+			{
+				Outputs(i) <= InputBuffer(i)(1);
+			}
+			InputBuffer(i)(1) <= InputBuffer(i)(0);
+			InputBuffer(i)(0) <= Inputs(i);
+		}
+	}
+}

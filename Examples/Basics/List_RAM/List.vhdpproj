@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Header>List</Header>
+  <Items xsi:type="ProjectFolder">
+    <Header>Generated</Header>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>Input_Debouncer.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>List.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>List_RAM.vhd</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Header>Libraries</Header>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Input_Debouncer.vhdp</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>List.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>List_RAM.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileGHDP">
+    <Header>List_Sim.ghdp</Header>
+  </Items>
+  <CruviHSExtensions>
+    <string xsi:nil="true" />
+  </CruviHSExtensions>
+  <CruviLSExtensions>
+    <string xsi:nil="true" />
+    <string xsi:nil="true" />
+    <string xsi:nil="true" />
+    <string xsi:nil="true" />
+  </CruviLSExtensions>
+  <IOVoltage>0</IOVoltage>
+  <UseShield>false</UseShield>
+</ProjectRoot>

@@ -1,0 +1,58 @@
+Main
+(
+    
+)
+{
+
+    Process()
+    {
+        Thread
+        {
+            --Add
+            NewFunction Add (x"01", List_RAM_Operation, List_RAM_Data_IN); --01
+            NewFunction Add (x"02", List_RAM_Operation, List_RAM_Data_IN); --01, 02
+            NewFunction Add (x"03", List_RAM_Operation, List_RAM_Data_IN); --01, 02, 03
+            NewFunction Add (x"04", List_RAM_Operation, List_RAM_Data_IN); --01, 02, 03, 04
+            NewFunction Add (x"05", List_RAM_Operation, List_RAM_Data_IN); --01, 02, 03, 04, 05
+            
+            --Remove
+            NewFunction Remove (1, List_RAM_Address, List_RAM_Operation, List_RAM_Busy); --01, 03, 04, 05
+            
+            --Read
+            VARIABLE MyData : std_logic_vector (7 downto 0);
+            For(VARIABLE i : INTEGER := 0; i < List_RAM_Count; i := i + 1)
+            {
+                NewFunction Read (i, List_RAM_Address, List_RAM_Operation);
+                MyData := List_RAM_Data_OUT;
+            }
+            
+            --Remove
+            NewFunction Remove (3, List_RAM_Address, List_RAM_Operation, List_RAM_Busy); --01, 03, 04
+
+            --Insert
+            NewFunction Insert ("01010101", 2, List_RAM_Address, List_RAM_Operation, List_RAM_Data_IN, List_RAM_Busy);
+            
+            --Clear
+            NewFunction Clear (List_RAM_Operation); --Count = 0
+        }
+    }
+    
+    SIGNAL List_RAM_Count    : NATURAL          range 0 to 5;
+    SIGNAL List_RAM_Busy     : STD_LOGIC := '0';
+    SIGNAL List_RAM_Address  : natural          range 0 to 5-1;
+    SIGNAL List_RAM_Data_IN  : std_logic_vector (8-1 downto 0);
+    SIGNAL List_RAM_Data_OUT : std_logic_vector (8-1 downto 0);
+    SIGNAL List_RAM_Operation : List_Operation;
+    NewComponent List_RAM
+    (
+        Width     => 5,
+        Bits      => 8,
+
+        Count     =>List_RAM_Count,
+        Operation =>List_RAM_Operation,
+        Busy      =>List_RAM_Busy,
+        Address   =>List_RAM_Address,
+        Data_IN   =>List_RAM_Data_IN,
+        Data_OUT  =>List_RAM_Data_OUT,
+    );
+}
