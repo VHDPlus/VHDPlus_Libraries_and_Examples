@@ -156,6 +156,13 @@ Component List_RAM
         
         VARIABLE Operation_Reg : List_Operation := None;
         
+        If(read_en = '1')
+        {
+            read_en <= '0';
+        }
+
+        read_data := read_data_reg;
+        
         --Add
         if(Operation = Add AND Operation_Reg /= Add AND Count_reg < Width)
         {
@@ -240,26 +247,25 @@ Component List_RAM
         }
         
         --Read
-        VARIABLE read_en  : STD_LOGIC := '0';
+        SIGNAL read_en  : STD_LOGIC := '0';
         if(Operation = Read AND Operation_Reg /= Read)
         {
             read_addr := Address;
-            read_en   := '1';
+            read_en   <= '1';
         }
         
         --RAM read
         VARIABLE read_addr : NATURAL range 0 to Width-1 := 0;
         VARIABLE read_data : std_logic_vector(Bits-1 downto 0);
-        read_data := RAM(read_addr);
-        
-        If(read_en = '1')
-        {
-            read_en := '0';
-            Data_OUT <= read_data;
-        }
-        
+        read_data_reg <= RAM(read_addr);
+
         Busy <= remo OR inse;
         
         Operation_Reg := Operation;
     }
+    SIGNAL read_data_reg : std_logic_vector(Bits-1 downto 0);
+    SIGNAL data_out_reg  : std_logic_vector(Bits-1 downto 0);
+
+    data_out_reg  <= read_data_reg when read_en = '1' else data_out_reg;
+    Data_Out      <= data_out_reg;
 }
