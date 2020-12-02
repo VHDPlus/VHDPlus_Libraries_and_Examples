@@ -29,10 +29,10 @@ Component Spectrum_Analyzer
 (
     Include
     (
-        IEEE.STD_LOGIC_1164,
-        IEEE.NUMERIC_STD,
-        IEEE.MATH_REAL,
-        Spectrum_Type_Package,
+        IEEE.STD_LOGIC_1164.all,
+        IEEE.NUMERIC_STD.all,
+        IEEE.MATH_REAL.all,
+        Spectrum_Type_Package.all,
     );
     Package Spectrum_Type_Package
     (

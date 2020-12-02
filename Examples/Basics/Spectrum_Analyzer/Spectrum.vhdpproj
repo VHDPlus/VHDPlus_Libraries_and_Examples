@@ -1,10 +1,29 @@
 <?xml version="1.0"?>
 <ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Header>Spectrum</Header>
-  <fileWatcherIgnore />
+  <Items xsi:type="ProjectFolder">
+    <Header>Generated</Header>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>Butterfly.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>I2S_Interface_IN.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>LED_Matrix.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>SPI_Master.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>Spectrum.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>Spectrum_Analyzer.vhd</Header>
+    </Items>
+  </Items>
   <Items xsi:type="ProjectFolder">
     <Header>Libraries</Header>
-    <fileWatcherIgnore />
     <Items xsi:type="ProjectFileVHDP">
       <Header>I2S_IN.vhdp</Header>
     </Items>
@@ -24,4 +43,15 @@
   <Items xsi:type="ProjectFileVHDP">
     <Header>Spectrum_Analyzer.vhdp</Header>
   </Items>
+  <CruviHSExtensions>
+    <string xsi:nil="true" />
+  </CruviHSExtensions>
+  <CruviLSExtensions>
+    <string>LevelShifterExtension</string>
+    <string xsi:nil="true" />
+    <string xsi:nil="true" />
+    <string xsi:nil="true" />
+  </CruviLSExtensions>
+  <IOVoltage>0</IOVoltage>
+  <UseShield>false</UseShield>
 </ProjectRoot>

@@ -1,3 +1,4 @@
+#OfficialHardware: Core MAX10 | Please do not remove this line!
 set_global_assignment -name FAMILY "MAX 10"
 set_global_assignment -name DEVICE 10M08SAU169C8G
 set_global_assignment -name TOP_LEVEL_ENTITY Spectrum
@@ -76,22 +77,6 @@ set_global_assignment -name LAST_QUARTUS_VERSION "18.1.0 Lite Edition"
 
 
 
-set_location_assignment PIN_H2 -to column[0]
-set_location_assignment PIN_E6 -to column[1]
-set_location_assignment PIN_A3 -to column[2]
-set_location_assignment PIN_B6 -to column[3]
-set_location_assignment PIN_B5 -to column[4]
-set_location_assignment PIN_H3 -to column[5]
-set_location_assignment PIN_G4 -to column[6]
-set_location_assignment PIN_F4 -to column[7]
-set_location_assignment PIN_E8 -to row[0]
-set_location_assignment PIN_A8 -to row[1]
-set_location_assignment PIN_A7 -to row[2]
-set_location_assignment PIN_A6 -to row[3]
-set_location_assignment PIN_D6 -to row[4]
-set_location_assignment PIN_A9 -to row[5]
-set_location_assignment PIN_B9 -to row[6]
-set_location_assignment PIN_D8 -to row[7]
 
 
 
@@ -99,7 +84,6 @@ set_location_assignment PIN_D8 -to row[7]
 
 
 
-set_location_assignment PIN_D7 -to Button
 
 
 
@@ -147,21 +131,22 @@ set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_RO
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 
 
-set_global_assignment -name INTERNAL_FLASH_UPDATE_MODE "SINGLE IMAGE WITH ERAM"
 set_global_assignment -name NUM_PARALLEL_PROCESSORS 8
-set_global_assignment -name VHDL_FILE Generated/ADC_MAX10.vhd
+set_global_assignment -name INTERNAL_FLASH_UPDATE_MODE "SINGLE IMAGE WITH ERAM"
 set_global_assignment -name VHDL_FILE Generated/Butterfly.vhd
 set_global_assignment -name VHDL_FILE Generated/I2S_Interface_IN.vhd
 set_global_assignment -name VHDL_FILE Generated/LED_Matrix.vhd
+set_global_assignment -name VHDL_FILE Generated/SPI_Master.vhd
 set_global_assignment -name VHDL_FILE Generated/Spectrum.vhd
 set_global_assignment -name VHDL_FILE Generated/Spectrum_Analyzer.vhd
-set_global_assignment -name VHDL_FILE Generated/SPI_Master.vhd
-set_global_assignment -name QSYS_FILE Libraries/ADC_QSYS.qsys
-set_global_assignment -name QSYS_FILE Libraries/ISSP.qsys
 set_location_assignment PIN_H6 -to CLK
+set_location_assignment PIN_L2 -to DIN_O
+set_location_assignment PIN_K1 -to CS_O
+set_location_assignment PIN_M3 -to CLK_O
 set_location_assignment PIN_C9 -to Data
-set_location_assignment PIN_B3 -to LRCLK
-set_location_assignment PIN_C2 -to CLK_O
-set_location_assignment PIN_D1 -to CS_O
-set_location_assignment PIN_C1 -to DIN_O
 set_location_assignment PIN_C10 -to BCLK
+set_location_assignment PIN_B3 -to LRCLK
+set_location_assignment PIN_H1 -to VS[0]
+set_location_assignment PIN_B7 -to VS[1]
+set_location_assignment PIN_L1 -to VS[2]
+set_location_assignment PIN_K13 -to VS_EN
