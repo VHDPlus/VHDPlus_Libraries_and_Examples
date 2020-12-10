@@ -1,23 +1,18 @@
 <?xml version="1.0"?>
 <ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Header>Hardware</Header>
-  <fileWatcherIgnore />
   <Items xsi:type="ProjectFolder">
     <Header>Input</Header>
-    <fileWatcherIgnore />
     <Items xsi:type="ProjectFolder">
       <Header>Camera</Header>
-      <fileWatcherIgnore />
-	  <Items xsi:type="ProjectFolder">
+      <Items xsi:type="ProjectFolder">
         <Header>Blob_Detection</Header>
-        <fileWatcherIgnore />
         <Items xsi:type="ProjectFileVHDP">
           <Header>Blob_Detect.vhdp</Header>
         </Items>
       </Items>
       <Items xsi:type="ProjectFolder">
         <Header>CSI_Camera</Header>
-        <fileWatcherIgnore />
         <Items xsi:type="ProjectFileVHDP">
           <Header>ALTDDIO_IN.qsys.vhdp</Header>
         </Items>
@@ -30,7 +25,6 @@
       </Items>
       <Items xsi:type="ProjectFolder">
         <Header>Drawing</Header>
-        <fileWatcherIgnore />
         <Items xsi:type="ProjectFileVHDP">
           <Header>Cross.vhdp</Header>
         </Items>
@@ -46,7 +40,6 @@
       </Items>
       <Items xsi:type="ProjectFolder">
         <Header>Filter</Header>
-        <fileWatcherIgnore />
         <Items xsi:type="ProjectFileVHDP">
           <Header>AreaLimitedCompression.vhdp</Header>
         </Items>
@@ -60,7 +53,7 @@
           <Header>Gaussian_Filter.vhdp</Header>
         </Items>
         <Items xsi:type="ProjectFileVHDP">
-		  <Header>Gaussian_Row_Filter.vhdp</Header>
+          <Header>Gaussian_Row_Filter.vhdp</Header>
         </Items>
         <Items xsi:type="ProjectFileVHDP">
           <Header>RGB2HSV.vhdp</Header>
@@ -78,7 +71,6 @@
     </Items>
     <Items xsi:type="ProjectFolder">
       <Header>MAX10_ADC</Header>
-      <fileWatcherIgnore />
       <Items xsi:type="ProjectFileVHDP">
         <Header>ADC_MAX10.vhdp</Header>
       </Items>
@@ -89,10 +81,10 @@
         <Header>ADC_QSYS.qsys.vhdp</Header>
       </Items>
     </Items>
-	<Items xsi:type="ProjectFileVHDP">
+    <Items xsi:type="ProjectFileVHDP">
       <Header>Audio_Codec.vhdp</Header>
     </Items>
-	<Items xsi:type="ProjectFileVHDP">
+    <Items xsi:type="ProjectFileVHDP">
       <Header>Bluetooth.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
@@ -113,10 +105,8 @@
   </Items>
   <Items xsi:type="ProjectFolder">
     <Header>Output</Header>
-    <fileWatcherIgnore />
     <Items xsi:type="ProjectFolder">
       <Header>LED_Matrix</Header>
-      <fileWatcherIgnore />
       <Items xsi:type="ProjectFileVHDP">
         <Header>LED_Matrix.vhdp</Header>
       </Items>
@@ -126,7 +116,6 @@
     </Items>
     <Items xsi:type="ProjectFolder">
       <Header>Motor</Header>
-      <fileWatcherIgnore />
       <Items xsi:type="ProjectFileVHDP">
         <Header>Motor_Controller.vhdp</Header>
       </Items>
@@ -139,7 +128,6 @@
     </Items>
     <Items xsi:type="ProjectFolder">
       <Header>HDMI</Header>
-      <fileWatcherIgnore />
       <Items xsi:type="ProjectFileVHDP">
         <Header>VS_Converter.vhdp</Header>
       </Items>
@@ -158,15 +146,18 @@
       <Items xsi:type="ProjectFileVHDP">
         <Header>VS_PLL.qip</Header>
       </Items>
-      <Items xsi:type="ProjectFileVHDP">
+      <Items xsi:type="ProjectFileVHDL">
         <Header>VS_PLL.vhd</Header>
       </Items>
-	  <Items xsi:type="ProjectFileVHDP">
+      <Items xsi:type="ProjectFileVHDP">
         <Header>VS_RAM_PLL.qip</Header>
       </Items>
-      <Items xsi:type="ProjectFileVHDP">
+      <Items xsi:type="ProjectFileVHDL">
         <Header>VS_RAM_PLL.vhd</Header>
       </Items>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Graphics_Render.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>LCD.vhdp</Header>
@@ -177,8 +168,19 @@
     <Items xsi:type="ProjectFileVHDP">
       <Header>Shift_Register.vhdp</Header>
     </Items>
-	<Items xsi:type="ProjectFileVHDP">
+    <Items xsi:type="ProjectFileVHDP">
       <Header>LED_Strip_Interface.vhdp</Header>
     </Items>
   </Items>
+  <CruviHSExtensions>
+    <string xsi:nil="true" />
+  </CruviHSExtensions>
+  <CruviLSExtensions>
+    <string xsi:nil="true" />
+    <string xsi:nil="true" />
+    <string xsi:nil="true" />
+    <string xsi:nil="true" />
+  </CruviLSExtensions>
+  <IOVoltage>0</IOVoltage>
+  <UseShield>false</UseShield>
 </ProjectRoot>

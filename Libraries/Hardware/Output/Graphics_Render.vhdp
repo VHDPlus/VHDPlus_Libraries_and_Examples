@@ -1,0 +1,563 @@
+/*
+    Name: Graphics Render
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 06.06.2019
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Description: This component helps to create images for an display
+    
+    Insertion: -Right click on Graphics_Render.vhdp -> Add to project
+               -Add the HDMI libraries, the VS_Converter and Image_Data libraies
+               -Add NewComponent of Graphics_Render, VS_Converter and HDMI_Out in your code
+               -Set the parameters for image compession (to reduce RAM)
+               -Right click the name Graphics_Render next to NewComponent and create the signals
+               
+    Function:  -Recommended use is with the SeqFunctions graphics_fill/point/line/rectangle or bitmap
+               -Circle, triangle or characters are not supported at the moment. You can use a NIOS processor and the bitmap function for the most applications
+               -Line width is not supported as well
+               -For bitmap, with Data you set a 24bit bitmap. With the first and second point you can arrange the bits in a rectangle (1x24, 2x12, 3x8, 4x6, 6x4, 8x3, 2x12 or 24x1).
+                The image is left as it is with a '0' and with '1' the pixel is set to the given color
+                
+                0 1 0 0
+                1 1 1 0
+                0 1 0 0
+                0 1 0 0
+                0 1 0 0
+                0 1 1 0
+ */
+
+Component Graphics_Render
+(
+    Package Graphics_Render_Package
+    (
+        TYPE render_functions IS (point, lines, rectangle, circle, triangle, bitmap, characters, fill, none);
+    );
+    
+    Generic
+    (
+        Compression     : NATURAL := 1; --Resolution: (Image_Width/Compression) x (Image_Height/Compression)
+        Width           : NATURAL := 8; --1-8 bit color width
+        RGB             : BOOLEAN := true;  --false for monochrome
+    );
+    
+    Data_CLK     : IN  STD_LOGIC := '0';
+    Point_X      : IN  NATURAL range 0 to 639/Compression := 0;
+    Point_Y      : IN  NATURAL range 0 to 479/Compression := 0;
+    Data         : IN  STD_LOGIC_VECTOR(23 downto 0) := x"000000";
+    Function_Sel : IN  render_functions := none;
+    Busy         : OUT STD_LOGIC := '0';
+    
+    Pixel_CLK    : IN  STD_LOGIC;
+
+    oStream      : BUFFER rgb_stream;
+)
+{
+    CONSTANT maxH    : NATURAL := 799; --total length of line
+    CONSTANT maxV    : NATURAL := 525; --total rows
+    
+    CONSTANT xWidth : NATURAL := 639/Compression;
+    CONSTANT yWidth : NATURAL := 479/Compression;
+    
+    SeqFunction graphics_fill
+    (
+        color        : STD_LOGIC_VECTOR(23 downto 0);
+        
+        Data_CLK     : STD_LOGIC;
+        Data         : STD_LOGIC_VECTOR(23 downto 0);
+        Function_Sel : render_functions;
+        Busy         : STD_LOGIC;
+    )
+    {
+        While(Busy = '1') {}
+        Function_Sel <= fill;
+        Data <= color;
+        Data_CLK <= '1';
+        Step{ Data_CLK <= '0'; }
+    }
+    
+    SeqFunction graphics_point
+    (
+        color        : STD_LOGIC_VECTOR(23 downto 0);
+        x            : NATURAL range 0 to 639/Compression;
+        y            : NATURAL range 0 to 479/Compression;
+        
+        Data_CLK     : STD_LOGIC;
+        Point_X      : NATURAL range 0 to 639/Compression;
+        Point_Y      : NATURAL range 0 to 479/Compression;
+        Data         : STD_LOGIC_VECTOR(23 downto 0);
+        Function_Sel : render_functions := none;
+        Busy         : STD_LOGIC;
+    )
+    {
+        While(Busy = '1') {}
+        Function_Sel <= point;
+        Data <= color;
+        Point_X <= x;
+        Point_Y <= y;
+        Data_CLK <= '1';
+        Step{ Data_CLK <= '0'; }
+    }
+    
+    SeqFunction graphics_line
+    (
+        color        : STD_LOGIC_VECTOR(23 downto 0);
+        x1           : NATURAL range 0 to 639/Compression;
+        y1           : NATURAL range 0 to 479/Compression;
+        x2           : NATURAL range 0 to 639/Compression;
+        y2           : NATURAL range 0 to 479/Compression;
+        width        : NATURAL range 0 to 255;
+        
+        Data_CLK     : STD_LOGIC;
+        Point_X      : NATURAL range 0 to 639/Compression;
+        Point_Y      : NATURAL range 0 to 479/Compression;
+        Data         : STD_LOGIC_VECTOR(23 downto 0);
+        Function_Sel : render_functions := none;
+        Busy         : STD_LOGIC;
+    )
+    {
+        While(Busy = '1') {}
+        Function_Sel <= lines;
+        Data <= color;
+        Point_X <= x1;
+        Point_Y <= y1;
+        Data_CLK <= '1';
+        Step { Data_CLK <= '0'; }
+        Data <= x"0001" & STD_LOGIC_VECTOR(TO_UNSIGNED(width, 8));
+        Point_X <= x2;
+        Point_Y <= y2;
+        Data_CLK <= '1';
+        Step { Data_CLK <= '0'; }
+    }
+    
+    SeqFunction graphics_rectangle
+    (
+        color        : STD_LOGIC_VECTOR(23 downto 0);
+        x1           : NATURAL range 0 to 639/Compression;
+        y1           : NATURAL range 0 to 479/Compression;
+        x2           : NATURAL range 0 to 639/Compression;
+        y2           : NATURAL range 0 to 479/Compression;
+        width        : NATURAL range 0 to 255;
+        fill         : STD_LOGIC;
+        
+        Data_CLK     : STD_LOGIC;
+        Point_X      : NATURAL range 0 to 639/Compression;
+        Point_Y      : NATURAL range 0 to 479/Compression;
+        Data         : STD_LOGIC_VECTOR(23 downto 0);
+        Function_Sel : render_functions := none;
+        Busy         : STD_LOGIC;
+    )
+    {
+        While(Busy = '1') {}
+        Function_Sel <= rectangle;
+        Data <= color;
+        Point_X <= x1;
+        Point_Y <= y1;
+        Data_CLK <= '1';
+        Step { Data_CLK <= '0'; }
+        Data <= "000000000000000" & fill & STD_LOGIC_VECTOR(TO_UNSIGNED(width, 8));
+        Point_X <= x2;
+        Point_Y <= y2;
+        Data_CLK <= '1';
+        Step { Data_CLK <= '0'; }
+    }
+    
+    SeqFunction graphics_bitmap
+    (
+        color        : STD_LOGIC_VECTOR(23 downto 0);
+        x1           : NATURAL range 0 to 639/Compression;
+        y1           : NATURAL range 0 to 479/Compression;
+        x2           : NATURAL range 0 to 639/Compression;
+        y2           : NATURAL range 0 to 479/Compression;
+        bitmap_data  : STD_LOGIC_VECTOR(23 downto 0);
+        
+        Data_CLK     : STD_LOGIC;
+        Point_X      : NATURAL range 0 to 639/Compression;
+        Point_Y      : NATURAL range 0 to 479/Compression;
+        Data         : STD_LOGIC_VECTOR(23 downto 0);
+        Function_Sel : render_functions := none;
+        Busy         : STD_LOGIC;
+    )
+    {
+        While(Busy = '1') {}
+        Function_Sel <= bitmap;
+        Data <= color;
+        Point_X <= x1;
+        Point_Y <= y1;
+        Data_CLK <= '1';
+        Step { Data_CLK <= '0'; }
+        Data <= bitmap_data;
+        Point_X <= x2;
+        Point_Y <= y2;
+        Data_CLK <= '1';
+        Step { Data_CLK <= '0'; }
+    }
+    /*
+    SeqFunction graphics_circle
+    (
+        color        : STD_LOGIC_VECTOR(23 downto 0);
+        x1           : NATURAL range 0 to 639/Compression;
+        y1           : NATURAL range 0 to 479/Compression;
+        r            : NATURAL range 0 to 639/Compression;
+        width        : NATURAL range 0 to 255;
+        fill         : STD_LOGIC;
+        
+        Data_CLK     : STD_LOGIC;
+        Point_X      : NATURAL range 0 to 639/Compression;
+        Point_Y      : NATURAL range 0 to 479/Compression;
+        Data         : STD_LOGIC_VECTOR(23 downto 0);
+        Function_Sel : render_functions := none;
+        Busy         : STD_LOGIC;
+    )
+    {
+        While(Busy = '1') {}
+        Function_Sel <= rectangle;
+        Data <= color;
+        Point_X <= x1;
+        Point_Y <= y1;
+        Data_CLK <= '1';
+        Step { Data_CLK <= '0'; }
+        Data <= "000000000000000" & fill & STD_LOGIC_VECTOR(TO_UNSIGNED(width, 8));
+        Point_X <= r;
+        Data_CLK <= '1';
+        Step { Data_CLK <= '0'; }
+    }
+    */
+    
+    
+    SIGNAL column : NATURAL range 0 to maxH := 0;
+    SIGNAL row    : NATURAL range 0 to maxV := 0;
+
+    TYPE column_type IS ARRAY (xWidth downto 0) OF STD_LOGIC_VECTOR((Width)-1 downto 0);
+    TYPE frame_type IS ARRAY (yWidth downto 0) OF column_type;
+    SIGNAL image_r : frame_type;
+    SIGNAL image_g : frame_type;
+    SIGNAL image_b : frame_type;
+
+    SIGNAL RAM_Out_Col  : NATURAL range 0 to xWidth := 0;
+    SIGNAL RAM_Out_Row  : NATURAL range 0 to yWidth := 0;
+    
+    --column and row signal generator
+    Process ()
+    {
+        If(rising_edge(Pixel_CLK))
+        {
+            If(column < maxH)
+            {
+                column <= column + 1;
+            }
+            Else
+            {
+                column <= 0;
+                If(row < maxV)
+                {
+                    row <= row + 1;
+                }
+                Else
+                {
+                    row <= 0;
+                }
+            }
+            
+        }
+    }
+    
+    --image generator
+    Process ()
+    {
+        VARIABLE Save_Enable : STD_LOGIC := '0';
+        VARIABLE RAM_Data_In_R  : STD_LOGIC_VECTOR((Width)-1 downto 0) := (others => '0');
+        VARIABLE RAM_Data_In_G  : STD_LOGIC_VECTOR((Width)-1 downto 0) := (others => '0');
+        VARIABLE RAM_Data_In_B  : STD_LOGIC_VECTOR((Width)-1 downto 0) := (others => '0');
+        VARIABLE RAM_Addr_Col : NATURAL range 0 to xWidth := 0;
+        VARIABLE RAM_Addr_Row : NATURAL range 0 to yWidth := 0;
+        
+        VARIABLE state_counter : NATURAL range 0 to 255 := 0;
+        
+        VARIABLE new_data      : STD_LOGIC := '0';
+        VARIABLE data_clk_reg  : STD_LOGIC := '0';
+        If(Data_CLK = '1' and data_clk_reg = '0')
+        {
+            new_data := '1';
+        }
+        data_clk_reg := Data_CLK;
+        
+        VARIABLE point1_x : NATURAL range 0 to xWidth := 0;
+        VARIABLE point2_x : NATURAL range 0 to xWidth := 0;
+        VARIABLE point3_x : NATURAL range 0 to xWidth := 0;
+        VARIABLE point1_y : NATURAL range 0 to yWidth := 0;
+        VARIABLE point2_y : NATURAL range 0 to yWidth := 0;
+        VARIABLE point3_y : NATURAL range 0 to yWidth := 0;
+        
+        VARIABLE line_width : NATURAL range 0 to 255 := 1;
+        VARIABLE fill_shape : STD_LOGIC := '0';
+        
+        Case(Function_Sel)
+        {
+            When(fill)
+            {
+                If(state_counter = 1)
+                {
+                    If(RAM_Addr_Col < xWidth)
+                    {
+                        RAM_Addr_Col := RAM_Addr_Col + 1;
+                    }
+                    Else
+                    {
+                        RAM_Addr_Col := 0;
+                        If(RAM_Addr_Row < yWidth)
+                        {
+                            RAM_Addr_Row := RAM_Addr_Row + 1;
+                        }
+                        Else
+                        {
+                            state_counter := 0;
+                            Busy <= '0';
+                            Save_Enable := '0';
+                        }
+                    }
+                }
+                If(new_data = '1')
+                {
+                    new_data := '0';
+                    state_counter := 1;
+                    RAM_Addr_Col := 0;
+                    RAM_Addr_Row := 0;
+                    RAM_Data_In_R := Data(23 downto (24-Width));
+                    RAM_Data_In_G := Data(15 downto (16-Width));
+                    RAM_Data_In_B := Data(7 downto (8-Width));
+                    Busy <= '1';
+                    Save_Enable := '1';
+                }
+            }
+            When(point)
+            {
+                If(new_data = '1')
+                {
+                    new_data := '0';
+                    RAM_Addr_Col := Point_X;
+                    RAM_Addr_Row := Point_Y;
+                    RAM_Data_In_R := Data(23 downto (24-Width));
+                    RAM_Data_In_G := Data(15 downto (16-Width));
+                    RAM_Data_In_B := Data(7 downto (8-Width));
+                    Save_Enable := '1';
+                }
+                Else
+                {
+                    Save_Enable := '0';
+                }
+            }
+            When(bitmap)
+            {
+                If(new_data = '1')
+                {
+                    new_data := '0';
+                    If(state_counter = 0)
+                    {
+                        state_counter := 1;
+                        point1_x := Point_X;
+                        point1_y := Point_Y;
+                        RAM_Data_In_R := Data(23 downto (24-Width));
+                        RAM_Data_In_G := Data(15 downto (16-Width));
+                        RAM_Data_In_B := Data(7 downto (8-Width));
+                    }
+                    Elsif(state_counter = 1)
+                    {
+                        point2_x := Point_X;
+                        point2_y := Point_Y;
+                        state_counter := 2;
+                        Busy <= '1';
+                    }
+                }
+                If(state_counter = 2)
+                {
+                    Thread
+                    {
+                        RAM_Addr_Row := point1_y;
+                        RAM_Addr_Col := point1_x;
+                        step_x := 23;
+                        For(; RAM_Addr_Row /= point2_y + 1; RAM_Addr_Row := RAM_Addr_Row + 1)
+                        {
+                            For(RAM_Addr_Col := point1_x; RAM_Addr_Col /= point2_x + 1; RAM_Addr_Col := RAM_Addr_Col + 1)
+                            {
+                                Step
+                                {
+                                    If(Data(step_x) = '1')
+                                    {
+                                        Save_Enable := '1';
+                                    }
+                                }
+                                Save_Enable := '0';
+                                If(step_x > 0)
+                                {
+                                    step_x := step_x - 1;
+                                }
+                            }
+                        }
+                        Save_Enable := '0';
+                        state_counter := 0;
+                        Busy <= '0';
+                    }
+                }
+            }
+            When(lines | rectangle | circle | triangle)
+            {
+                If(state_counter = 3)
+                {
+                    SIGNAL add_x : INTEGER range -1 to 1 := 1;
+                    If(point1_x > point2_x) { add_x <= -1; } Else { add_x <= 1; }
+                    SIGNAL add_y : INTEGER range -1 to 1 := 1;
+                    If(point1_y > point2_y) { add_y <= -1; } Else { add_y <= 1; }
+                    
+                    Case(Function_Sel)
+                    {
+                        When(lines)
+                        {
+                            Thread
+                            {
+                                SIGNAL diff_x : NATURAL range 0 to xWidth := 0;
+                                SIGNAL diff_y : NATURAL range 0 to yWidth := 0;
+                                diff_x <= abs(point2_x - point1_x);
+                                diff_y <= abs(point2_y - point1_y);
+
+                                RAM_Addr_Row := point1_y;
+                                RAM_Addr_Col := point1_x;
+                                
+                                For(; RAM_Addr_Col /= point2_x + add_x; RAM_Addr_Col := RAM_Addr_Col + add_x)
+                                {
+                                    VARIABLE step_x : NATURAL range 0 to yWidth := 0;
+                                    step_x := abs(RAM_Addr_Col - point1_x);
+                                    VARIABLE y_calc : NATURAL range 0 to yWidth := 0;
+                                    y_calc := point1_y + (step_x*diff_y)/diff_x*add_y;
+                                    Save_Enable := '1';
+                                    For(; RAM_Addr_Row /= y_calc + add_y AND RAM_Addr_Row /= point2_y; RAM_Addr_Row := RAM_Addr_Row + add_y){}
+                                    Save_Enable := '0';
+                                }
+                                Busy <= '0';
+                                state_counter := 0;
+                            }
+                        }
+                        When(rectangle)
+                        {
+                            Thread
+                            {
+                                RAM_Addr_Row := point1_y;
+                                RAM_Addr_Col := point1_x;
+                                Save_Enable := '1';
+                                For(; RAM_Addr_Row /= point2_y; RAM_Addr_Row := RAM_Addr_Row + add_y)
+                                {
+                                    If(fill_shape = '1' OR RAM_Addr_Row = point1_y)
+                                    {
+                                        For(RAM_Addr_Col := point1_x; RAM_Addr_Col /= point2_x; RAM_Addr_Col := RAM_Addr_Col + add_x){}
+                                    }
+                                }
+                                For(; RAM_Addr_Col /= point1_x; RAM_Addr_Col := RAM_Addr_Col - add_x){}
+                                For(; RAM_Addr_Row /= point1_y; RAM_Addr_Row := RAM_Addr_Row - add_y){}
+                                Save_Enable := '0';
+                                Busy <= '0';
+                                state_counter := 0;
+                            }
+                        }
+                        When(others)
+                        {
+                            Busy <= '0';
+                            state_counter := 0;
+                        }
+                    }
+                }
+                
+                If(new_data = '1')
+                {
+                    new_data := '0';
+                    If(state_counter = 0)
+                    {
+                        state_counter := 1;
+                        point1_x := Point_X;
+                        point1_y := Point_Y;
+                        RAM_Data_In_R := Data(23 downto (24-Width));
+                        RAM_Data_In_G := Data(15 downto (16-Width));
+                        RAM_Data_In_B := Data(7 downto (8-Width));
+                    }
+                    Elsif(state_counter = 1)
+                    {
+                        point2_x := Point_X;
+                        point2_y := Point_Y;
+                        line_width := TO_INTEGER(UNSIGNED(data(7 downto 0)));
+                        fill_shape := data(8);
+                        If(Function_Sel = triangle)
+                        {
+                            state_counter := 2;
+                        }
+                        Else
+                        {
+                            Busy <= '1';
+                            state_counter := 3;
+                        }
+                    }
+                    Elsif(state_counter = 2)
+                    {
+                        point3_x := Point_X;
+                        point3_y := Point_Y;
+                        Busy <= '1';
+                        state_counter := 3;
+                    }
+                }
+            }
+            When(others)
+            {
+                Save_Enable := '0';
+                new_data := '0';
+                state_counter := 0;
+            }
+        }
+        
+        if (Save_Enable = '1')
+        {
+            image_r(RAM_Addr_Row)(RAM_Addr_Col) <= RAM_Data_In_R;
+            If(RGB)
+            {
+                image_g(RAM_Addr_Row)(RAM_Addr_Col) <= RAM_Data_In_G;
+                image_b(RAM_Addr_Row)(RAM_Addr_Col) <= RAM_Data_In_B;
+            }
+        }
+        
+        SIGNAL RAM_Data_In_R_reg  : STD_LOGIC_VECTOR((Width)-1 downto 0) := (others => '0');
+        SIGNAL RAM_Data_In_G_reg  : STD_LOGIC_VECTOR((Width)-1 downto 0) := (others => '0');
+        SIGNAL RAM_Data_In_B_reg  : STD_LOGIC_VECTOR((Width)-1 downto 0) := (others => '0');
+        SIGNAL RAM_Addr_Col_reg : NATURAL range 0 to xWidth := 0;
+        SIGNAL RAM_Addr_Row_reg : NATURAL range 0 to yWidth := 0;
+        RAM_Data_In_R_reg <= RAM_Data_In_R;
+        RAM_Data_In_G_reg <= RAM_Data_In_G;
+        RAM_Data_In_B_reg <= RAM_Data_In_B;
+        RAM_Addr_Col_reg  <= RAM_Addr_Col;
+        RAM_Addr_Row_reg  <= RAM_Addr_Row;
+    }
+
+    oStream.Column    <= column when column < Image_Width else Image_Width-1;
+    oStream.Row       <= row when row < Image_Height else Image_Height-1;
+    oStream.New_Pixel <= Pixel_CLK;
+
+    RAM_Out_Col <= column/Compression when column < 639 else xWidth;
+    RAM_Out_Row <= row/Compression when row < 479 else yWidth;
+
+    oStream.R(7 downto (8-Width)) <= image_r(RAM_Out_Row)(RAM_Out_Col);
+    oStream.G(7 downto (8-Width)) <= image_g(RAM_Out_Row)(RAM_Out_Col) when RGB else oStream.R(7 downto (8-Width));
+    oStream.B(7 downto (8-Width)) <= image_b(RAM_Out_Row)(RAM_Out_Col) when RGB else oStream.R(7 downto (8-Width));
+}
