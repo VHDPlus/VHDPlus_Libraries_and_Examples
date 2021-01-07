@@ -9,18 +9,9 @@ Main
     SDOUT : IN STD_LOGIC;
     SDIN  : BUFFER STD_LOGIC;
     
-    Debug_LRCLK  : OUT STD_LOGIC;
-    Debug_BCLK   : OUT STD_LOGIC;
-    Debug_SDOUT  : OUT STD_LOGIC;
-    Debug_SDIN   : OUT STD_LOGIC;
-    
     LED   : OUT STD_LOGIC;
 )
 {
-    Debug_LRCLK <= LRCLK;
-    Debug_BCLK <= BCLK;
-    Debug_SDOUT <= SDOUT;
-    Debug_SDIN <= SDIN;
     LED   <= LRCLK;
     
     CONSTANT Mute_Threshold : NATURAL := 1000;

@@ -273,13 +273,13 @@ Component Blob_Detect
             h_scale_div := Image_Height/scale;
             w_scale_div := Image_Width/scale;
             
-            if (Max_Blob_Height > h_scale_div) { calc_max_h := Image_Height-1; }
+            if (Max_Blob_Height >= h_scale_div) { calc_max_h := Image_Height-1; }
             Else { calc_max_h := Max_Blob_Height * scale; }
-            if (Max_Blob_Width > w_scale_div) { calc_max_w := Image_Height-1; }
+            if (Max_Blob_Width >= w_scale_div) { calc_max_w := Image_Height-1; }
             Else { calc_max_w := Max_Blob_Width * scale; }
-            if (Min_Blob_Height > h_scale_div) { calc_min_h := Image_Height-1; }
+            if (Min_Blob_Height >= h_scale_div) { calc_min_h := Image_Height-1; }
             Else { calc_min_h := Min_Blob_Height * scale; }
-            if (Min_Blob_Width > w_scale_div) { calc_min_w := Image_Height-1; }
+            if (Min_Blob_Width >= w_scale_div) { calc_min_w := Image_Height-1; }
             Else { calc_min_w := Min_Blob_Width * scale; }
             
             If(not found or copy)

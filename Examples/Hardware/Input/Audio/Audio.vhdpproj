@@ -39,10 +39,10 @@
   </CruviHSExtensions>
   <CruviLSExtensions>
     <string>LevelShifterExtension</string>
-    <string xsi:nil="true" />
+    <string>LevelShifterExtension</string>
     <string xsi:nil="true" />
     <string xsi:nil="true" />
   </CruviLSExtensions>
   <IOVoltage>0</IOVoltage>
-  <UseShield>false</UseShield>
+  <UseShield>true</UseShield>
 </ProjectRoot>
