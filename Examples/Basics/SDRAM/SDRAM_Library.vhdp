@@ -1,0 +1,86 @@
+/*
+    Copyright (c) 2021 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+*/
+
+Main
+(
+    SDRAM_addr   : OUT STD_LOGIC_VECTOR (11 downto 0);
+    SDRAM_ba     : OUT STD_LOGIC_VECTOR (1 downto 0);
+    SDRAM_cas_n  : OUT STD_LOGIC;
+    SDRAM_dq     : INOUT STD_LOGIC_VECTOR (15 downto 0) := (others => 'X');
+    SDRAM_dqm    : OUT STD_LOGIC_VECTOR (1 downto 0);
+    SDRAM_ras_n  : OUT STD_LOGIC;
+    SDRAM_we_n   : OUT STD_LOGIC;
+    SDRAM_clk    : OUT STD_LOGIC;
+)
+{
+    SIGNAL ISSP_source : std_logic_vector (7 downto 0);
+    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0) := (others => 'X');
+    NewComponent ISSP
+    (
+        source => ISSP_source,
+        probe  => ISSP_probe,
+    );
+
+    Process ()
+    {
+        Thread
+        {
+            For(VARIABLE i : INTEGER := 0; i < 255; i := i + 1)
+            {
+                NewFunction Write_SDRAM (i, STD_LOGIC_VECTOR(TO_UNSIGNED(i, 16)), SDRAM_Write_Enable, SDRAM_Address, SDRAM_Write_Data, SDRAM_Busy);
+            }
+            
+            While(true)
+            {
+                NewFunction Read_SDRAM (TO_INTEGER(UNSIGNED(ISSP_source)), ISSP_probe(15 downto 0), SDRAM_Read_Enable, SDRAM_Address, SDRAM_Read_Data, SDRAM_Busy);
+            }
+        }
+    }
+    
+    SIGNAL SDRAM_Busy         : STD_LOGIC := '0';
+    SIGNAL SDRAM_Address      : STD_LOGIC_VECTOR (21 downto 0) := (others => '0');
+    SIGNAL SDRAM_Byte_Enable  : STD_LOGIC_VECTOR (1 downto 0) := "11";
+    SIGNAL SDRAM_Write_Enable : STD_LOGIC := '0';
+    SIGNAL SDRAM_Write_Data   : STD_LOGIC_VECTOR (15 downto 0);
+    SIGNAL SDRAM_Read_Enable  : STD_LOGIC := '0';
+    SIGNAL SDRAM_Read_Data    : STD_LOGIC_VECTOR (15 downto 0);
+    SIGNAL SDRAM_Read_Valid   : STD_LOGIC := '0';
+    NewComponent SDRAM_Interface
+    (
+        Reset        => '0',
+        Busy         => SDRAM_Busy,
+        Address      => SDRAM_Address,
+        Byte_Enable  => SDRAM_Byte_Enable,
+        Write_Enable => SDRAM_Write_Enable,
+        Write_Data   => SDRAM_Write_Data,
+        Read_Enable  => SDRAM_Read_Enable,
+        Read_Data    => SDRAM_Read_Data,
+        Read_Valid   => SDRAM_Read_Valid,
+        SDRAM_addr   => SDRAM_addr,
+        SDRAM_ba     => SDRAM_ba,
+        SDRAM_cas_n  => SDRAM_cas_n,
+        SDRAM_dq     => SDRAM_dq,
+        SDRAM_dqm    => SDRAM_dqm,
+        SDRAM_ras_n  => SDRAM_ras_n,
+        SDRAM_we_n   => SDRAM_we_n,
+        SDRAM_clk    => SDRAM_clk,
+    );
+}

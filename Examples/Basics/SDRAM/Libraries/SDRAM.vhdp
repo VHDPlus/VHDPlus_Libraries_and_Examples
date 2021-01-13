@@ -1,0 +1,210 @@
+/*
+    Copyright (c) 2021 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+    Insertion: -Right click on SDRAM.vhdp -> Add to project
+               -Right click on SDRAM.qsys -> Add to project
+               -Add NewComponent of SDRAM in your code
+               -Right click the name SDRAM next to NewComponent and create the needed signal
+    
+    Function:  -You can read or write a 16bit word with the Write_SDRAM or Read_SDRAM function
+               -See the Intel Avalon Interface Specifications sheet for more information on how to use the SDRAM component
+*/
+
+Component SDRAM_Interface
+(
+    Reset                   : in    std_logic := '0';
+    
+    Busy                    : OUT   STD_LOGIC := '0';
+    Address                 : IN    STD_LOGIC_VECTOR(21 downto 0) := (others => '0'); --Address to read from or write to
+    Byte_Enable             : IN    STD_LOGIC_VECTOR(1 downto 0) := "11"; --If you e.g. want to write only one of the two bytes
+    Write_Enable            : IN    STD_LOGIC := '0';
+    Write_Data              : IN    STD_LOGIC_VECTOR(15 downto 0);
+    Read_Enable             : IN    STD_LOGIC := '0';
+    Read_Data               : OUT   STD_LOGIC_VECTOR(15 downto 0);
+    Read_Valid              : OUT   STD_LOGIC := '0';
+    
+    SDRAM_addr              : OUT   STD_LOGIC_VECTOR(11 downto 0);
+    SDRAM_ba                : OUT   STD_LOGIC_VECTOR(1 downto 0);
+    SDRAM_cas_n             : OUT   STD_LOGIC;
+    SDRAM_dq                : INOUT STD_LOGIC_VECTOR(15 downto 0) := (others => 'X');
+    SDRAM_dqm               : OUT   STD_LOGIC_VECTOR(1 downto 0);
+    SDRAM_ras_n             : OUT   STD_LOGIC;
+    SDRAM_we_n              : OUT   STD_LOGIC;
+    SDRAM_clk               : OUT   STD_LOGIC;
+)
+{
+    SeqFunction Write_SDRAM
+    (
+        Address            : NATURAL;
+        Data_In            : STD_LOGIC_VECTOR(15 downto 0);
+        
+        SDRAM_Write_Enable : STD_LOGIC;
+        SDRAM_Address      : STD_LOGIC_VECTOR(21 downto 0);
+        SDRAM_Write_Data   : STD_LOGIC_VECTOR(15 downto 0);
+        SDRAM_Busy         : STD_LOGIC;
+    )
+    {
+        SDRAM_Address      <= STD_LOGIC_VECTOR(TO_UNSIGNED(Address, SDRAM_Address'LENGTH));
+        SDRAM_Write_Data   <= Data_In;
+        SDRAM_Write_Enable <= '1';
+        While(SDRAM_Busy = '1'){}
+        SDRAM_Write_Enable <= '0';
+    }
+    
+    SeqFunction Read_SDRAM
+    (
+        Address            : NATURAL;
+        Data_Out           : STD_LOGIC_VECTOR(15 downto 0);
+        
+        SDRAM_Read_Enable  : STD_LOGIC;
+        SDRAM_Address      : STD_LOGIC_VECTOR(21 downto 0);
+        SDRAM_Read_Data    : STD_LOGIC_VECTOR(15 downto 0);
+        SDRAM_Busy         : STD_LOGIC;
+    )
+    {
+        SDRAM_Address      <= STD_LOGIC_VECTOR(TO_UNSIGNED(Address, SDRAM_Address'LENGTH));
+        SDRAM_Read_Enable  <= '1';
+        While(SDRAM_Busy = '1'){}
+        SDRAM_Read_Enable  <= '0';
+        Data_Out           <= SDRAM_Read_Data;
+    }
+    
+    Connections
+    {
+        sdram_addr[0]  => SDRAM_ADD_1,
+        sdram_addr[1]  => SDRAM_ADD_2,
+        sdram_addr[2]  => SDRAM_ADD_3,
+        sdram_addr[3]  => SDRAM_ADD_4,
+        sdram_addr[4]  => SDRAM_ADD_5,
+        sdram_addr[5]  => SDRAM_ADD_6,
+        sdram_addr[6]  => SDRAM_ADD_7,
+        sdram_addr[7]  => SDRAM_ADD_8,
+        sdram_addr[8]  => SDRAM_ADD_9,
+        sdram_addr[9]  => SDRAM_ADD_10,
+        sdram_addr[10] => SDRAM_ADD_11,
+        sdram_addr[11] => SDRAM_ADD_12,
+        sdram_addr[12] => SDRAM_ADD_13,
+        sdram_ba[0]    => SDRAM_BAN_1,
+        sdram_ba[1]    => SDRAM_BAN_2,
+        sdram_cas_n    => SDRAM_CAS,
+        sdram_clk      => SDRAM_CLK,
+        sdram_ras_n    => SDRAM_RAS,
+        sdram_we_n     => SDRAM_WEN,
+        sdram_dqm[0]   => SDRAM_DQM_1,
+        sdram_dqm[1]   => SDRAM_DQM_2,
+        sdram_dq[0]    => SDRAM_DAT_1,
+        sdram_dq[1]    => SDRAM_DAT_2,
+        sdram_dq[2]    => SDRAM_DAT_3,
+        sdram_dq[3]    => SDRAM_DAT_4,
+        sdram_dq[4]    => SDRAM_DAT_5,
+        sdram_dq[5]    => SDRAM_DAT_6,
+        sdram_dq[6]    => SDRAM_DAT_7,
+        sdram_dq[7]    => SDRAM_DAT_8,
+        sdram_dq[8]    => SDRAM_DAT_9,
+        sdram_dq[9]    => SDRAM_DAT_10,
+        sdram_dq[10]   => SDRAM_DAT_11,
+        sdram_dq[11]   => SDRAM_DAT_12,
+        sdram_dq[12]   => SDRAM_DAT_13,
+        sdram_dq[13]   => SDRAM_DAT_14,
+        sdram_dq[14]   => SDRAM_DAT_15,
+        sdram_dq[15]   => SDRAM_DAT_16,
+    }
+    
+    AttributeDeclaration
+    {
+        SIGNAL reset_reset_n           : STD_LOGIC;
+        SIGNAL interface_address       : std_logic_vector(21 downto 0) := (others => 'X'); -- address
+        SIGNAL interface_byteenable_n  : std_logic_vector(1 downto 0)  := (others => 'X'); -- byteenable_n
+        SIGNAL interface_chipselect    : std_logic                     := 'X';             -- chipselect
+        SIGNAL interface_writedata     : std_logic_vector(15 downto 0) := (others => 'X'); -- writedata
+        SIGNAL interface_read_n        : std_logic                     := 'X';             -- read_n
+        SIGNAL interface_write_n       : std_logic                     := 'X';             -- write_n
+        SIGNAL interface_readdata      : std_logic_vector(15 downto 0);                    -- readdata
+        SIGNAL interface_readdatavalid : std_logic;                                        -- readdatavalid
+        SIGNAL interface_waitrequest   : std_logic;                                        -- waitrequest
+        
+        VHDL
+        {
+            component SDRAM
+            port (
+                clk_in_clk              : in    std_logic                     := 'X';             -- clk
+                reset_reset_n           : in    std_logic                     := 'X';             -- reset_n
+                sdram_addr              : out   std_logic_vector(11 downto 0);                    -- addr
+                sdram_ba                : out   std_logic_vector(1 downto 0);                     -- ba
+                sdram_cas_n             : out   std_logic;                                        -- cas_n
+                sdram_cke               : out   std_logic;                                        -- cke
+                sdram_cs_n              : out   std_logic;                                        -- cs_n
+                sdram_dq                : inout std_logic_vector(15 downto 0) := (others => 'X'); -- dq
+                sdram_dqm               : out   std_logic_vector(1 downto 0);                     -- dqm
+                sdram_ras_n             : out   std_logic;                                        -- ras_n
+                sdram_we_n              : out   std_logic;                                        -- we_n
+                sdram_clk_clk           : out   std_logic;                                        -- clk
+                interface_address       : in    std_logic_vector(21 downto 0) := (others => 'X'); -- address
+                interface_byteenable_n  : in    std_logic_vector(1 downto 0)  := (others => 'X'); -- byteenable_n
+                interface_chipselect    : in    std_logic                     := 'X';             -- chipselect
+                interface_writedata     : in    std_logic_vector(15 downto 0) := (others => 'X'); -- writedata
+                interface_read_n        : in    std_logic                     := 'X';             -- read_n
+                interface_write_n       : in    std_logic                     := 'X';             -- write_n
+                interface_readdata      : out   std_logic_vector(15 downto 0);                    -- readdata
+                interface_readdatavalid : out   std_logic;                                        -- readdatavalid
+                interface_waitrequest   : out   std_logic                                         -- waitrequest
+            );
+            end component;
+        }
+    }
+
+    reset_reset_n          <= NOT Reset;
+    interface_address      <= Address;
+    interface_byteenable_n <= NOT Byte_Enable;
+    interface_write_n      <= NOT Write_Enable;
+    interface_read_n       <= NOT Read_Enable;
+    interface_writedata    <= Write_Data;
+    Read_Data              <= interface_readdata;
+    Read_Valid             <= interface_readdatavalid;
+    Busy                   <= interface_waitrequest;
+    
+    VHDL
+    {
+        u1: SDRAM port map
+        (
+            clk_in_clk              => CLK,
+            reset_reset_n           => reset_reset_n,
+            sdram_addr              => sdram_addr,
+            sdram_ba                => sdram_ba,
+            sdram_cas_n             => sdram_cas_n,
+            sdram_cke               => open,
+            sdram_cs_n              => open,
+            sdram_dq                => sdram_dq,
+            sdram_dqm               => sdram_dqm,
+            sdram_ras_n             => sdram_ras_n,
+            sdram_we_n              => sdram_we_n,
+            sdram_clk_clk           => sdram_clk,
+            interface_address       => interface_address,       -- interface.address
+            interface_byteenable_n  => interface_byteenable_n,  --          .byteenable_n
+            interface_chipselect    => '1',                     --          .chipselect
+            interface_writedata     => interface_writedata,     --          .writedata
+            interface_read_n        => interface_read_n,        --          .read_n
+            interface_write_n       => interface_write_n,       --          .write_n
+            interface_readdata      => interface_readdata,      --          .readdata
+            interface_readdatavalid => interface_readdatavalid, --          .readdatavalid
+            interface_waitrequest   => interface_waitrequest    --          .waitrequest
+        );
+    }
+}
