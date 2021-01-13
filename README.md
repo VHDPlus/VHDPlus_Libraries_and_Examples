@@ -1,5 +1,6 @@
 # VHDPlus Libraries and Examples
 This is a collection of the built in libraries of the VHDPlus IDE toghether with examples. Commits will be featured in the IDE with future updates.
+You don't have to add code written in VHDP. If you have some helpfull code written in VHDL or Verilog, feel free to add your code to this repository.
 
 ## License
 The HDMI Library contains files only covered under the [GNU General Public License](https://www.gnu.org/licenses/gpl-3.0.en.html) and is Copyright 2018 ARDUINO SA.
