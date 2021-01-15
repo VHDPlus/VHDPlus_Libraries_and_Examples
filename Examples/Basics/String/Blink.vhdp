@@ -1,5 +1,6 @@
 Main
 (
+    btn           : in  STD_LOGIC := '0';
     led           : OUT STD_LOGIC := '0';
     RX            : IN  STD_LOGIC;
     TX            : OUT STD_LOGIC;
@@ -26,16 +27,19 @@ Main
         RX_Error      => UART_Interface_RX_Error,
     );
     
-    SIGNAL blink_speed : NATURAL := 100;
+    SIGNAL blink_speed : INTEGER := 100;
     
     Process ()
     {
         Thread
         {
-            led <= '1';
-            Wait(blink_speed*12000);
-            led <= '0';
-            Wait(blink_speed*12000);
+            If(btn = '1')
+            {
+                led <= '1';
+                Wait(blink_speed*12000);
+                led <= '0';
+                Wait(blink_speed*12000);
+            }
         }
 
         Thread
@@ -47,7 +51,7 @@ Main
 
             --Ask for blink speed---------------------------------------------------------------
             
-            NewFunction assignString (s"Blink speed in ms:", askForSpeed); --Create ROM with string
+            NewFunction newConstString (s"Blink speed in ms:", askForSpeed); --Create ROM with string
             
             --Send "Blink speed in ms:\n" string
             NewFunction printString (askForSpeed, UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
@@ -56,14 +60,15 @@ Main
             NewFunction readString (receive_string, UART_Interface_RX_Data, UART_Interface_RX_Busy);
             
             --Save speed and send response-------------------------------------------------------
-
+            
             --Convert response from user to natural
             NewFunction stringToNatural (receive_string, blink_speed);
+            --NewFunction indexOf (askForSpeed, s"speed", 5, 0, blink_speed);
             
             --Convert speed back to string (to show that convertion was successfull)
-            NewFunction naturalToStringInst (blink_speed, receive_string, BCD_Enable, BCD_Busy, BCD_Binary, BCD_Decimal);
+            NewFunction naturalToStringInst (abs(blink_speed), receive_string, BCD_Enable, BCD_Busy, BCD_Binary, BCD_Decimal);
 
-            NewFunction assignString (s"Speed changed to: ", sendChanged);
+            NewFunction newConstString (s"Speed changed to: ", sendChanged);
             
             --transmit_string = "Speed changed to: " + blink_speed + "\n"
             NewFunction stringConcat (sendChanged, receive_string, transmit_string);

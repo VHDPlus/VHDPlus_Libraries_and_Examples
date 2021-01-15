@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <Header>String_Example</Header>
+  <Header>Blink</Header>
   <Items xsi:type="ProjectFolder">
     <Header>Libraries</Header>
     <Items xsi:type="ProjectFileVHDP">
@@ -16,9 +16,6 @@
       <Header>Single-Port_ROM.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Header>String_Functions.vhdp</Header>
-    </Items>
-    <Items xsi:type="ProjectFileVHDP">
       <Header>String_Type.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
@@ -26,8 +23,17 @@
     </Items>
   </Items>
   <Items xsi:type="ProjectFileVHDP">
-    <Header>String_Example.vhdp</Header>
+    <Header>Blink.vhdp</Header>
   </Items>
-  <SelectedExtensionsSave />
+  <CruviHSExtensions>
+    <string xsi:nil="true" />
+  </CruviHSExtensions>
+  <CruviLSExtensions>
+    <string xsi:nil="true" />
+    <string xsi:nil="true" />
+    <string xsi:nil="true" />
+    <string xsi:nil="true" />
+  </CruviLSExtensions>
   <IOVoltage>0</IOVoltage>
+  <UseShield>false</UseShield>
 </ProjectRoot>
