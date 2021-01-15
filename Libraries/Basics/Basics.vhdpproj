@@ -92,9 +92,6 @@
     <Header>PWM.vhdp</Header>
   </Items>
   <Items xsi:type="ProjectFileVHDP">
-    <Header>String_Functions.vhdp</Header>
-  </Items>
-  <Items xsi:type="ProjectFileVHDP">
     <Header>String_Type.vhdp</Header>
   </Items>
   <SelectedExtensionsSave />
