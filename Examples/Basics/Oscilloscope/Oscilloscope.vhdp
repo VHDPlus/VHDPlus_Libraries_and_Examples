@@ -1,12 +1,14 @@
 Main
 (
     led : OUT STD_LOGIC := '0';
-    btn : IN  STD_LOGIC := '0';
+    --btn : IN  STD_LOGIC := '0';
+    RX            : IN STD_LOGIC := '1';
+    TX            : OUT STD_LOGIC := '1';
 )
 {
 
     led <= Logic_Analyzer_Full;
-    Logic_Analyzer_Run <= btn;
+    --Logic_Analyzer_Run <= btn;
     
     SIGNAL ADC_MAX10_Single_Channel : NATURAL range 0 to 8 := 1;
     SIGNAL ADC_MAX10_Single_Data    : NATURAL range 0 to 4095 := 0;
@@ -21,16 +23,16 @@ Main
     SIGNAL Logic_Analyzer_Run           : STD_LOGIC := '0';
     SIGNAL Logic_Analyzer_Full          : STD_LOGIC := '0';
     SIGNAL Logic_Analyzer_Inputs        : STD_LOGIC_VECTOR (12-1 downto 0) := (others => '0');
-    SIGNAL Logic_Analyzer_Address       : NATURAL          range 0 to 1000 := 0;
+    SIGNAL Logic_Analyzer_Address       : NATURAL          range 0 to 500 := 0;
     SIGNAL Logic_Analyzer_Outputs       : STD_LOGIC_VECTOR (12-1 downto 0);
     
     NewComponent Logic_Analyzer
     (
-        Max_Samples   => 1000,
+        Max_Samples   => 500,
         CLK_Frequency => 12000000,
         Channels      => 12,
 
-        Rate_Div      => 12,
+        Rate_Div      => TO_INTEGER(UNSIGNED(ISSP1_source)),
         Run           => Logic_Analyzer_Run,
         Full          =>Logic_Analyzer_Full,
         Inputs        =>Logic_Analyzer_Inputs,
@@ -38,24 +40,76 @@ Main
         Outputs       =>Logic_Analyzer_Outputs,
     );
 
-    ADC_MAX10_Single_Channel <= TO_INTEGER(UNSIGNED(ISSP1_source));
-    
-    SIGNAL ISSP1_source : std_logic_vector (7 downto 0);
-    SIGNAL ISSP1_probe  : std_logic_vector (31 downto 0) := (others => 'X');
-    NewComponent ISSP
-    (
-        source =>ISSP1_source,
-        probe  =>ISSP1_probe,
-    );
-    
-    Logic_Analyzer_Address <= TO_INTEGER(UNSIGNED(issp_source));
-    ISSP_probe(11 downto 0) <= Logic_Analyzer_Outputs;
+    ADC_MAX10_Single_Channel <= TO_INTEGER(UNSIGNED(ISSP_source));
     
     SIGNAL ISSP_source : std_logic_vector (7 downto 0);
-    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0) := (others => 'X');
     NewComponent ISSP
     (
         source =>ISSP_source,
-        probe  =>ISSP_probe,
+    );
+    
+    SIGNAL ISSP1_source : std_logic_vector (7 downto 0);
+    NewComponent ISSP
+    (
+        source =>ISSP1_source,
+    );
+    
+    Process ()
+    {
+        Thread
+        {
+            /*
+            While(btn = '0')
+            {
+                Wait(10ms);
+            }
+            While(btn = '1')
+            {
+                Wait(10ms);
+            }
+            */
+            Logic_Analyzer_Run <= '1';
+            While(Logic_Analyzer_Full = '0'){}
+            Logic_Analyzer_Run <= '0';
+            
+            For(VARIABLE i : INTEGER := 0; i < 500; i := i + 1)
+            {
+                Logic_Analyzer_Address <= i;
+                Step
+                {
+                    NewFunction newString (valueStr);
+                    NewFunction naturalToStringInst (TO_INTEGER(UNSIGNED(Logic_Analyzer_Outputs)), valueStr, bcdEna, bcdBus, bcdBin, bcdDec);
+                    NewFunction charAppend (s"\n", valueStr);
+                    NewFunction printString (valueStr, UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+                }
+            }
+        }
+    }
+    
+    SIGNAL UART_Interface_Reset         : STD_LOGIC := '0';
+    SIGNAL UART_Interface_TX_Enable     : STD_LOGIC := '0';
+    SIGNAL UART_Interface_TX_Busy       : STD_LOGIC := '0';
+    SIGNAL UART_Interface_TX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
+    SIGNAL UART_Interface_RX_Busy       : STD_LOGIC := '0';
+    SIGNAL UART_Interface_RX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
+    SIGNAL UART_Interface_RX_Error      : STD_LOGIC := '0';
+    NewComponent UART_Interface
+    (
+        CLK_Frequency => 12000000,
+        Baud_Rate     => 1000000,
+        OS_Rate       => 12,
+        D_Width       => 8,
+        Parity        => 0,
+        Parity_EO     => '0',
+
+        Reset         =>UART_Interface_Reset,
+        RX            =>RX,
+        TX            =>TX,
+        TX_Enable     =>UART_Interface_TX_Enable,
+        TX_Busy       =>UART_Interface_TX_Busy,
+        TX_Data       =>UART_Interface_TX_Data,
+        RX_Busy       =>UART_Interface_RX_Busy,
+        RX_Data       =>UART_Interface_RX_Data,
+        RX_Error      =>UART_Interface_RX_Error,
     );
 }

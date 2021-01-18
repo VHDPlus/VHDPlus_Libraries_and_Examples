@@ -7,10 +7,28 @@
       <Header>ADC_MAX10_Single.vhd</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDL">
+      <Header>BinaryToBcd.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>BinaryToBcdDigit.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
       <Header>Logic_Analyzer.vhd</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDL">
       <Header>Oscilloscope.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>Single_Port_RAM.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>Single_Port_ROM.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>String_Type_Package.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>UART_Interface.vhd</Header>
     </Items>
   </Items>
   <Items xsi:type="ProjectFolder">
@@ -34,7 +52,25 @@
       <Header>ADC_QSYS.qsys.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
+      <Header>BinaryToBcd.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>BinaryToBcdDigit.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
       <Header>Logic_Analyzer.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Single-Port_RAM.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Single-Port_ROM.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>String_Type.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>UART.vhdp</Header>
     </Items>
   </Items>
   <Items xsi:type="ProjectFileVHDP">
