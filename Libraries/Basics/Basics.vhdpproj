@@ -23,6 +23,15 @@
     </Items>
   </Items>
   <Items xsi:type="ProjectFolder">
+    <Header>Logic_Analyzer</Header>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Logic_Analyzer.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Logic_Analyzer_SDRAM.vhdp</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
     <Header>Memory</Header>
     <Items xsi:type="ProjectFileVHDP">
       <Header>Single-Port_RAM.vhdp</Header>
