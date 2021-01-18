@@ -1,0 +1,219 @@
+/*
+    Name: SPI Master
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 07.06.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy of 
+	this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+	HDL Code without restriction, including without limitation the rights to use, 
+	copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+	HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+	subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+	FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+	COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+	AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+	WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+	
+	Important: -SPI_CLK has to be a divider of CLK_Frequency or the next bigger frequency is used
+	
+    Insertion: -Right click on SPI_Master.vhdp -> Add to project
+			   -Add NewComponent of SPI_Master in your code
+			   -Remove CLK_Frequency if you use a VHDP Core and no PLL
+			   -Look in the datasheet of your component to connect. For example you have this datasheet: https://www.sparkfun.com/datasheets/Components/General/COM-09622-MAX7219-MAX7221.pdf
+			    The following examples relate to page 6:
+			   -Set Bits to the bits in one transmission (e.g. D15 to D0 => Bits = 16)
+			   -Set CPol to '1' if CLK is usualy '1' (e.g. in Figure 1 CLK starts with '0' => CPol = '0')
+			   -Set CPha to '0' if the first byte is written on the SS edge or '1' on the SCLK edge (e.g. D15 is already set on the first CLK edge => CPha = '0')
+			   -Right click the name SPI_Master next to NewComponent and create the needed signals
+	
+    Function:  1. Set TX_Data to the data to send (Number of bits defined with Bits)
+	           2. Change Enable from '0' to '1' (e.g. call Step{ Enable <= '0' } afterwards)
+	           3. Wait until Busy changes to '0' (e.g. add While(Busy = '1'){})
+			   4. Read received data from RX_Data
+			   (When you have Cont set to '1' you can keep sending data without ending the transmission)
+	
+    Example:   LED_Matrix
+*/
+
+Component SPI_Master
+(
+	Include();
+	Generic
+	(
+		CLK_Frequency	: NATURAL		:= 12000000;
+		SPI_CLK			: NATURAL		:= 1000000;
+		Bits			: NATURAL		:= 8;
+		CPol			: STD_LOGIC		:= '1';			--'0' = SCK normaly '0', '1' = SCK normaly '1'
+		CPha			: STD_LOGIC		:= '1';			--'0' = write first byte on ss edge, '1' = write first byte on sclk edge
+	);
+	Reset		: IN  STD_LOGIC			:= '0';			--Active low reset
+	
+	MISO		: IN  STD_LOGIC         := '0';
+	SCLK		: BUFFER STD_LOGIC      := '0';
+	SS			: BUFFER STD_LOGIC      := '0';
+	MOSI		: OUT STD_LOGIC         := '0';
+	
+	TX_Data		: IN  STD_LOGIC_VECTOR(Bits-1 downto 0) := (others => '0');	--data to send
+	Enable		: IN  STD_LOGIC			:= '0';			--Starts transaction on rising edge
+	Cont		: IN  STD_LOGIC			:= '0';			--'0' = transmission on enable edge, '1' = keeps sending cuurent tx_data until Cont is '0'
+	Busy		: OUT STD_LOGIC         := '0';		    --'0' if transaction finished
+	RX_Data		: OUT STD_LOGIC_VECTOR(Bits-1 downto 0) := (others => '0'); --data received
+)
+{
+	AttributeDeclaration
+	{
+		TYPE machine IS(ready, execute);                           --state machine data type
+	    SIGNAL state       : machine;                              --current state
+	    SIGNAL clk_ratio   : INTEGER;                              --current clk_div
+	    SIGNAL count       : INTEGER;                              --counter to trigger sclk from system clock
+	    SIGNAL clk_toggles : INTEGER RANGE 0 TO Bits*2 + 1;        --count spi clock toggles
+	    SIGNAL assert_data : STD_LOGIC;                            --'1' is tx sclk toggle, '0' is rx sclk toggle
+	    SIGNAL continue    : STD_LOGIC;                            --flag to continue transaction
+	    SIGNAL rx_buffer   : STD_LOGIC_VECTOR(Bits-1 DOWNTO 0);    --receive data buffer
+	    SIGNAL tx_buffer   : STD_LOGIC_VECTOR(Bits-1 DOWNTO 0);    --transmit data buffer
+	    SIGNAL last_bit_rx : INTEGER RANGE 0 TO Bits*2;            --last rx data bit location
+	}
+	
+	Connections
+	{
+	    MISO,
+	    SCLK,
+	    SS,
+	    MOSI,
+	}
+	
+	Process SPI_Master_Process ()
+	{
+		if(Reset = '1')
+		{
+			Busy <= '1';                --set busy signal
+		    SS   <= '1';    			--deassert slave line
+		    MOSI <= 'Z';                --set master out to high impedance
+		    RX_Data <= (OTHERS => '0'); --clear receive data port
+		    state <= ready;             --go to ready state when reset is exited
+		}
+		else
+		{
+			case(state)             						--state machine
+			{
+				when(ready)
+				{
+					Busy <= '0';             				--clock out not busy signal
+		            SS   <= '1';			 				--set all slave select outputs high
+		            MOSI <= 'Z';             				--set mosi output high impedance
+		            continue <= '0';         				--clear continue flag
+				
+					--user input to initiate transaction
+					if(Enable = '1')
+					{
+						Busy <= '1';             			--set busy signal
+						
+						if(CLK_Frequency/SPI_CLK = 0)    					--check for valid spi speed
+						{
+							clk_ratio <= 1;        			--set to maximum speed if zero
+              				count <= 1;            			--initiate system-to-spi clock counter
+						}
+						else
+						{
+							clk_ratio <= CLK_Frequency/SPI_CLK;  --set to input selection if valid
+              				count <= CLK_Frequency/SPI_CLK;      --initiate system-to-spi clock counter
+						}
+						
+						SCLK <= CPol;            			--set spi clock polarity
+			            assert_data <= NOT CPha; 			--set spi clock phase
+			            tx_buffer <= TX_Data;    			--clock in data for transmit into buffer
+			            clk_toggles <= 0;        			--initiate clock toggle counter
+			            last_bit_rx <= Bits*2 + TO_INTEGER(UNSIGNED'('0' & CPha)) - 1; --set last rx data bit
+			            state <= execute;        			--proceed to execute state
+					}
+					else
+					{
+						state <= ready;          			--remain in ready state
+					}
+				}
+				when(execute)
+				{
+					Busy <= '1';        					--set busy signal
+          			SS   <= '0'; 							--set proper slave select output
+          			
+          			--system clock to sclk ratio is met
+          			if(count = clk_ratio)
+					{
+						count <= 1;                     	--reset system-to-spi clock counter
+            			assert_data <= NOT assert_data; 	--switch transmit/receive indicator
+						if(clk_toggles = Bits*2 + 1)
+						{
+							clk_toggles <= 0;               --reset spi clock toggles counter
+						}
+						else
+						{
+							clk_toggles <= clk_toggles + 1; --increment spi clock toggles counter
+						}
+						
+						--spi clock toggle needed
+						if(clk_toggles <= Bits*2 AND SS = '0')
+						{
+							SCLK <= NOT SCLK; 				--toggle spi clock
+						}
+						
+						--receive spi clock toggle
+						if(assert_data = '0' AND clk_toggles < last_bit_rx + 1 AND SS = '0')
+						{
+							rx_buffer <= rx_buffer(Bits-2 DOWNTO 0) & MISO; --shift in received bit
+						}
+						
+						--transmit spi clock toggle
+						if(assert_data = '1' AND clk_toggles < last_bit_rx)
+						{
+							MOSI <= tx_buffer(Bits-1);                     --clock out data bit
+              				tx_buffer <= tx_buffer(Bits-2 DOWNTO 0) & '0'; --shift data transmit buffer
+						}
+						
+						--last data receive, but continue
+						if(clk_toggles = last_bit_rx AND Cont = '1')
+						{
+							tx_buffer   <= TX_Data;                     --reload transmit buffer
+              				clk_toggles <= last_bit_rx - Bits*2 + 1;    --reset spi clock toggle counter
+              				continue <= '1';                            --set continue flag
+						}
+						
+						--normal end of transaction, but continue
+						if(continue = '1')
+						{
+							continue <= '0';      			--clear continue flag
+              				Busy <= '0';          			--clock out signal that first receive data is ready
+              				RX_Data <= rx_buffer; 			--clock out received data to output port    
+						}
+						
+						--end of transaction
+						if((clk_toggles = Bits*2 + 1) AND Cont = '0')
+						{
+							Busy <= '0';             		--clock out not busy signal
+				            SS <= '1';				 		--set all slave selects high
+				            MOSI <= 'Z';             		--set mosi output high impedance
+				            RX_Data <= rx_buffer;    		--clock out received data to output port
+				            state <= ready;          		--return to ready state
+						}
+						else
+						{
+							state <= execute;        		--remain in execute state
+						}
+					}
+					else      								--system clock to sclk ratio not met
+					{
+						count <= count + 1; 				--increment counter
+            			state <= execute;   				--remain in execute state
+					}
+				}
+			}
+		}
+	}
+}

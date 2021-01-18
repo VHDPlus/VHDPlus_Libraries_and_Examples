@@ -71,6 +71,21 @@
     </Items>
   </Items>
   <Items xsi:type="ProjectFolder">
+    <Header>SDRAM</Header>
+    <Items xsi:type="ProjectFile">
+      <Header>SDRAM_Controller.qsys</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>SDRAM_Controller.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFile">
+      <Header>SDRAM_PLL.qip</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>SDRAM_PLL.vhd</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
     <Header>Spectrum_Analyzer</Header>
     <Items xsi:type="ProjectFileVHDP">
       <Header>Butterfly.vhdp</Header>
@@ -90,6 +105,9 @@
   </Items>
   <Items xsi:type="ProjectFileVHDP">
     <Header>PWM.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileVHDL">
+    <Header>Random_Number.vhd</Header>
   </Items>
   <Items xsi:type="ProjectFileVHDP">
     <Header>String_Type.vhdp</Header>

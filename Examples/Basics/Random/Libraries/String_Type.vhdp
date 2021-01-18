@@ -1,0 +1,14 @@
+Package String_Type_Package
+{
+    Include();
+    
+    CONSTANT Max_String_Length : NATURAL := 256;
+    
+    TYPE String_Type IS RECORD
+    Length   : NATURAL range 0 to Max_String_Length;
+    Write    : STD_LOGIC;
+    Address  : NATURAL range 0 to Max_String_Length-1;
+    Data_OUT : STD_LOGIC_VECTOR (7 downto 0);
+    Data_IN  : STD_LOGIC_VECTOR (7 downto 0);
+    END RECORD String_Type;
+}

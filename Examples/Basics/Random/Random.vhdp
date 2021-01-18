@@ -1,0 +1,23 @@
+Main
+(
+    
+)
+{
+    SIGNAL s_data_32  : std_logic_vector (31 downto 0);
+    
+    NewComponent Random_Number
+    (
+        clk       => CLK,
+        out_data  => s_data_32,
+    );
+    
+    ISSP_probe <= s_data_32;
+    
+    SIGNAL ISSP_source : std_logic_vector (7 downto 0);
+    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0);
+    NewComponent ISSP
+    (
+        source => ISSP_source,
+        probe  => ISSP_probe,
+    );
+}
