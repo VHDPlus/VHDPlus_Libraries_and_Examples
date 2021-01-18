@@ -1,0 +1,19 @@
+Component ADC_QSYS
+(
+
+            clk_clk                    : in  std_logic                     := 'X';             -- clk
+            reset_reset_n              : in  std_logic                     := 'X';             -- reset_n
+            adc_command_valid          : in  std_logic                     := 'X';             -- valid
+            adc_command_channel        : in  std_logic_vector(4 downto 0)  := (others => 'X'); -- channel
+            adc_command_startofpacket  : in  std_logic                     := 'X';             -- startofpacket
+            adc_command_endofpacket    : in  std_logic                     := 'X';             -- endofpacket
+            adc_command_ready          : out std_logic;                                        -- ready
+            adc_response_valid         : out std_logic;                                        -- valid
+            adc_response_channel       : out std_logic_vector(4 downto 0);                     -- channel
+            adc_response_data          : out std_logic_vector(11 downto 0);                    -- data
+            adc_response_startofpacket : out std_logic;                                        -- startofpacket
+            adc_response_endofpacket   : out std_logic;                                        -- endofpacket
+        
+)
+{
+}

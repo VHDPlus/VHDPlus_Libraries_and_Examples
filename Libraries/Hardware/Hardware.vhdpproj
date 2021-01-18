@@ -74,6 +74,9 @@
       <Items xsi:type="ProjectFileVHDP">
         <Header>ADC_MAX10.vhdp</Header>
       </Items>
+      <Items xsi:type="ProjectFileVHDP">
+        <Header>ADC_MAX10_Single.vhdp</Header>
+      </Items>
       <Items xsi:type="ProjectFile">
         <Header>ADC_QSYS.qsys</Header>
       </Items>
@@ -137,10 +140,10 @@
       <Items xsi:type="ProjectFileVHDP">
         <Header>HDMI_Out.vhdp</Header>
       </Items>
-      <Items xsi:type="ProjectFileVHDP">
+      <Items xsi:type="ProjectFileVerilog">
         <Header>DVI_OUT.v</Header>
       </Items>
-      <Items xsi:type="ProjectFileVHDP">
+      <Items xsi:type="ProjectFileVerilog">
         <Header>TMDS_ENCODE.v</Header>
       </Items>
       <Items xsi:type="ProjectFileVHDP">

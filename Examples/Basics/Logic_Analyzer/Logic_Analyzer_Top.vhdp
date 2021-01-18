@@ -1,0 +1,58 @@
+Main
+(
+    led : OUT STD_LOGIC := '0';
+    btn : IN  STD_LOGIC := '0';
+    
+    Logic_Analyzer_Inputs : IN STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
+    
+    sdram_addr    : OUT std_logic_vector (11 downto 0);
+    sdram_ba      : OUT std_logic_vector (1 downto 0);
+    sdram_cas_n   : OUT std_logic;
+    sdram_dq      : INOUT std_logic_vector (15 downto 0) := (others => '0');
+    sdram_dqm     : OUT std_logic_vector (1 downto 0);
+    sdram_ras_n   : OUT std_logic;
+    sdram_we_n    : OUT std_logic;
+    sdram_clk     : OUT std_logic;
+)
+{
+    SIGNAL Logic_Analyzer_Rate_Div      : NATURAL          range 1 to 150000000 := 150;
+    SIGNAL Logic_Analyzer_Run           : STD_LOGIC := '0';
+    SIGNAL Logic_Analyzer_Full          : STD_LOGIC := '0';
+    SIGNAL Logic_Analyzer_Address       : NATURAL          range 0 to 3000000 := 0;
+    SIGNAL Logic_Analyzer_Outputs       : STD_LOGIC_VECTOR (16-1 downto 0);
+    
+    led <= Logic_Analyzer_Full;
+    Logic_Analyzer_Run <= btn;
+    
+    NewComponent Logic_Analyzer_SDRAM
+    (
+        Max_Samples   => 3000000,
+        Channels      => 16,
+
+        Rate_Div      =>Logic_Analyzer_Rate_Div,
+        Run           =>Logic_Analyzer_Run,
+        Full          =>Logic_Analyzer_Full,
+        Inputs        =>Logic_Analyzer_Inputs,
+        Address       =>Logic_Analyzer_Address,
+        Outputs       =>Logic_Analyzer_Outputs,
+        sdram_addr    =>sdram_addr,
+        sdram_ba      =>sdram_ba,
+        sdram_cas_n   =>sdram_cas_n,
+        sdram_dq      =>sdram_dq,
+        sdram_dqm     =>sdram_dqm,
+        sdram_ras_n   =>sdram_ras_n,
+        sdram_we_n    =>sdram_we_n,
+        sdram_clk     =>sdram_clk,
+    );
+    
+    Logic_Analyzer_Address <= TO_INTEGER(UNSIGNED(issp_source));
+    ISSP_probe(15 downto 0) <= Logic_Analyzer_Outputs;
+    
+    SIGNAL ISSP_source : std_logic_vector (7 downto 0);
+    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0) := (others => 'X');
+    NewComponent ISSP
+    (
+        source =>ISSP_source,
+        probe  =>ISSP_probe,
+    );
+}

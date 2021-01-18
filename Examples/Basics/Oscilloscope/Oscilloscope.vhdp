@@ -1,0 +1,61 @@
+Main
+(
+    led : OUT STD_LOGIC := '0';
+    btn : IN  STD_LOGIC := '0';
+)
+{
+
+    led <= Logic_Analyzer_Full;
+    Logic_Analyzer_Run <= btn;
+    
+    SIGNAL ADC_MAX10_Single_Channel : NATURAL range 0 to 8 := 1;
+    SIGNAL ADC_MAX10_Single_Data    : NATURAL range 0 to 4095 := 0;
+    NewComponent ADC_MAX10_Single
+    (
+        Channel =>ADC_MAX10_Single_Channel,
+        Data    =>ADC_MAX10_Single_Data,
+    );
+    
+    Logic_Analyzer_Inputs <= STD_LOGIC_VECTOR(TO_UNSIGNED(ADC_MAX10_Single_Data, 12));
+    
+    SIGNAL Logic_Analyzer_Run           : STD_LOGIC := '0';
+    SIGNAL Logic_Analyzer_Full          : STD_LOGIC := '0';
+    SIGNAL Logic_Analyzer_Inputs        : STD_LOGIC_VECTOR (12-1 downto 0) := (others => '0');
+    SIGNAL Logic_Analyzer_Address       : NATURAL          range 0 to 1000 := 0;
+    SIGNAL Logic_Analyzer_Outputs       : STD_LOGIC_VECTOR (12-1 downto 0);
+    
+    NewComponent Logic_Analyzer
+    (
+        Max_Samples   => 1000,
+        CLK_Frequency => 12000000,
+        Channels      => 12,
+
+        Rate_Div      => 12,
+        Run           => Logic_Analyzer_Run,
+        Full          =>Logic_Analyzer_Full,
+        Inputs        =>Logic_Analyzer_Inputs,
+        Address       =>Logic_Analyzer_Address,
+        Outputs       =>Logic_Analyzer_Outputs,
+    );
+
+    ADC_MAX10_Single_Channel <= TO_INTEGER(UNSIGNED(ISSP1_source));
+    
+    SIGNAL ISSP1_source : std_logic_vector (7 downto 0);
+    SIGNAL ISSP1_probe  : std_logic_vector (31 downto 0) := (others => 'X');
+    NewComponent ISSP
+    (
+        source =>ISSP1_source,
+        probe  =>ISSP1_probe,
+    );
+    
+    Logic_Analyzer_Address <= TO_INTEGER(UNSIGNED(issp_source));
+    ISSP_probe(11 downto 0) <= Logic_Analyzer_Outputs;
+    
+    SIGNAL ISSP_source : std_logic_vector (7 downto 0);
+    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0) := (others => 'X');
+    NewComponent ISSP
+    (
+        source =>ISSP_source,
+        probe  =>ISSP_probe,
+    );
+}

@@ -1,0 +1,101 @@
+/*
+    Copyright (c) 2021 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+    Insertion: -Right click on Logic_Analyzer.vhdp -> Add to project
+               -Add NewComponent of Logic_Analyzer in your code
+               -Right click the name Logic_Analyzer next to NewComponent and create the needed signal
+    
+    Function:  -Saves "Inputs" with the rate of CLK_Frequency/Rate_Div while Run is '1'
+               -Can be verry fast if Rate_Div = 1 and you use a PLL to increase the CLK_Frequency
+               -Values can be read with Address and Outputs afterwards
+               -Only can save a limited amount of samples because it uses the internal RAM
+ */
+
+Component Logic_Analyzer
+(
+    Generic
+    (
+        Max_Samples    : NATURAL := 25000;    --25,000 samples
+        CLK_Frequency  : NATURAL := 12000000; --12MHz
+        Channels       : NATURAL := 8;
+    );
+    
+    Rate_Div    : IN  NATURAL range 1 to CLK_Frequency := 12; --12 = CLK_Frequency/12 = 1Mio samples per second
+    
+    Run         : IN  STD_LOGIC := '0'; --Saves data while Run is '1'
+    Full        : OUT STD_LOGIC := '0'; --changes from '0' to '1' when ram is full -> Set Run to '0'
+    
+    Inputs      : IN  STD_LOGIC_VECTOR(Channels-1 downto 0) := (others => '0');
+    
+    Address     : IN  NATURAL range 0 to Max_Samples := 0;   --Read the values
+    Outputs     : OUT STD_LOGIC_VECTOR(Channels-1 downto 0);
+)
+{
+    SIGNAL sample_clk    : STD_LOGIC := '0';
+    SIGNAL sample_clk_en : STD_LOGIC := '0';
+
+    Process ()
+    {
+        VARIABLE div_cntr : NATURAL range 0 to CLK_Frequency := 0;
+        If(div_cntr = Rate_Div-1)
+        {
+            div_cntr := 0;
+            sample_clk_en <= '1';
+        }
+        Else
+        {
+            sample_clk_en <= '0';
+            div_cntr := div_cntr + 1;
+        }
+    }
+    sample_clk <= CLK when sample_clk_en = '1' else '0';
+    
+    
+    TYPE la_ram_type IS ARRAY (0 to Max_Samples-1) OF STD_LOGIC_VECTOR(Channels-1 downto 0);
+    SIGNAL la_ram : la_ram_type;
+    
+    Outputs <= la_ram(Address);
+    
+    Process ()
+    {
+        If(rising_edge(sample_clk))
+        {
+            VARIABLE in_addr : NATURAL range 0 to Max_Samples := 0;
+            If(Run = '0')
+            {
+                in_addr := 0;
+                Full <= '0';
+            }
+            Else
+            {
+                If(in_addr < Max_Samples)
+                {
+                    la_ram(in_addr) <= Inputs;
+                    in_addr := in_addr + 1;
+                }
+                Else
+                {
+                    Full <= '1';
+                }
+            }
+        }
+    }
+    
+}
