@@ -39,7 +39,7 @@ Component ADC_MAX10_Single
 (
     Include();
     
-    Channel : IN  NATURAL range 0 to 8 := 1;
+    Channel : IN  NATURAL range 0 to 8 := 0;
     Data    : OUT NATURAL range 0 to 4095 := 0;
 )
 {
@@ -79,15 +79,15 @@ Component ADC_MAX10_Single
             {
                 Case(Channel)
                 {
-                    When(1) { chan := 0; }
-                    When(8) { chan := 1; }
-                    When(7) { chan := 2; }
-                    When(6) { chan := 3; }
-                    When(3) { chan := 4; }
-                    When(2) { chan := 5; }
-                    When(5) { chan := 6; }
-                    When(4) { chan := 7; }
-                    When(0) { chan := 8; }
+                    When(1) { chan := 8; }
+                    When(8) { chan := 0; }
+                    When(7) { chan := 1; }
+                    When(6) { chan := 2; }
+                    When(3) { chan := 3; }
+                    When(2) { chan := 4; }
+                    When(5) { chan := 5; }
+                    When(4) { chan := 6; }
+                    When(0) { chan := 7; }
                     When(others)
                     {
                         chan := 0;
@@ -99,35 +99,7 @@ Component ADC_MAX10_Single
         
         if(adc_response_valid = '1')
         {
-            VARIABLE resp  : NATURAL range 0 to 8 := 0;
-            --AN0 = 8
-            --AN1 = 0
-            --AN2 = 5
-            --AN3 = 4
-            --AN4 = 7
-            --AN5 = 6
-            --AN6 = 3
-            --AN7 = 2
-            --AIN = 1
-            Case(adc_response_channel)
-            {
-                When("00000") { resp := 1; }
-                When("00001") { resp := 8; }
-                When("00010") { resp := 7; }
-                When("00011") { resp := 6; }
-                When("00100") { resp := 3; }
-                When("00101") { resp := 2; }
-                When("00110") { resp := 5; }
-                When("00111") { resp := 4; }
-                When("01000") { resp := 0; }
-                When(others)
-                {
-                    resp := 8;
-                }
-            }
-            if(resp = Channel){
-                Data <= TO_INTEGER(UNSIGNED(adc_response_data));
-            }
+            Data <= TO_INTEGER(UNSIGNED(adc_response_data));
         }
     }
 }
