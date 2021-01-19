@@ -1,3 +1,11 @@
+/*
+Important:
+- UART baud rate is set to 1 mega baud
+- Open the ISSP window:
+    1. Probe: ADC channel from 0 to 7
+    2. Probe: Sample rate: 12 = 12MHz/12 = 1MSamples
+*/
+
 Main
 (
     led : OUT STD_LOGIC := '0';
