@@ -119,6 +119,9 @@
     <Header>Random_Number.vhd</Header>
   </Items>
   <Items xsi:type="ProjectFileVHDP">
+    <Header>Serial_Plotter_Interface.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
     <Header>String_Type.vhdp</Header>
   </Items>
   <SelectedExtensionsSave />

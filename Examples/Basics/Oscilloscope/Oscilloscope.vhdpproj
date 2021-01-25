@@ -19,6 +19,9 @@
       <Header>Oscilloscope.vhd</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDL">
+      <Header>Serial_Plotter_Interface.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
       <Header>Single_Port_RAM.vhd</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDL">
@@ -59,6 +62,9 @@
     </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>Logic_Analyzer.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Serial_Plotter_Interface.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>Single-Port_RAM.vhdp</Header>

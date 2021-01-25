@@ -1,29 +1,34 @@
 /*
 Important:
 - UART baud rate is set to 1 mega baud
-- Open the ISSP window:
+- Open the ISSP window if ISSP_Settings is true:
     1. Probe: ADC channel from 0 to 7
     2. Probe: Sample rate: 12 = 12MHz/12 = 1MSamples
 */
 
 Main
 (
-    led : OUT STD_LOGIC := '0';
-    --btn : IN  STD_LOGIC := '0';
-    RX            : IN STD_LOGIC := '1';
+    led           : OUT STD_LOGIC := '0';
+    btn           : IN  STD_LOGIC := '0';
+    RX            : IN  STD_LOGIC := '1';
     TX            : OUT STD_LOGIC := '1';
 )
 {
+    CONSTANT Sample_Rate   : NATURAL := 1000000; --1MHz
+    CONSTANT ADC_Channel   : NATURAL := 0; --0-7
+    
+    ADC_MAX10_Single_Channel <= ADC_Channel;
+    
+    Logic_Analyzer_Rate_Div <= 12000000/Sample_Rate;
 
     led <= Logic_Analyzer_Full;
-    --Logic_Analyzer_Run <= btn;
     
     SIGNAL ADC_MAX10_Single_Channel : NATURAL range 0 to 8 := 1;
     SIGNAL ADC_MAX10_Single_Data    : NATURAL range 0 to 4095 := 0;
     NewComponent ADC_MAX10_Single
     (
-        Channel =>ADC_MAX10_Single_Channel,
-        Data    =>ADC_MAX10_Single_Data,
+        Channel => ADC_MAX10_Single_Channel,
+        Data    => ADC_MAX10_Single_Data,
     );
     
     Logic_Analyzer_Inputs <= STD_LOGIC_VECTOR(TO_UNSIGNED(ADC_MAX10_Single_Data, 12));
@@ -33,40 +38,26 @@ Main
     SIGNAL Logic_Analyzer_Inputs        : STD_LOGIC_VECTOR (12-1 downto 0) := (others => '0');
     SIGNAL Logic_Analyzer_Address       : NATURAL          range 0 to 500 := 0;
     SIGNAL Logic_Analyzer_Outputs       : STD_LOGIC_VECTOR (12-1 downto 0);
-    
+    SIGNAL Logic_Analyzer_Rate_Div      : NATURAL          range 1 to 12000000 := 12;
     NewComponent Logic_Analyzer
     (
         Max_Samples   => 500,
         CLK_Frequency => 12000000,
         Channels      => 12,
 
-        Rate_Div      => TO_INTEGER(UNSIGNED(ISSP1_source)),
+        Rate_Div      => Logic_Analyzer_Rate_Div,
         Run           => Logic_Analyzer_Run,
-        Full          =>Logic_Analyzer_Full,
-        Inputs        =>Logic_Analyzer_Inputs,
-        Address       =>Logic_Analyzer_Address,
-        Outputs       =>Logic_Analyzer_Outputs,
-    );
-
-    ADC_MAX10_Single_Channel <= TO_INTEGER(UNSIGNED(ISSP_source));
-    
-    SIGNAL ISSP_source : std_logic_vector (7 downto 0);
-    NewComponent ISSP
-    (
-        source =>ISSP_source,
+        Full          => Logic_Analyzer_Full,
+        Inputs        => Logic_Analyzer_Inputs,
+        Address       => Logic_Analyzer_Address,
+        Outputs       => Logic_Analyzer_Outputs,
     );
     
-    SIGNAL ISSP1_source : std_logic_vector (7 downto 0);
-    NewComponent ISSP
-    (
-        source =>ISSP1_source,
-    );
     
     Process ()
     {
         Thread
         {
-            /*
             While(btn = '0')
             {
                 Wait(10ms);
@@ -75,49 +66,53 @@ Main
             {
                 Wait(10ms);
             }
-            */
+            
             Logic_Analyzer_Run <= '1';
             While(Logic_Analyzer_Full = '0'){}
             Logic_Analyzer_Run <= '0';
             
             For(VARIABLE i : INTEGER := 0; i < 500; i := i + 1)
             {
-                Logic_Analyzer_Address <= i;
-                Step
-                {
-                    NewFunction newString (valueStr);
-                    NewFunction naturalToStringInst (TO_INTEGER(UNSIGNED(Logic_Analyzer_Outputs)), valueStr, bcdEna, bcdBus, bcdBin, bcdDec);
-                    NewFunction charAppend (s"\n", valueStr);
-                    NewFunction printString (valueStr, UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
-                }
+                Plotter_Graph_Name <= s"ADC Channel 0"; --If string has fewer chars than 'NameChars': s"ADC Channel" & x"0000"; (x"0000" fills the 2 missing bytes)
+                Plotter_Value      <= (ADC_MAX10_Single_Data*1000)/4096;  --From 12 bit value to mV
+                Plotter_ValueUnit  <= s"mV";
+                Plotter_Time       <= i;
+                Plotter_TimeUnit   <= s"us";
+                Plotter_Send <= '1';
+                While(Plotter_Busy = '0'){}
+                Plotter_Send <= '0';
+                While(Plotter_Busy = '1'){}
+                Wait(1s);
             }
         }
     }
     
-    SIGNAL UART_Interface_Reset         : STD_LOGIC := '0';
-    SIGNAL UART_Interface_TX_Enable     : STD_LOGIC := '0';
-    SIGNAL UART_Interface_TX_Busy       : STD_LOGIC := '0';
-    SIGNAL UART_Interface_TX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
-    SIGNAL UART_Interface_RX_Busy       : STD_LOGIC := '0';
-    SIGNAL UART_Interface_RX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
-    SIGNAL UART_Interface_RX_Error      : STD_LOGIC := '0';
-    NewComponent UART_Interface
+    
+    CONSTANT NameChars : NATURAL := 13;
+    CONSTANT UnitChars : NATURAL := 2;
+    SIGNAL Plotter_Value         : INTEGER := 0;
+    SIGNAL Plotter_Time          : INTEGER := 0;
+    SIGNAL Plotter_Graph_Name    : STD_LOGIC_VECTOR (NameChars*8-1 downto 0);
+    SIGNAL Plotter_ValueUnit     : STD_LOGIC_VECTOR (UnitChars*8-1 downto 0);
+    SIGNAL Plotter_TimeUnit      : STD_LOGIC_VECTOR (UnitChars*8-1 downto 0);
+    SIGNAL Plotter_Send          : STD_LOGIC := '0';
+    SIGNAL Plotter_Busy          : STD_LOGIC := '0';
+    NewComponent Serial_Plotter_Interface
     (
+        UseTime       => true,
+        NameChars     => NameChars,
+        UnitChars     => UnitChars,
         CLK_Frequency => 12000000,
         Baud_Rate     => 1000000,
-        OS_Rate       => 12,
-        D_Width       => 8,
-        Parity        => 0,
-        Parity_EO     => '0',
 
-        Reset         =>UART_Interface_Reset,
-        RX            =>RX,
-        TX            =>TX,
-        TX_Enable     =>UART_Interface_TX_Enable,
-        TX_Busy       =>UART_Interface_TX_Busy,
-        TX_Data       =>UART_Interface_TX_Data,
-        RX_Busy       =>UART_Interface_RX_Busy,
-        RX_Data       =>UART_Interface_RX_Data,
-        RX_Error      =>UART_Interface_RX_Error,
+        Value         => Plotter_Value,
+        Time          => Plotter_Time,
+        Graph_Name    => Plotter_Graph_Name,
+        ValueUnit     => Plotter_ValueUnit,
+        TimeUnit      => Plotter_TimeUnit,
+        Send          => Plotter_Send,
+        Busy          => Plotter_Busy,
+        TX            => TX,
     );
+    
 }
