@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Header>MAX1000_Accelerometer</Header>
+  <Items xsi:type="ProjectFolder">
+    <Header>Generated</Header>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>LIS3DH_Interface.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>MAX1000_Accelerometer.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>SPI_Master.vhd</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Header>Libraries</Header>
+    <Items xsi:type="ProjectFolder">
+      <Header>ISSP</Header>
+      <Items xsi:type="ProjectFile">
+        <Header>ISSP.qsys</Header>
+      </Items>
+      <Items xsi:type="ProjectFileVHDP">
+        <Header>ISSP.qsys.vhdp</Header>
+      </Items>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>SPI_Master.vhdp</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>LIS3DH_Accelerometer.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>MAX1000_Accelerometer.vhdp</Header>
+  </Items>
+  <CruviHSExtensions>
+    <string xsi:nil="true" />
+  </CruviHSExtensions>
+  <CruviLSExtensions>
+    <string xsi:nil="true" />
+    <string xsi:nil="true" />
+    <string xsi:nil="true" />
+    <string xsi:nil="true" />
+  </CruviLSExtensions>
+  <IOVoltage>0</IOVoltage>
+  <UseShield>false</UseShield>
+</ProjectRoot>

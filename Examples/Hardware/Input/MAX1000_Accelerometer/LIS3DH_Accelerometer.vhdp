@@ -1,0 +1,281 @@
+/*
+    Name: LIS3DH_Accelerometer
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 26.01.2021
+    Copyright (c) 2021 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important: -This is just for the LIS3DH Accelerometer that is e.g. used on the MAX1000
+    
+    Insertion: -Right click on LIS3DH_Accelerometer.vhdp -> Add to project
+               -Right click on SPI_Master.vhdp -> Add to project
+               -Add NewComponent of LIS3DH_Interface in your code
+               -Set the parameters according to your application (the description is next to the declaration)
+               -Right click the name LIS3DH_Interface next to NewComponent and create the needed signals
+    
+    Function:  1. Keep Update '1' to read the values for x, y and z
+               2. Set Reset to '1' and '0' to re-send the configuration
+               3. Set Use_ADC to '1' to check the ADC channel 3 of the LIS3DH
+               4. Set Use_Temp to '1' to read the temperature value
+    
+    Example:   LED_Matrix
+*/
+
+Component LIS3DH_Interface
+(
+    Generic
+    (
+        CLK_Frequency   : NATURAL   := 12000000;
+        Low_Power_Mode  : STD_LOGIC := '0';    --'1': Values are from -128 to 127, but you can have a higher data rate
+        High_Resolution : STD_LOGIC := '1';    --'0': Values are from -512 to 511 '1': X, Y and Z values are from -2048 to 2047
+        Data_Rate       : NATURAL range 0 to 9 := 7; --0: off, 1: 1Hz, 2: 10Hz, 3: 25Hz, 4: 50Hz, 5: 100Hz, 6: 200Hz, 7: 400Hz, 8: 1600Hz (only low power mode), 9: 1344Hz on high resolution/normal mode and 5375Hz on low power mode
+        Full_Scale      : NATURAL range 0 to 3 := 0; --0: +/-2g, 1: +/-4g, 2: +/-8g, 3: +/-16g
+        Use_ADC         : STD_LOGIC := '0';    --'1': Use ADC input (if Use_Temp = '0') (for MAX1000 Vin voltage)
+        Use_Temp        : STD_LOGIC := '0';    --'1': Use temperatur sensor (read with ADC_Val)
+    );
+    Reset   : IN STD_LOGIC := '0';
+    
+    Update  : IN  STD_LOGIC := '1';  --While '1' updates values
+    X_Val   : OUT INTEGER range -2048 to 2047 := 0;
+    Y_Val   : OUT INTEGER range -2048 to 2047 := 0;
+    Z_Val   : OUT INTEGER range -2048 to 2047 := 0;
+    ADC_Val : OUT INTEGER range -512 to 511 := 0;
+    
+    SDI     : OUT STD_LOGIC;
+    SDO     : IN  STD_LOGIC;
+    SPC     : OUT STD_LOGIC;
+    CS      : OUT STD_LOGIC;
+)
+{
+    --Connections only for MAX1000
+    Connections
+    {
+        SDI => J7,
+        SDO => K5,
+        SPC => J6,
+        CS  => L5,
+    }
+    
+    Process ()
+    {
+        SIGNAL init    : STD_LOGIC := '1';
+        SIGNAL message : NATURAL range 0 to 5 := 0;
+        If(Reset = '1')
+        {
+            init <= '1';
+            message <= 0;
+        }
+        Else
+        {
+            If(init = '1')
+            {
+                Case(message)
+                {
+                    When(0) --enable all axes, normal mode, datarate
+                    {
+                        RW <= '0';
+                        Address <= "100000";
+                        Data_OUT(7 downto 4) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Data_Rate, 4));
+                        Data_OUT(3) <= Low_Power_Mode; --Enable/Disable Low Power Mode
+                        Data_OUT(2 downto 0) <= "111"; --Enable X, Y and Z
+                        SPI_Master_Enable <= '1';
+                        message <= message + 1;
+                    }
+                    When(2) --High res & BDU enabled
+                    {
+                        RW <= '0';
+                        Address <= "100011";
+                        Data_OUT(7) <= '1'; --output regeister update on MSB and LSB reading
+                        Data_OUT(6) <= '0';
+                        Data_OUT(5 downto 4) <= STD_LOGIC_VECTOR(TO_UNSIGNED(Full_Scale, 2));
+                        Data_OUT(3) <= High_Resolution; --Enable/Disable High Resolution Mode
+                        Data_OUT(2 downto 0) <= "000"; --Self test disabled and 4 wire spi
+                        SPI_Master_Enable <= '1';
+                        message <= message + 1;
+                    }
+                    When(4) --enable adcs
+                    {
+                        RW <= '0';
+                        Address <= "011111";
+                        Data_OUT <= (others => '0');
+                        Data_OUT(7) <= Use_ADC OR Use_Temp;
+                        Data_OUT(6) <= Use_Temp;
+                        SPI_Master_Enable <= '1';
+                        message <= message + 1;
+                    }
+                    When(others)
+                    {
+                        If(SPI_Master_Busy = '1')
+                        {
+                            SPI_Master_Enable <= '0';
+                        }
+                        If(SPI_Master_Busy = '0' AND SPI_Master_Enable = '0')
+                        {
+                            If(message = 5)
+                            {
+                                init <= '0';
+                                message <= 0;
+                            }
+                            Else
+                            {
+                                message <= message + 1;
+                            }
+                        }
+                    }
+                }
+            }
+            Else
+            {
+                Thread
+                {
+                    If(Update = '1')
+                    {
+                        Case(Data_Rate)
+                        {
+                            When(0 | 1)
+                            {
+                                Wait(1s);
+                            }
+                            When(2)
+                            {
+                                Wait(100ms);
+                            }
+                            When(3)
+                            {
+                                Wait(40ms);
+                            }
+                            When(4)
+                            {
+                                Wait(20ms);
+                            }
+                            When(5)
+                            {
+                                Wait(10ms);
+                            }
+                            When(6)
+                            {
+                                Wait(5ms);
+                            }
+                            When(7)
+                            {
+                                Wait(2500us);
+                            }
+                            When(8)
+                            {
+                                Wait(625us);
+                            }
+                            When(9)
+                            {
+                                If(Low_Power_Mode = '1')
+                                {
+                                    Wait(186us);
+                                }
+                                Else
+                                {
+                                    Wait(744us);
+                                }
+                            }
+                        }
+                        VARIABLE value_reg : STD_LOGIC_VECTOR(11 downto 0);
+                        
+                        For(VARIABLE i : NATURAL range 0 to 6 := 0; i < 6; i := i + 1)
+                        {
+                            RW <= '1';
+                            Address <= "101" & STD_LOGIC_VECTOR(TO_UNSIGNED(i, 3));
+                            SPI_Master_Enable <= '1';
+                            Step { SPI_Master_Enable <= '0'; }
+                            While(SPI_Master_Busy = '1') {}
+                            Case(i)
+                            {
+                                When(1)
+                                {
+                                    value_reg(11 downto 4) := Data_IN;
+                                    X_Val <= TO_INTEGER(SIGNED(value_reg));
+                                }
+                                When(3)
+                                {
+                                    value_reg(11 downto 4) := Data_IN;
+                                    Y_Val <= TO_INTEGER(SIGNED(value_reg));
+                                }
+                                When(5)
+                                {
+                                    value_reg(11 downto 4) := Data_IN;
+                                    Z_Val <= TO_INTEGER(SIGNED(value_reg));
+                                }
+                                When(others)
+                                {
+                                    value_reg(3 downto 0) := Data_IN(7 downto 4);
+                                }
+                            }
+                        }
+                        
+                        RW <= '1';
+                        Address <= "001100";
+                        SPI_Master_Enable <= '1';
+                        Step { SPI_Master_Enable <= '0'; }
+                        While(SPI_Master_Busy = '1') {}
+                        value_reg(1 downto 0) := Data_IN(7 downto 6);
+                        
+                        RW <= '1';
+                        Address <= "001101";
+                        SPI_Master_Enable <= '1';
+                        Step { SPI_Master_Enable <= '0'; }
+                        While(SPI_Master_Busy = '1') {}
+                        value_reg(11 downto 2) := "00" & Data_IN;
+                        ADC_Val <= TO_INTEGER(SIGNED(value_reg));
+                    }
+                }
+            }
+        }
+    }
+    
+    SIGNAL RW       : STD_LOGIC := '0'; --0 = write 1 = read
+    SIGNAL Address  : STD_LOGIC_VECTOR(5 downto 0);
+    SIGNAL Data_IN  : STD_LOGIC_VECTOR(7 downto 0);
+    SIGNAL Data_OUT : STD_LOGIC_VECTOR(7 downto 0);
+    SPI_Master_TX_Data(15) <= RW;
+    SPI_Master_TX_Data(14) <= '0'; --address stays the same
+    SPI_Master_TX_Data(13 downto 8) <= Address;
+    SPI_Master_TX_Data(7 downto 0) <= Data_OUT;
+    Data_IN <= SPI_Master_RX_Data(7 downto 0);
+    
+    SIGNAL SPI_Master_TX_Data       : STD_LOGIC_VECTOR (16-1 downto 0) := (others => '0');
+    SIGNAL SPI_Master_Enable        : STD_LOGIC := '0';
+    SIGNAL SPI_Master_Busy          : STD_LOGIC := '0';
+    SIGNAL SPI_Master_RX_Data       : STD_LOGIC_VECTOR (16-1 downto 0) := (others => '0');
+    NewComponent SPI_Master
+    (
+        CLK_Frequency => 12000000,
+        SPI_CLK       => 500000,
+        Bits          => 16,
+        CPol          => '1',
+        CPha          => '1',
+
+        MISO          => SDO,
+        SCLK          => SPC,
+        SS            => CS,
+        MOSI          => SDI,
+        TX_Data       => SPI_Master_TX_Data,
+        Enable        => SPI_Master_Enable,
+        Cont          => '0',
+        Busy          => SPI_Master_Busy,
+        RX_Data       => SPI_Master_RX_Data,
+    );
+}

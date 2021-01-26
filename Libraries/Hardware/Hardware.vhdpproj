@@ -96,6 +96,9 @@
     <Items xsi:type="ProjectFileVHDP">
       <Header>Fingerprint.vhdp</Header>
     </Items>
+	<Items xsi:type="ProjectFileVHDP">
+      <Header>LIS3DH_Accelerometer.vhdp</Header>
+    </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>Pressure_ADC.vhdp</Header>
     </Items>

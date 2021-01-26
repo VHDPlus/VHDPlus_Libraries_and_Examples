@@ -1,0 +1,42 @@
+Main
+(
+    LIS3DH_INT : IN  STD_LOGIC_VECTOR(1 downto 0);
+    LIS3DH_SDI : OUT STD_LOGIC;
+    LIS3DH_SDO : IN  STD_LOGIC;
+    LIS3DH_SPC : OUT STD_LOGIC;
+    LIS3DH_CS  : OUT STD_LOGIC;
+)
+{
+    SIGNAL LIS3DH_Interface_X_Val           : INTEGER   range -2048 to 2047 := 0;
+    SIGNAL LIS3DH_Interface_Y_Val           : INTEGER   range -2048 to 2047 := 0;
+    SIGNAL LIS3DH_Interface_Z_Val           : INTEGER   range -2048 to 2047 := 0;
+    SIGNAL LIS3DH_Interface_ADC_Val         : INTEGER   range -512 to 511 := 0;
+    
+    ISSP_probe <= STD_LOGIC_VECTOR(TO_SIGNED(LIS3DH_Interface_X_Val, ISSP_probe'LENGTH)) when ISSP_source(1 downto 0) = "00" else
+    STD_LOGIC_VECTOR(TO_SIGNED(LIS3DH_Interface_Y_Val, ISSP_probe'LENGTH)) when ISSP_source(1 downto 0) = "01" else
+    STD_LOGIC_VECTOR(TO_SIGNED(LIS3DH_Interface_Z_Val, ISSP_probe'LENGTH)) when ISSP_source(1 downto 0) = "10" else
+    STD_LOGIC_VECTOR(TO_SIGNED(LIS3DH_Interface_ADC_Val, ISSP_probe'LENGTH));
+    
+    SIGNAL ISSP_source : std_logic_vector (7 downto 0);
+    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0) := (others => 'X');
+    NewComponent ISSP
+    (
+        source =>ISSP_source,
+        probe  =>ISSP_probe,
+    );
+    
+    NewComponent LIS3DH_Interface
+    (
+        Use_ADC         => '1',
+        Use_Temp        => '0',
+
+        X_Val           => LIS3DH_Interface_X_Val,
+        Y_Val           => LIS3DH_Interface_Y_Val,
+        Z_Val           => LIS3DH_Interface_Z_Val,
+        ADC_Val         => LIS3DH_Interface_ADC_Val,
+        SDI             => LIS3DH_SDI,
+        SDO             => LIS3DH_SDO,
+        SPC             => LIS3DH_SPC,
+        CS              => LIS3DH_CS,
+    );
+}
