@@ -1,5 +1,5 @@
 /*
-        Name: Bluetooth
+        Name: HC05_Bluetooth
         Rev: 1.0
         Creator: Leon Beier
         Date: 20.09.2020
@@ -30,11 +30,11 @@
                    -Module settings are only set after changing Config from '0' to '1'
                    -Settings have to be written only once, after that they are saved
     
-        Insert:    -Right click on Bluetooth.vhdp and add to active project
+        Insert:    -Right click on HC05_Bluetooth.vhdp and add to active project
                    -Right click on UART.vhdp and add to active project
-                   -Create a NewComponent from Bluetooth_Controller
+                   -Create a NewComponent from HC05_Controller
                    -Set Parameters (can also be left at default values)
-                   -Right click on the name "Bluetooth_Controller" and create signals for the component
+                   -Right click on the name "HC05_Controller" and create signals for the component
                    -Add a UART interface to your code and connect the RX/TX I/Os of your UART component with RX_Comp/TX_Comp
                     
         Function:  -Set Power to '1' to turn on the module
@@ -43,7 +43,7 @@
                     This will be transmitted to the device that is connected to the bluetooth module
 */
 
-Component Bluetooth_Controller
+Component HC05_Controller
 (
     Include();
     Generic

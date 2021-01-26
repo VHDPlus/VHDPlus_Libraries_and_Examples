@@ -1,5 +1,5 @@
 /*
-    Name: Real Time Clock
+    Name: DS3231 Real Time Clock
     Rev: 1.0
     Creator: Leon Beier
     Date: 17.08.2019
@@ -31,10 +31,10 @@
                  
     Description: This component allows to read and set the current time, read the temperature and set two alarms
     
-    Insertion:   -Right click on Real_Time_Clock.vhdp, I2C_Array.vhdp and I2C.vhdp -> Add to project
-                 -Add NewComponent of Real_Time_Clock in your code
+    Insertion:   -Right click on DS3231_Real_Time_Clock.vhdp, I2C_Array.vhdp and I2C.vhdp -> Add to project
+                 -Add NewComponent of DS3231_Interface in your code
                  -Remove CLK_Frequency if you use a VHDP Core and no PLL
-                 -Right click the name Real_Time_Clock next to NewComponent and create the needed signals 
+                 -Right click the name DS3231_Interface next to NewComponent and create the needed signals 
     
     Function:    Setup: -Set Config_Time to the current time and date,
                          the alarms if you want to use them and C_24h_12h.
@@ -45,7 +45,7 @@
     Example:     Real_Time_Clock_Example
 */
 
-Component Real_Time_Clock
+Component DS3231_Interface
 (
     Include
     (

@@ -1,5 +1,5 @@
 /*
-    Name: Audio_Codec
+    Name: MAX9867_Audio_Codec
     Rev: 1.0
     Creator: Leon Beier
     Date: 14.06.2020
@@ -24,11 +24,11 @@
     
     Important: -You need to add I2C.vhdp too
     
-    Insertion: -Right click on Audio_Codec.vhdp -> Add to project
+    Insertion: -Right click on MAX9867_Audio_Codec.vhdp -> Add to project
                -Right click on I2C.vhdp -> Add to project
-               -Add NewComponent of Audio_Codec in your code
+               -Add NewComponent of MAX9867_Interface in your code
                -You can change the settings if you want
-               -Right click the name Audio_Codec_Component next to NewComponent and create the signals
+               -Right click the name MAX9867_Interface next to NewComponent and create the signals
     
     Function:  -With Reset you can send the settings again on falling edge
                -ADC_L/R has the current Mic/Line value
@@ -38,7 +38,7 @@
     Example:   Audio (in Examples)
  */
 
-Component Audio_Codec_Component
+Component MAX9867_Interface
 (
     Generic
     (

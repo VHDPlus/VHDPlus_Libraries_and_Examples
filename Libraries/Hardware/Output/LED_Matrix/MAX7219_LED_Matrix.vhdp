@@ -1,5 +1,5 @@
 /*
-    Name: LED Matrix
+    Name: MAX7219 LED Matrix
     Rev: 1.0
     Creator: Leon Beier
     Date: 06.06.2019
@@ -26,12 +26,12 @@
                -To display a text, you have to add LED_Matrix_Text.vhdp
                -The matrix has to be connected when you connect power or you hav to trigger Config
     
-    Insertion: -Right click on LED_Matrix.vhdp and SPI_Master.vhdp -> Add to project
-               -Add NewComponent of LED_Matrix in your code
+    Insertion: -Right click on MAX7219_LED_Matrix.vhdp and SPI_Master.vhdp -> Add to project
+               -Add NewComponent of MAX7219_Interface in your code
                -Remove CLK_Frequency if you use a VHDP Core and no PLL
                -Set your number of panels
                -Remove Rotate_seg and Mirror or change the values if the image isn't displayed correctly
-               -Right click the name LED_Matrix next to NewComponent and create the needed signals (Panels in the Panel_Bitmap declaration has to be replaced with the panel count or you have to use a constant)
+               -Right click the name MAX7219_Interface next to NewComponent and create the needed signals (Panels in the Panel_Bitmap declaration has to be replaced with the panel count or you have to use a constant)
     
     Function:  -Configuration:
                 1. Set Brightness to a value between 0 and 15 and Shutdown to '0' for normal operation
@@ -43,7 +43,7 @@
     Example:   LED_Matrix_Example
 */
 
-Component LED_Matrix
+Component MAX7219_Interface
 (
     Include
     (

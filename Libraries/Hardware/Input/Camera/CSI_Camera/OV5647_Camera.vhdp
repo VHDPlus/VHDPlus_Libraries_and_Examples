@@ -1,9 +1,9 @@
 /*
-    Name: Camera CSI
+    Name: OV5647 Camera
     Rev: 1.0
     Creator: Leon Beier
-    Date: 29.12.2019
-    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    Date: 26.01.2021
+    Copyright (c) 2021 Protop Solutions UG. All right reserved.
     
     Permission is hereby granted, free of charge, to any person obtaining a copy of
     this hdl code and associated documentation files (the "HDL Code"), to deal in the
@@ -30,9 +30,9 @@
                   outputs the received camera data.
     
     Insertion:   -Right click on the CSI_Camera folder and the I2C library -> Add to active project
-                 -Add NewComponent of CSI_Camera into your code
+                 -Add NewComponent of OV5647_Camera into your code
                  -Set CLK_Frequency to the frequency of your external oszillator
-                 -Right click CSI_Camera next to NewComponent and create the required signals
+                 -Right click OV5647_Camera next to NewComponent and create the required signals
     
     Function:    1. Wait until Column changes
                  2. Read the pixel value at the current Row and Column (The image is 640x480)
@@ -40,7 +40,7 @@
     Example:     Camera_CSI_Example
  */
 
-Component CSI_Camera
+Component OV5647_Camera
 (
     Include
     (

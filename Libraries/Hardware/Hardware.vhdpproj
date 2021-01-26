@@ -20,7 +20,7 @@
           <Header>ALTSYNCRAM.qsys.vhdp</Header>
         </Items>
         <Items xsi:type="ProjectFileVHDP">
-          <Header>CSI_Camera.vhdp</Header>
+          <Header>OV5647_Camera.vhdp</Header>
         </Items>
       </Items>
       <Items xsi:type="ProjectFolder">
@@ -85,25 +85,25 @@
       </Items>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Header>Audio_Codec.vhdp</Header>
+      <Header>MAX9867_Audio_Codec.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Header>Bluetooth.vhdp</Header>
+      <Header>HC05_Bluetooth.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>Encoder.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Header>Fingerprint.vhdp</Header>
+      <Header>AS608_Fingerprint.vhdp</Header>
     </Items>
 	<Items xsi:type="ProjectFileVHDP">
       <Header>LIS3DH_Accelerometer.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Header>Pressure_ADC.vhdp</Header>
+      <Header>HX711_ADC.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Header>Real_Time_Clock.vhdp</Header>
+      <Header>DS3231_Real_Time_Clock.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>Ultrasonic.vhdp</Header>
@@ -114,7 +114,7 @@
     <Items xsi:type="ProjectFolder">
       <Header>LED_Matrix</Header>
       <Items xsi:type="ProjectFileVHDP">
-        <Header>LED_Matrix.vhdp</Header>
+        <Header>MAX7219_LED_Matrix.vhdp</Header>
       </Items>
       <Items xsi:type="ProjectFileVHDP">
         <Header>LED_Matrix_Text.vhdp</Header>
@@ -175,7 +175,7 @@
       <Header>Shift_Register.vhdp</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDP">
-      <Header>LED_Strip_Interface.vhdp</Header>
+      <Header>WS2812_LED_Strip.vhdp</Header>
     </Items>
   </Items>
   <CruviHSExtensions>
