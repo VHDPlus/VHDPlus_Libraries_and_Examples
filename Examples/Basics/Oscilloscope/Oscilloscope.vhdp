@@ -11,19 +11,63 @@ Main
     led           : OUT STD_LOGIC := '0';
     btn           : IN  STD_LOGIC := '0';
     TX            : OUT STD_LOGIC := '1';
+    
+    Test_Signal   : OUT STD_LOGIC := '0';
 )
 {
+    CONSTANT GraphName : STD_LOGIC_VECTOR := s"ADC Channel 0";
     CONSTANT TimeUnit  : STD_LOGIC_VECTOR := s"us";
     CONSTANT NameChars : NATURAL := 13;
     CONSTANT UnitChars : NATURAL := 2;
     
-    
     CONSTANT Sample_Rate   : NATURAL := 1000000; --1MHz
     CONSTANT ADC_Channel   : NATURAL := 0; --0-7
     
-    ADC_MAX10_Single_Channel <= ADC_Channel;
+    Process ()
+    {
+        Thread
+        {
+            While(btn = '0')
+            {
+                Wait(10ms);
+            }
+            While(btn = '1')
+            {
+                Wait(10ms);
+            }
+            
+            Logic_Analyzer_Run <= '1';
+            While(Logic_Analyzer_Full = '0'){}
+            Logic_Analyzer_Run <= '0';
+
+            For(Logic_Analyzer_Address <= 0; Logic_Analyzer_Address < 500; Logic_Analyzer_Address <= Logic_Analyzer_Address + 1)
+            {
+                Plotter_Graph_Name <= GraphName; --If string has fewer chars than 'NameChars': s"ADC Channel" & x"0000"; (x"0000" fills the 2 missing bytes)
+                Plotter_Value      <= (TO_INTEGER(UNSIGNED(Logic_Analyzer_Outputs))*3300)/4096;  --From 12 bit value to mV
+                Plotter_ValueUnit  <= s"mV";
+                Plotter_Time       <= Logic_Analyzer_Address-250;
+                Plotter_Send <= '1';
+                While(Plotter_Busy = '0'){}
+                Plotter_Send <= '0';
+                While(Plotter_Busy = '1'){}
+            }
+        }
+    }
     
-    Logic_Analyzer_Rate_Div <= 12000000/Sample_Rate;
+    --Create 250 kHz signal to test input
+    Process ()
+    {
+        Thread
+        {
+            --48 cycles -> 12MHz/48
+            Test_Signal <= '0';
+            Wait(22);
+            Test_Signal <= '1';
+            Wait(22);
+        }
+    }
+    
+    ADC_MAX10_Single_Channel <= ADC_Channel;
 
     led <= Logic_Analyzer_Full;
     
@@ -34,6 +78,8 @@ Main
         Channel => ADC_MAX10_Single_Channel,
         Data    => ADC_MAX10_Single_Data,
     );
+    
+    Logic_Analyzer_Rate_Div <= 12000000/Sample_Rate;
     
     Logic_Analyzer_Inputs <= STD_LOGIC_VECTOR(TO_UNSIGNED(ADC_MAX10_Single_Data, 12));
     
@@ -57,39 +103,6 @@ Main
         Outputs       => Logic_Analyzer_Outputs,
     );
     
-    
-    Process ()
-    {
-        Thread
-        {
-            While(btn = '0')
-            {
-                Wait(10ms);
-            }
-            While(btn = '1')
-            {
-                Wait(10ms);
-            }
-            
-            Logic_Analyzer_Run <= '1';
-            While(Logic_Analyzer_Full = '0'){}
-            Logic_Analyzer_Run <= '0';
-            
-            For(VARIABLE i : INTEGER := 0; i < 500; i := i + 1)
-            {
-                Plotter_Graph_Name <= s"ADC Channel 0"; --If string has fewer chars than 'NameChars': s"ADC Channel" & x"0000"; (x"0000" fills the 2 missing bytes)
-                Plotter_Value      <= (ADC_MAX10_Single_Data*1000)/4096;  --From 12 bit value to mV
-                Plotter_ValueUnit  <= s"mV";
-                Plotter_Time       <= i-250;
-                Plotter_Send <= '1';
-                While(Plotter_Busy = '0'){}
-                Plotter_Send <= '0';
-                While(Plotter_Busy = '1'){}
-                Wait(1s);
-            }
-        }
-    }
-    
     SIGNAL Plotter_Value         : INTEGER := 0;
     SIGNAL Plotter_Time          : INTEGER := 0;
     SIGNAL Plotter_Graph_Name    : STD_LOGIC_VECTOR (NameChars*8-1 downto 0);
@@ -103,7 +116,7 @@ Main
         UnitChars     => UnitChars,
         TimeUnit      => TimeUnit,
         CLK_Frequency => 12000000,
-        Baud_Rate     => 1000000,
+        Baud_Rate     => 9600,
 
         Value         => Plotter_Value,
         Time          => Plotter_Time,

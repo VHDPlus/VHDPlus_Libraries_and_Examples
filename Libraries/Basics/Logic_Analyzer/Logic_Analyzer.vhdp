@@ -44,7 +44,7 @@ Component Logic_Analyzer
     
     Inputs      : IN  STD_LOGIC_VECTOR(Channels-1 downto 0) := (others => '0');
     
-    Address     : IN  NATURAL range 0 to Max_Samples := 0;   --Read the values
+    Address     : IN  NATURAL range 0 to Max_Samples-1 := 0;   --Read the values
     Outputs     : OUT STD_LOGIC_VECTOR(Channels-1 downto 0);
 )
 {
