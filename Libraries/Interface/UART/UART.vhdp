@@ -72,8 +72,8 @@ Component UART_Interface
     
     Connections
     {
-        RX,
-        TX,
+        RX => UART_TXD,
+        TX => UART_RXD,
     }
     
     SeqFunction write

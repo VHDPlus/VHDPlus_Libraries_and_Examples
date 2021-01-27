@@ -1,25 +1,66 @@
+/*
+    Name: Serial Plotter Interface
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 27.01.2021
+    Copyright (c) 2021 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+    Insertion: -Right click on Serial_Plotter_Interface.vhdp -> Add to project
+               -Add NewComponent of Serial_Plotter_Interface in your code
+               -Set parameters according to the description next to the definition
+               -You have to send values
+               -You can assign the values a graph name
+               -You can assign the values a unit name that has to be the same for all values in one graph
+               -You can assign the values a time + a time unit that has to be the same for all graphs
+               -Right click the name Serial_Plotter_Interface next to NewComponent and create the signals
+    
+    Example:   Oscilloscope
+*/
+
 Component Serial_Plotter_Interface
 (
     Generic
     (
-        UseTime         : BOOLEAN     := false;
-        NameChars       : NATURAL     := 16;
-        UnitChars       : NATURAL     := 3;
+        UseTime         : BOOLEAN     := false;       --If false the plotter just uses the time it received the message
+        TimeUnit        : STD_LOGIC_VECTOR := x"00";  --For example: s"s", s"ms", s"min"
+        NameChars       : NATURAL     := 16;          --Set to maximum number of chars for graph name: For s"Humidity" and s"Temperature" -> 11
+        UnitChars       : NATURAL     := 3;           --Set to maximum number of chars for value unit: For s"%" and s"°C" -> 2
         CLK_Frequency   : INTEGER     := 12000000;    --frequency of system clock in Hertz
         Baud_Rate       : INTEGER     := 115200;      --data link baud rate in bits/second
     );
     Value      : IN  INTEGER := 0;
     Time       : IN  INTEGER := 0;
-    Graph_Name : IN  STD_LOGIC_VECTOR(NameChars*8-1 downto 0) := (others => '0');
-    ValueUnit  : IN  STD_LOGIC_VECTOR(UnitChars*8-1 downto 0) := (others => '0');
-    TimeUnit   : IN  STD_LOGIC_VECTOR(UnitChars*8-1 downto 0) := (others => '0');
+    Graph_Name : IN  STD_LOGIC_VECTOR(NameChars*8-1 downto 0) := (others => '0'); --For example s"Temperature" or s"Humidity" & x"000000" for NameChars = 11
+    ValueUnit  : IN  STD_LOGIC_VECTOR(UnitChars*8-1 downto 0) := (others => '0'); --For example s"°C" or s"%" for UnitChars = 2
     
-    Send       : IN  STD_LOGIC := '0';
-    Busy       : OUT STD_LOGIC := '0';
+    Send       : IN  STD_LOGIC := '0';  --Change from '0' to '1' to send
+    Busy       : OUT STD_LOGIC := '0';  --'1' while sending
     
     TX         : OUT STD_LOGIC;
 )
 {
+    Connections
+    {
+        TX => UART_RXD,
+    }
+    
     Process ()
     {
         Thread
@@ -59,7 +100,8 @@ Component Serial_Plotter_Interface
                 myValue := abs(Time);
                 NewFunction naturalToString (myValue, valueStr, bcdEna, bcdBus, bcdBin, bcdDec);
                 NewFunction stringAppend (valueStr, messageStr);
-                NewFunction constStringAppend (TimeUnit, UnitChars, messageStr);
+                NewFunction newConstString (TimeUnit, timeUnitStr);
+                NewFunction stringAppend (timeUnitStr, messageStr);
             }
             NewFunction charAppend (s"\n", messageStr);
             

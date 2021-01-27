@@ -10,10 +10,14 @@ Main
 (
     led           : OUT STD_LOGIC := '0';
     btn           : IN  STD_LOGIC := '0';
-    RX            : IN  STD_LOGIC := '1';
     TX            : OUT STD_LOGIC := '1';
 )
 {
+    CONSTANT TimeUnit  : STD_LOGIC_VECTOR := s"us";
+    CONSTANT NameChars : NATURAL := 13;
+    CONSTANT UnitChars : NATURAL := 2;
+    
+    
     CONSTANT Sample_Rate   : NATURAL := 1000000; --1MHz
     CONSTANT ADC_Channel   : NATURAL := 0; --0-7
     
@@ -76,8 +80,7 @@ Main
                 Plotter_Graph_Name <= s"ADC Channel 0"; --If string has fewer chars than 'NameChars': s"ADC Channel" & x"0000"; (x"0000" fills the 2 missing bytes)
                 Plotter_Value      <= (ADC_MAX10_Single_Data*1000)/4096;  --From 12 bit value to mV
                 Plotter_ValueUnit  <= s"mV";
-                Plotter_Time       <= i;
-                Plotter_TimeUnit   <= s"us";
+                Plotter_Time       <= i-250;
                 Plotter_Send <= '1';
                 While(Plotter_Busy = '0'){}
                 Plotter_Send <= '0';
@@ -87,14 +90,10 @@ Main
         }
     }
     
-    
-    CONSTANT NameChars : NATURAL := 13;
-    CONSTANT UnitChars : NATURAL := 2;
     SIGNAL Plotter_Value         : INTEGER := 0;
     SIGNAL Plotter_Time          : INTEGER := 0;
     SIGNAL Plotter_Graph_Name    : STD_LOGIC_VECTOR (NameChars*8-1 downto 0);
     SIGNAL Plotter_ValueUnit     : STD_LOGIC_VECTOR (UnitChars*8-1 downto 0);
-    SIGNAL Plotter_TimeUnit      : STD_LOGIC_VECTOR (UnitChars*8-1 downto 0);
     SIGNAL Plotter_Send          : STD_LOGIC := '0';
     SIGNAL Plotter_Busy          : STD_LOGIC := '0';
     NewComponent Serial_Plotter_Interface
@@ -102,6 +101,7 @@ Main
         UseTime       => true,
         NameChars     => NameChars,
         UnitChars     => UnitChars,
+        TimeUnit      => TimeUnit,
         CLK_Frequency => 12000000,
         Baud_Rate     => 1000000,
 
@@ -109,7 +109,6 @@ Main
         Time          => Plotter_Time,
         Graph_Name    => Plotter_Graph_Name,
         ValueUnit     => Plotter_ValueUnit,
-        TimeUnit      => Plotter_TimeUnit,
         Send          => Plotter_Send,
         Busy          => Plotter_Busy,
         TX            => TX,
