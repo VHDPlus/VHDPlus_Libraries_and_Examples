@@ -1,6 +1,6 @@
 /*
 Important:
-- UART baud rate is set to 9600 mega baud
+- UART baud rate is set to 1 mega baud
 - Open the ISSP window if ISSP_Settings is true:
     1. Probe: ADC channel from 0 to 7
     2. Probe: Sample rate: 12 = 12MHz/12 = 1MSamples
@@ -116,7 +116,7 @@ Main
         UnitChars     => UnitChars,
         TimeUnit      => TimeUnit,
         CLK_Frequency => 12000000,
-        Baud_Rate     => 9600,
+        Baud_Rate     => 1000000,
 
         Value         => Plotter_Value,
         Time          => Plotter_Time,
