@@ -1,41 +1,39 @@
 /*
 Important:
 - UART baud rate is set to 1 mega baud
-- Open the ISSP window if ISSP_Settings is true:
-    1. Probe: ADC channel from 0 to 7
-    2. Probe: Sample rate: 12 = 12MHz/12 = 1MSamples
+- Set "Delete After" to 500
+- To change the ADC channel: send "c0" for the 1. channel
+- To change the sample rat: send "r1000000" for 1 mega samples per second
 */
 
 Main
 (
-    led           : OUT STD_LOGIC := '0';
-    btn           : IN  STD_LOGIC := '0';
     TX            : OUT STD_LOGIC := '1';
+    RX            : IN  STD_LOGIC := '1';
     
     Test_Signal   : OUT STD_LOGIC := '0';
 )
 {
+    --Plotter settings
     CONSTANT GraphName : STD_LOGIC_VECTOR := s"ADC Channel 0";
     CONSTANT TimeUnit  : STD_LOGIC_VECTOR := s"us";
     CONSTANT NameChars : NATURAL := 13;
     CONSTANT UnitChars : NATURAL := 2;
     
-    CONSTANT Sample_Rate   : NATURAL := 1000000; --1MHz
-    CONSTANT ADC_Channel   : NATURAL := 0; --0-7
+    --UART settings
+    CONSTANT Baud_Rate : NATURAL := 1000000;
+    CONSTANT CLK_Freq  : NATURAL := 12000000;
     
-    Process ()
+    --Default settings
+    SIGNAL Sample_Rate   : NATURAL range 1 to 1000000 := 1000000; --1MHz
+    SIGNAL ADC_Channel   : NATURAL range 0 to 8       := 0; --0-7
+    
+    Process Oscilloscope ()
     {
         Thread
         {
-            While(btn = '0')
-            {
-                Wait(10ms);
-            }
-            While(btn = '1')
-            {
-                Wait(10ms);
-            }
-            
+            Wait(100ms);
+
             Logic_Analyzer_Run <= '1';
             While(Logic_Analyzer_Full = '0'){}
             Logic_Analyzer_Run <= '0';
@@ -45,7 +43,7 @@ Main
                 Plotter_Graph_Name <= GraphName; --If string has fewer chars than 'NameChars': s"ADC Channel" & x"0000"; (x"0000" fills the 2 missing bytes)
                 Plotter_Value      <= (TO_INTEGER(UNSIGNED(Logic_Analyzer_Outputs))*3300)/4096;  --From 12 bit value to mV
                 Plotter_ValueUnit  <= s"mV";
-                Plotter_Time       <= Logic_Analyzer_Address-250;
+                Plotter_Time       <= (Logic_Analyzer_Address-250) * (1000000/Sample_Rate);
                 Plotter_Send <= '1';
                 While(Plotter_Busy = '0'){}
                 Plotter_Send <= '0';
@@ -54,8 +52,40 @@ Main
         }
     }
     
+    Process Settings ()
+    {
+        Thread
+        {
+            NewFunction newString (readStr);
+            NewFunction readString (readStr, UART_Interface_RX_Data, UART_Interface_RX_Busy);
+            SIGNAL channel_i : INTEGER;
+            SIGNAL rate_i    : INTEGER;
+            rate_i    <= -1;
+            NewFunction indexOf (readStr, s"c", 1, 0, channel_i);
+            if(channel_i = -1)
+            {
+                NewFunction indexOf (readStr, s"r", 1, 0, rate_i);
+            }
+            If(rate_i > -1 OR channel_i > -1)
+            {
+                NewFunction newString (convertStr);
+                NewFunction substring (readStr, 1, readStr.Length-1, convertStr);
+                SIGNAL receivedValue : NATURAL;
+                NewFunction stringToNatural (convertStr, receivedValue);
+                if(rate_i > -1 AND receivedValue > 0 AND receivedValue <= 1000000)
+                {
+                    Sample_Rate <= receivedValue;
+                }
+                Elsif(channel_i > -1 AND receivedValue < 9)
+                {
+                    ADC_Channel <= receivedValue;
+                }
+            }
+        }
+    }
+    
     --Create 250 kHz signal to test input
-    Process ()
+    Process Test ()
     {
         Thread
         {
@@ -69,8 +99,6 @@ Main
     
     ADC_MAX10_Single_Channel <= ADC_Channel;
 
-    led <= Logic_Analyzer_Full;
-    
     SIGNAL ADC_MAX10_Single_Channel : NATURAL range 0 to 8 := 1;
     SIGNAL ADC_MAX10_Single_Data    : NATURAL range 0 to 4095 := 0;
     NewComponent ADC_MAX10_Single
@@ -115,8 +143,8 @@ Main
         NameChars     => NameChars,
         UnitChars     => UnitChars,
         TimeUnit      => TimeUnit,
-        CLK_Frequency => 12000000,
-        Baud_Rate     => 1000000,
+        CLK_Frequency => CLK_Freq,
+        Baud_Rate     => Baud_Rate,
 
         Value         => Plotter_Value,
         Time          => Plotter_Time,
@@ -127,4 +155,16 @@ Main
         TX            => TX,
     );
     
+    SIGNAL UART_Interface_RX_Busy       : STD_LOGIC := '0';
+    SIGNAL UART_Interface_RX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
+    NewComponent UART_Interface
+    (
+        CLK_Frequency => CLK_Freq,
+        Baud_Rate     => Baud_Rate,
+        OS_Rate       => 12,
+
+        RX            => RX,
+        RX_Busy       => UART_Interface_RX_Busy,
+        RX_Data       => UART_Interface_RX_Data,
+    );
 }

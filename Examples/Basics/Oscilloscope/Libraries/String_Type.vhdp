@@ -279,12 +279,12 @@ Package String_Type_Package
     (
         iString    : String_Type;
         startindex : NATURAL;
-        length     : NATURAL;
+        subLength  : NATURAL;
         oString    : String_Type;
     )
     {
         oString.Length <= 0;
-        SeqFor(VARIABLE substringCount : NATURAL range 0 to Max_String_Length-1 := startindex; substringCount < length+startindex; substringCount := substringCount + 1)
+        SeqFor(VARIABLE substringCount : NATURAL range 0 to Max_String_Length-1 := startindex; substringCount < subLength+startindex; substringCount := substringCount + 1)
         {
             iString.Address <= substringCount;
             Step
