@@ -67,10 +67,10 @@ Component LIS3DH_Interface
     --Connections only for MAX1000
     Connections
     {
-        SDI => J7,
-        SDO => K5,
-        SPC => J6,
-        CS  => L5,
+        SDI => ACCEL_3,
+        SDO => ACCEL_2,
+        SPC => ACCEL_1,
+        CS  => ACCEL_4,
     }
     
     Process ()
