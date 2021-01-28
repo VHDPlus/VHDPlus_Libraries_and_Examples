@@ -4,6 +4,8 @@ Important:
 - Set "Delete After" to 500
 - To change the ADC channel: send "c0" for the 1. channel
 - To change the sample rat: send "r1000000" for 1 mega samples per second
+- To set the trigger level: send "t1000" for 1000mV
+- To set rising or falling edge: send "f1" for falling and "f0" for rising
 */
 
 Main
@@ -26,7 +28,9 @@ Main
     
     --Default settings
     SIGNAL Sample_Rate   : NATURAL range 1 to 1000000 := 1000000; --1MHz
-    SIGNAL ADC_Channel   : NATURAL range 0 to 8       := 0; --0-7
+    SIGNAL ADC_Channel   : NATURAL range 0 to 8       := 0;       --channel 0
+    SIGNAL Trig_Level    : NATURAL range 0 to 3300    := 1650;    --1,65V
+    SIGNAL Trig_Falling  : NATURAL range 0 to 1       := 0;       --rising edge
     
     Process Oscilloscope ()
     {
@@ -34,16 +38,48 @@ Main
         {
             Wait(100ms);
 
+            --Fill logic analyzer with ADC data
             Logic_Analyzer_Run <= '1';
             While(Logic_Analyzer_Full = '0'){}
             Logic_Analyzer_Run <= '0';
 
-            For(Logic_Analyzer_Address <= 0; Logic_Analyzer_Address < 500; Logic_Analyzer_Address <= Logic_Analyzer_Address + 1)
+            --Find trigger edge
+            trigger_address <= 500;
+            For(Logic_Analyzer_Address <= 250; Logic_Analyzer_Address < 500 AND trigger_address = 500; Logic_Analyzer_Address <= Logic_Analyzer_Address + 1)
+            {
+                SIGNAL trigger_address   : NATURAL range 250 to 500 := 500;
+                SIGNAL lower_trigger_reg : BOOLEAN := false;
+                SIGNAL lower_trigger     : BOOLEAN := false;
+
+                lower_trigger <= TO_INTEGER(UNSIGNED(Logic_Analyzer_Outputs)) < Trig_Level;
+                If(Logic_Analyzer_Address > 250)
+                {
+                    if((Trig_Falling = 1 AND lower_trigger AND NOT lower_trigger_reg) OR (Trig_Falling = 0 AND NOT lower_trigger AND lower_trigger_reg))
+                    {
+                        trigger_address <= Logic_Analyzer_Address;
+                    }
+                }
+                lower_trigger_reg <= lower_trigger;
+            }
+
+            --Send saved data
+            For(Logic_Analyzer_Address <= trigger_address-250; Logic_Analyzer_Address < trigger_address+250; Logic_Analyzer_Address <= Logic_Analyzer_Address + 1)
             {
                 Plotter_Graph_Name <= GraphName; --If string has fewer chars than 'NameChars': s"ADC Channel" & x"0000"; (x"0000" fills the 2 missing bytes)
-                Plotter_Value      <= (TO_INTEGER(UNSIGNED(Logic_Analyzer_Outputs))*3300)/4096;  --From 12 bit value to mV
-                Plotter_ValueUnit  <= s"mV";
-                Plotter_Time       <= (Logic_Analyzer_Address-250) * (1000000/Sample_Rate);
+                Plotter_Value      <= TO_INTEGER(UNSIGNED(Logic_Analyzer_Outputs));
+                Plotter_ValueUnit  <= s"mV";     --If string has fewer chars than 'UnitChars': s"V" & x"00"
+                Plotter_Time       <= (Logic_Analyzer_Address-trigger_address) * (1000000/Sample_Rate);      --Sample rate to micro seconds
+                --Send to plotter
+                Plotter_Send <= '1';
+                While(Plotter_Busy = '0'){}
+                Plotter_Send <= '0';
+                While(Plotter_Busy = '1'){}
+                
+                --send trigger value
+                Plotter_Graph_Name <= (others => '0');
+                Plotter_Graph_Name(Plotter_Graph_Name'LENGTH-1 downto Plotter_Graph_Name'LENGTH-32) <= s"Trig";
+                Plotter_Value      <= Trig_Level;
+                --Send to plotter
                 Plotter_Send <= '1';
                 While(Plotter_Busy = '0'){}
                 Plotter_Send <= '0';
@@ -56,44 +92,65 @@ Main
     {
         Thread
         {
-            NewFunction newString (readStr);
-            NewFunction readString (readStr, UART_Interface_RX_Data, UART_Interface_RX_Busy);
+            --Read string from console in "readStr"
+            NewFunction newString (readStr);                       --Create string
+            NewFunction readString (readStr, UART_Interface_RX_Data, UART_Interface_RX_Busy);  --Read uart message in string
             SIGNAL channel_i : INTEGER;
             SIGNAL rate_i    : INTEGER;
-            rate_i    <= -1;
-            NewFunction indexOf (readStr, s"c", 1, 0, channel_i);
-            if(channel_i = -1)
+            SIGNAL trig_i    : INTEGER;
+            SIGNAL fall_i    : INTEGER;
+            --Check if received string is channel or sample rate setting
+            rate_i    <= -1;                                       --Set sample rate index to -1 if indexof is skipped
+            NewFunction indexOf (readStr, s"c", 1, 0, channel_i);  --Find index of c: "c3" <- 0  "r10000" <- -1
+            If(channel_i /= 0)                                     --check if message was channel setting
             {
-                NewFunction indexOf (readStr, s"r", 1, 0, rate_i);
+                NewFunction indexOf (readStr, s"r", 1, 0, rate_i); --Find index of r: "r10000" <- 0
             }
-            If(rate_i > -1 OR channel_i > -1)
+            If(channel_i /= 0 AND rate_i /= 0)
             {
-                NewFunction newString (convertStr);
-                NewFunction substring (readStr, 1, readStr.Length-1, convertStr);
+                NewFunction indexOf (readStr, s"t", 1, 0, trig_i); --Find index of t: "t1000" <- 0
+            }
+            If(channel_i /= 0 AND rate_i /= 0 AND trig_i /= 0)
+            {
+                NewFunction indexOf (readStr, s"f", 1, 0, fall_i); --Find index of t: "f1" <- 0
+            }
+            If(rate_i = 0 OR channel_i = 0 OR trig_i = 0 OR fall_i = 0) --check if received string is channel or sample rate setting
+            {
+                --Convert received string to value of new sample rate or adc channel
+                NewFunction newString (convertStr);                --create string for the number in the message
+                NewFunction substring (readStr, 1, readStr.Length-1, convertStr);  --remove first char in message: "c3" -> "3", "r10000" -> "10000"
                 SIGNAL receivedValue : NATURAL;
-                NewFunction stringToNatural (convertStr, receivedValue);
-                if(rate_i > -1 AND receivedValue > 0 AND receivedValue <= 1000000)
+                NewFunction stringToNatural (convertStr, receivedValue); --Convert string to number
+                if(rate_i = 0 AND receivedValue > 0 AND receivedValue <= 1000000) --check if sample rate is from 1 - 1,000,000
                 {
-                    Sample_Rate <= receivedValue;
+                    Sample_Rate <= receivedValue;                  --set new sample rate
                 }
-                Elsif(channel_i > -1 AND receivedValue < 9)
+                Elsif(channel_i = 0 AND receivedValue < 9)         --check if channel is from 0 - 8
                 {
-                    ADC_Channel <= receivedValue;
+                    ADC_Channel <= receivedValue;                  --set new adc channel
+                }
+                Elsif(trig_i = 0 AND receivedValue < 3301)         --check if trigger is from 0 - 3300
+                {
+                    Trig_Level <= receivedValue;                   --set new trigger level
+                }
+                Elsif(fall_i = 0 AND receivedValue < 2)            --check if falling/rising edge setting is 0 or 1
+                {
+                    Trig_Falling <= receivedValue;                 --set new trigger falling/rising edge setting
                 }
             }
         }
     }
     
-    --Create 250 kHz signal to test input
+    --Create 10 kHz signal to test input
     Process Test ()
     {
         Thread
         {
-            --48 cycles -> 12MHz/48
+            --A bit lower frequency because Wait and setting the value also take 1 clock cycle
             Test_Signal <= '0';
-            Wait(22);
+            Wait(50us);
             Test_Signal <= '1';
-            Wait(22);
+            Wait(50us);
         }
     }
     
@@ -109,18 +166,18 @@ Main
     
     Logic_Analyzer_Rate_Div <= 12000000/Sample_Rate;
     
-    Logic_Analyzer_Inputs <= STD_LOGIC_VECTOR(TO_UNSIGNED(ADC_MAX10_Single_Data, 12));
+    Logic_Analyzer_Inputs <= STD_LOGIC_VECTOR(TO_UNSIGNED((ADC_MAX10_Single_Data*3300/4096), 12)); --From 12 bit value to mV
     
     SIGNAL Logic_Analyzer_Run           : STD_LOGIC := '0';
     SIGNAL Logic_Analyzer_Full          : STD_LOGIC := '0';
     SIGNAL Logic_Analyzer_Inputs        : STD_LOGIC_VECTOR (12-1 downto 0) := (others => '0');
-    SIGNAL Logic_Analyzer_Address       : NATURAL          range 0 to 500 := 0;
+    SIGNAL Logic_Analyzer_Address       : NATURAL          range 0 to 750 := 0;
     SIGNAL Logic_Analyzer_Outputs       : STD_LOGIC_VECTOR (12-1 downto 0);
     SIGNAL Logic_Analyzer_Rate_Div      : NATURAL          range 1 to 12000000 := 12;
     NewComponent Logic_Analyzer
     (
-        Max_Samples   => 500,
-        CLK_Frequency => 12000000,
+        Max_Samples   => 750,
+        CLK_Frequency => CLK_Freq,
         Channels      => 12,
 
         Rate_Div      => Logic_Analyzer_Rate_Div,
