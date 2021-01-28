@@ -17,7 +17,7 @@ Main
 )
 {
     --Plotter settings
-    CONSTANT GraphName : STD_LOGIC_VECTOR := s"ADC Channel 0";
+    CONSTANT GraphName : STD_LOGIC_VECTOR := s"ADC Channel ";
     CONSTANT TimeUnit  : STD_LOGIC_VECTOR := s"us";
     CONSTANT NameChars : NATURAL := 13;
     CONSTANT UnitChars : NATURAL := 2;
@@ -65,7 +65,7 @@ Main
             --Send saved data
             For(Logic_Analyzer_Address <= trigger_address-250; Logic_Analyzer_Address < trigger_address+250; Logic_Analyzer_Address <= Logic_Analyzer_Address + 1)
             {
-                Plotter_Graph_Name <= GraphName; --If string has fewer chars than 'NameChars': s"ADC Channel" & x"0000"; (x"0000" fills the 2 missing bytes)
+                Plotter_Graph_Name <= GraphName & STD_LOGIC_VECTOR(TO_UNSIGNED(ADC_Channel+48, 8)); --If string has fewer chars than 'NameChars': ... & x"0000"; (x"0000" fills the 2 missing bytes)
                 Plotter_Value      <= TO_INTEGER(UNSIGNED(Logic_Analyzer_Outputs));
                 Plotter_ValueUnit  <= s"mV";     --If string has fewer chars than 'UnitChars': s"V" & x"00"
                 Plotter_Time       <= (Logic_Analyzer_Address-trigger_address) * (1000000/Sample_Rate);      --Sample rate to micro seconds

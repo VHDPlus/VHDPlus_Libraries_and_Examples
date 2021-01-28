@@ -1,0 +1,159 @@
+/*
+    Name: Serial Plotter Interface
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 27.01.2021
+    Copyright (c) 2021 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+    Insertion: -Right click on Serial_Plotter_Interface.vhdp -> Add to project
+               -Add NewComponent of Serial_Plotter_Interface in your code
+               -Set parameters according to the description next to the definition
+               -You have to send values
+               -You can assign the values a graph name
+               -You can assign the values a unit name that has to be the same for all values in one graph
+               -You can assign the values a time + a time unit that has to be the same for all graphs
+               -Right click the name Serial_Plotter_Interface next to NewComponent and create the signals
+    
+    Example:   Oscilloscope
+*/
+
+Component Serial_Plotter_Interface
+(
+    Generic
+    (
+        UseTime         : BOOLEAN     := false;       --If false the plotter just uses the time it received the message
+        TimeUnit        : STD_LOGIC_VECTOR := x"00";  --For example: s"s", s"ms", s"min"
+        NameChars       : NATURAL     := 16;          --Set to maximum number of chars for graph name: For s"Humidity" and s"Temperature" -> 11
+        UnitChars       : NATURAL     := 3;           --Set to maximum number of chars for value unit: For s"%" and s"°C" -> 2
+        CLK_Frequency   : INTEGER     := 12000000;    --frequency of system clock in Hertz
+        Baud_Rate       : INTEGER     := 115200;      --data link baud rate in bits/second
+    );
+    Value      : IN  INTEGER := 0;
+    Time       : IN  INTEGER := 0;
+    Graph_Name : IN  STD_LOGIC_VECTOR(NameChars*8-1 downto 0) := (others => '0'); --For example s"Temperature" or s"Humidity" & x"000000" for NameChars = 11
+    ValueUnit  : IN  STD_LOGIC_VECTOR(UnitChars*8-1 downto 0) := (others => '0'); --For example s"°C" or s"%" for UnitChars = 2
+    
+    Send       : IN  STD_LOGIC := '0';  --Change from '0' to '1' to send
+    Busy       : OUT STD_LOGIC := '0';  --'1' while sending
+    
+    TX         : OUT STD_LOGIC;
+)
+{
+    Connections
+    {
+        TX => UART_RXD,
+    }
+    
+    Process ()
+    {
+        Thread
+        {
+            While(Send = '0'){}
+            Busy <= '1';
+            NewFunction newString (messageStr);
+            messageStr.Length <= 0;
+            
+            --Add graph name
+            NewFunction constStringAppend (Graph_Name, NameChars, messageStr);
+            if(messageStr.Length > 0)
+            {
+                NewFunction charAppend (s":", messageStr);
+            }
+            
+            --Add value
+            VARIABLE myValue : NATURAL;
+            If(Value < 0)
+            {
+                NewFunction charAppend (s"-", messageStr);
+            }
+            myValue := abs(Value);
+            NewFunction newString (valueStr);
+            NewFunction naturalToStringInst (myValue, valueStr, bcdEna, bcdBus, bcdBin, bcdDec);
+            NewFunction stringAppend (valueStr, messageStr);
+            NewFunction constStringAppend (ValueUnit, UnitChars, messageStr);
+            
+            --Add time
+            If(UseTime)
+            {
+                NewFunction charAppend (s"/", messageStr);
+                If(Time < 0)
+                {
+                    NewFunction charAppend (s"-", messageStr);
+                }
+                myValue := abs(Time);
+                NewFunction naturalToString (myValue, valueStr, bcdEna, bcdBus, bcdBin, bcdDec);
+                NewFunction stringAppend (valueStr, messageStr);
+                NewFunction newConstString (TimeUnit, timeUnitStr);
+                NewFunction stringAppend (timeUnitStr, messageStr);
+            }
+            NewFunction charAppend (s"\n", messageStr);
+            
+            NewFunction printString (messageStr, UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+            
+            Busy <= '0';
+            While(Send = '1'){}
+        }
+    }
+
+    SeqFunction constStringAppend
+    (
+        iString      : STD_LOGIC_VECTOR;
+        iStringChars : NATURAL;
+        oString      : String_Type;
+    )
+    {
+        oString.Write <= '1';
+        For(VARIABLE i : INTEGER range 0 to iStringChars := 0; i < iStringChars; i := i + 1)
+        {
+            VARIABLE myChar : STD_LOGIC_VECTOR(7 downto 0);
+            myChar := iString((iStringChars-i)*8-1 downto (iStringChars-(i+1))*8);
+            if(myChar /= x"00")
+            {
+                oString.Address <= oString.Length;
+                oString.Data_IN <= myChar;
+                oString.Length  <= oString.Length+1;
+            }
+            Else
+            {
+                i := iStringChars-1;
+            }
+        }
+        oString.Write <= '0';
+    }
+    
+    
+    SIGNAL UART_Interface_TX_Enable     : STD_LOGIC := '0';
+    SIGNAL UART_Interface_TX_Busy       : STD_LOGIC := '0';
+    SIGNAL UART_Interface_TX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
+    NewComponent UART_Interface
+    (
+        CLK_Frequency => CLK_Frequency,
+        Baud_Rate     => Baud_Rate,
+        OS_Rate       => 12,
+        D_Width       => 8,
+        Parity        => 0,
+        Parity_EO     => '0',
+
+        TX            => TX,
+        TX_Enable     => UART_Interface_TX_Enable,
+        TX_Busy       => UART_Interface_TX_Busy,
+        TX_Data       => UART_Interface_TX_Data,
+    );
+}

@@ -56,16 +56,10 @@
     </Items>
   </Items>
   <Items xsi:type="ProjectFileVHDP">
-    <Header>Logic_Analyzer.vhdp</Header>
-  </Items>
-  <Items xsi:type="ProjectFileVHDP">
     <Header>Logic_Analyzer_SDRAM.vhdp</Header>
   </Items>
   <Items xsi:type="ProjectFileVHDP">
     <Header>Logic_Analyzer_Top.vhdp</Header>
-  </Items>
-  <Items xsi:type="ProjectFileGHDP">
-    <Header>Logic_Analyzer_Sim.ghdp</Header>
   </Items>
   <CruviHSExtensions>
     <string xsi:nil="true" />
