@@ -26,6 +26,9 @@ Main
     CONSTANT Baud_Rate : NATURAL := 1000000;
     CONSTANT CLK_Freq  : NATURAL := 12000000;
     
+    --Trigger settings
+    CONSTANT Trig_Timeout : NATURAL := 1200000; --Show output after 100ms if no trigger point
+    
     --Default settings
     SIGNAL Sample_Rate   : NATURAL range 1 to 1000000 := 1000000; --1MHz
     SIGNAL ADC_Channel   : NATURAL range 0 to 8       := 0;       --channel 0
@@ -38,37 +41,24 @@ Main
         {
             Wait(100ms);
 
-            --Fill logic analyzer with ADC data
-            Logic_Analyzer_Run <= '1';
-            While(Logic_Analyzer_Full = '0'){}
-            Logic_Analyzer_Run <= '0';
-
             --Find trigger edge
-            trigger_address <= 500;
-            For(Logic_Analyzer_Address <= 250; Logic_Analyzer_Address < 500 AND trigger_address = 500; Logic_Analyzer_Address <= Logic_Analyzer_Address + 1)
-            {
-                SIGNAL trigger_address   : NATURAL range 250 to 500 := 500;
-                SIGNAL lower_trigger_reg : BOOLEAN := false;
-                SIGNAL lower_trigger     : BOOLEAN := false;
-
-                lower_trigger <= TO_INTEGER(UNSIGNED(Logic_Analyzer_Outputs)) < Trig_Level;
-                If(Logic_Analyzer_Address > 250)
-                {
-                    if((Trig_Falling = 1 AND lower_trigger AND NOT lower_trigger_reg) OR (Trig_Falling = 0 AND NOT lower_trigger AND lower_trigger_reg))
-                    {
-                        trigger_address <= Logic_Analyzer_Address;
-                    }
-                }
-                lower_trigger_reg <= lower_trigger;
-            }
+            VARIABLE timeout_cntr : NATURAL range 0 to Trig_Timeout := 0;
+            timeout_cntr := 0;
+            While((TO_INTEGER(UNSIGNED(Logic_Analyzer_Inputs)) < Trig_Level XOR Trig_Falling = 0) AND timeout_cntr < Trig_Timeout){ timeout_cntr := timeout_cntr + 1; }
+            While((TO_INTEGER(UNSIGNED(Logic_Analyzer_Inputs)) < Trig_Level XOR Trig_Falling = 1) AND timeout_cntr < Trig_Timeout){ timeout_cntr := timeout_cntr + 1; }
+            
+            --Fill logic analyzer with ADC data
+            Logic_Analyzer_Start <= '1';
+            While(Logic_Analyzer_Full = '0'){}
+            Logic_Analyzer_Start <= '0';
 
             --Send saved data
-            For(Logic_Analyzer_Address <= trigger_address-250; Logic_Analyzer_Address < trigger_address+250; Logic_Analyzer_Address <= Logic_Analyzer_Address + 1)
+            For(Logic_Analyzer_Address <= 0; Logic_Analyzer_Address < 500; Logic_Analyzer_Address <= Logic_Analyzer_Address + 1)
             {
                 Plotter_Graph_Name <= GraphName & STD_LOGIC_VECTOR(TO_UNSIGNED(ADC_Channel+48, 8)); --If string has fewer chars than 'NameChars': ... & x"0000"; (x"0000" fills the 2 missing bytes)
                 Plotter_Value      <= TO_INTEGER(UNSIGNED(Logic_Analyzer_Outputs));
                 Plotter_ValueUnit  <= s"mV";     --If string has fewer chars than 'UnitChars': s"V" & x"00"
-                Plotter_Time       <= (Logic_Analyzer_Address-trigger_address) * (1000000/Sample_Rate);      --Sample rate to micro seconds
+                Plotter_Time       <= (Logic_Analyzer_Address-250) * (1000000/Sample_Rate);      --Sample rate to micro seconds
                 --Send to plotter
                 Plotter_Send <= '1';
                 While(Plotter_Busy = '0'){}
@@ -158,30 +148,32 @@ Main
 
     SIGNAL ADC_MAX10_Single_Channel : NATURAL range 0 to 8 := 1;
     SIGNAL ADC_MAX10_Single_Data    : NATURAL range 0 to 4095 := 0;
+    
     NewComponent ADC_MAX10_Single
     (
         Channel => ADC_MAX10_Single_Channel,
         Data    => ADC_MAX10_Single_Data,
     );
-    
+
     Logic_Analyzer_Rate_Div <= 12000000/Sample_Rate;
     
     Logic_Analyzer_Inputs <= STD_LOGIC_VECTOR(TO_UNSIGNED((ADC_MAX10_Single_Data*3300/4096), 12)); --From 12 bit value to mV
     
-    SIGNAL Logic_Analyzer_Run           : STD_LOGIC := '0';
+    SIGNAL Logic_Analyzer_Start           : STD_LOGIC := '0';
     SIGNAL Logic_Analyzer_Full          : STD_LOGIC := '0';
     SIGNAL Logic_Analyzer_Inputs        : STD_LOGIC_VECTOR (12-1 downto 0) := (others => '0');
-    SIGNAL Logic_Analyzer_Address       : NATURAL          range 0 to 750 := 0;
+    SIGNAL Logic_Analyzer_Address       : NATURAL          range 0 to 500 := 0;
     SIGNAL Logic_Analyzer_Outputs       : STD_LOGIC_VECTOR (12-1 downto 0);
     SIGNAL Logic_Analyzer_Rate_Div      : NATURAL          range 1 to 12000000 := 12;
     NewComponent Logic_Analyzer
     (
-        Max_Samples   => 750,
+        Max_Samples   => 500,
         CLK_Frequency => CLK_Freq,
         Channels      => 12,
+        Start_Offset  => 250,
 
         Rate_Div      => Logic_Analyzer_Rate_Div,
-        Run           => Logic_Analyzer_Run,
+        Start         => Logic_Analyzer_Start,
         Full          => Logic_Analyzer_Full,
         Inputs        => Logic_Analyzer_Inputs,
         Address       => Logic_Analyzer_Address,

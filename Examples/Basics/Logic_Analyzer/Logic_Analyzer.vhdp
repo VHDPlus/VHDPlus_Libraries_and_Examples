@@ -1,25 +1,123 @@
 Main
 (
+    Button      : IN STD_LOGIC;
     
+    Inputs      : IN STD_LOGIC_VECTOR (Channels-1 downto 0) := (others => '0');
+    
+    Test_Signal : OUT STD_LOGIC := '0';
+    
+    TX          : OUT STD_LOGIC;
 )
 {
-    SIGNAL Logic_Analyzer_Rate_Div      : NATURAL          range 1 to 12000000 := 12;
+    CONSTANT GraphName : STD_LOGIC_VECTOR := s"Channel ";
+    CONSTANT TimeUnit  : STD_LOGIC_VECTOR := s"ns";
+    CONSTANT NameChars : NATURAL := 9;
+    
+    CONSTANT Max_Samples   : NATURAL := 5000;
+    CONSTANT Channels      : NATURAL := 8;
+    CONSTANT CLK_Frequency : NATURAL := 100000000;  --100MHz
+    CONSTANT Baud_Rate     : NATURAL := 1000000;    --1 mega baud
+    
+    SIGNAL Sample_Rate   : NATURAL range 1 to 100000000 := 100000000; --100MHz
+    SIGNAL Trig_Falling  : NATURAL range 0 to 1         := 0;         --rising edge
+    SIGNAL Trig_Channel  : NATURAL range 0 to Channels  := 0;         --no trigger -> directly after button pressed
+    
+    Process Capture ()
+    {
+        Thread
+        {
+            While(Button = '0')
+            {
+                Wait(10ms);
+            }
+            While(Button = '1')
+            {
+                Wait(10ms);
+            }
+
+            
+            
+            --Fill logic analyzer with ADC data
+            Logic_Analyzer_Run <= '1';
+            While(Logic_Analyzer_Full = '0'){}
+            Logic_Analyzer_Run <= '0';
+
+            --Send saved data
+            For(Logic_Analyzer_Address <= trigger_address-250; Logic_Analyzer_Address < trigger_address+250; Logic_Analyzer_Address <= Logic_Analyzer_Address + 1)
+            {
+                Plotter_Graph_Name <= GraphName & STD_LOGIC_VECTOR(TO_UNSIGNED(ADC_Channel+48, 8)); --If string has fewer chars than 'NameChars': ... & x"0000"; (x"0000" fills the 2 missing bytes)
+                Plotter_Value      <= TO_INTEGER(UNSIGNED(Logic_Analyzer_Outputs));
+                Plotter_ValueUnit  <= s"mV";     --If string has fewer chars than 'UnitChars': s"V" & x"00"
+                Plotter_Time       <= (Logic_Analyzer_Address-trigger_address) * (1000000/Sample_Rate);      --Sample rate to micro seconds
+                --Send to plotter
+                Plotter_Send <= '1';
+                While(Plotter_Busy = '0'){}
+                Plotter_Send <= '0';
+                While(Plotter_Busy = '1'){}
+                
+                --send trigger value
+                Plotter_Graph_Name <= (others => '0');
+                Plotter_Graph_Name(Plotter_Graph_Name'LENGTH-1 downto Plotter_Graph_Name'LENGTH-32) <= s"Trig";
+                Plotter_Value      <= Trig_Level;
+                --Send to plotter
+                Plotter_Send <= '1';
+                While(Plotter_Busy = '0'){}
+                Plotter_Send <= '0';
+                While(Plotter_Busy = '1'){}
+            }
+        }
+    }
+    
+    --Create 50 kHz signal to test input
+    Process Test ()
+    {
+        Thread
+        {
+            --A bit lower frequency because Wait and setting the value also take 1 clock cycle
+            Test_Signal <= '0';
+            Wait(10us);
+            Test_Signal <= '1';
+            Wait(10us);
+        }
+    }
+    
+    SIGNAL Logic_Analyzer_Rate_Div      : NATURAL          range 1 to CLK_Frequency := 12;
     SIGNAL Logic_Analyzer_Run           : STD_LOGIC := '0';
     SIGNAL Logic_Analyzer_Full          : STD_LOGIC := '0';
-    SIGNAL Logic_Analyzer_Inputs        : STD_LOGIC_VECTOR (8-1 downto 0) := (others => '0');
-    SIGNAL Logic_Analyzer_Address       : NATURAL          range 0 to 25000-1 := 0;
-    SIGNAL Logic_Analyzer_Outputs       : STD_LOGIC_VECTOR (8-1 downto 0);
+    SIGNAL Logic_Analyzer_Address       : NATURAL          range 0 to Max_Samples := 0;
+    SIGNAL Logic_Analyzer_Outputs       : STD_LOGIC_VECTOR (Channels-1 downto 0);
     NewComponent Logic_Analyzer
     (
-        Max_Samples   => 25000,
-        CLK_Frequency => 12000000,
-        Channels      => 8,
+        Max_Samples   => Max_Samples,
+        CLK_Frequency => CLK_Frequency,
+        Channels      => Channels,
 
-        Rate_Div      =>Logic_Analyzer_Rate_Div,
-        Run           =>Logic_Analyzer_Run,
-        Full          =>Logic_Analyzer_Full,
-        Inputs        =>Logic_Analyzer_Inputs,
-        Address       =>Logic_Analyzer_Address,
-        Outputs       =>Logic_Analyzer_Outputs,
+        Rate_Div      => Logic_Analyzer_Rate_Div,
+        Run           => Logic_Analyzer_Run,
+        Full          => Logic_Analyzer_Full,
+        Inputs        => Inputs,
+        Address       => Logic_Analyzer_Address,
+        Outputs       => Logic_Analyzer_Outputs,
+    );
+    
+    SIGNAL Plotter_Value         : INTEGER := 0;
+    SIGNAL Plotter_Time          : INTEGER := 0;
+    SIGNAL Plotter_Graph_Name    : STD_LOGIC_VECTOR (NameChars*8-1 downto 0) := (others => '0');
+    SIGNAL Plotter_Send          : STD_LOGIC := '0';
+    SIGNAL Plotter_Busy          : STD_LOGIC := '0';
+    NewComponent Serial_Plotter_Interface
+    (
+        UseTime       => true,
+        TimeUnit      => TimeUnit,
+        NameChars     => NameChars,
+        CLK_Frequency => CLK_Frequency,
+        Baud_Rate     => Baud_Rate,
+
+        Value         => Plotter_Value,
+        Time          => Plotter_Time,
+        Graph_Name    => Plotter_Graph_Name,
+        Send          => Plotter_Send,
+        Busy          => Plotter_Busy,
+        TX            => TX,
     );
 }

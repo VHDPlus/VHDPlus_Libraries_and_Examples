@@ -22,7 +22,7 @@
                -Add NewComponent of Logic_Analyzer in your code
                -Right click the name Logic_Analyzer next to NewComponent and create the needed signal
     
-    Function:  -Saves "Inputs" with the rate of CLK_Frequency/Rate_Div while Run is '1'
+    Function:  -Saves "Inputs" with the rate of CLK_Frequency/Rate_Div while Start is '1'
                -Can be verry fast if Rate_Div = 1 and you use a PLL to increase the CLK_Frequency
                -Values can be read with Address and Outputs afterwards
                -Only can save a limited amount of samples because it uses the internal RAM
@@ -35,17 +35,18 @@ Component Logic_Analyzer
         Max_Samples    : NATURAL := 25000;    --25,000 samples
         CLK_Frequency  : NATURAL := 12000000; --12MHz
         Channels       : NATURAL := 8;
+        Start_Offset   : NATURAL := 0;        --Number of samples that are saved before start changes to '1' to see the data before the trigger point
     );
     
-    Rate_Div    : IN  NATURAL range 1 to CLK_Frequency := 12; --12 = CLK_Frequency/12 = 1Mio samples per second
+    Rate_Div     : IN  NATURAL range 1 to CLK_Frequency := 12; --12 = CLK_Frequency/12 = 1Mio samples per second
     
-    Run         : IN  STD_LOGIC := '0'; --Saves data while Run is '1'
-    Full        : OUT STD_LOGIC := '0'; --changes from '0' to '1' when ram is full -> Set Run to '0'
+    Start        : IN  STD_LOGIC := '0'; --Saves data while Start is '1'
+    Full         : OUT STD_LOGIC := '0'; --changes from '0' to '1' when ram is full -> Set Start to '0'
     
-    Inputs      : IN  STD_LOGIC_VECTOR(Channels-1 downto 0) := (others => '0');
+    Inputs       : IN  STD_LOGIC_VECTOR(Channels-1 downto 0) := (others => '0');
     
-    Address     : IN  NATURAL range 0 to Max_Samples-1 := 0;   --Read the values
-    Outputs     : OUT STD_LOGIC_VECTOR(Channels-1 downto 0);
+    Address      : IN  NATURAL range 0 to Max_Samples-1 := 0;   --Read the values
+    Outputs      : OUT STD_LOGIC_VECTOR(Channels-1 downto 0);
 )
 {
     SIGNAL sample_clk    : STD_LOGIC := '0';
@@ -69,19 +70,31 @@ Component Logic_Analyzer
     
     
     TYPE la_ram_type IS ARRAY (0 to Max_Samples-1) OF STD_LOGIC_VECTOR(Channels-1 downto 0);
-    SIGNAL la_ram : la_ram_type;
-    
+    SIGNAL la_ram   : la_ram_type;
     Outputs <= la_ram(Address);
+    
+    TYPE lao_ram_type IS ARRAY (0 to Start_Offset-1) OF STD_LOGIC_VECTOR(Channels-1 downto 0);
+    SIGNAL lao_ram   : lao_ram_type;
     
     Process ()
     {
         If(rising_edge(sample_clk))
         {
-            VARIABLE in_addr : NATURAL range 0 to Max_Samples := 0;
-            If(Run = '0')
+            SIGNAL in_addr     : NATURAL range 0 to Max_Samples := 0;
+            SIGNAL offset_addr : NATURAL range 0 to Start_Offset := 0;
+            If(Start = '0')
             {
-                in_addr := 0;
                 Full <= '0';
+                in_addr <= Start_Offset;
+                lao_ram(offset_addr) <= Inputs;
+                If(offset_addr < Start_Offset-1)
+                {
+                    offset_addr <= offset_addr + 1;
+                }
+                Else
+                {
+                    offset_addr <= 0;
+                }
             }
             Else
             {
@@ -92,7 +105,34 @@ Component Logic_Analyzer
                 }
                 Else
                 {
-                    Full <= '1';
+                    If(Start_Offset = 0 OR Full = '1')
+                    {
+                        Full <= '1';
+                    }
+                    Else
+                    {
+                        If(in_addr >= Start_Offset)
+                        {
+                            in_addr <= 0;
+                        }
+                        else
+                        {
+                            If(in_addr = Start_Offset-1)
+                            {
+                                Full <= '1';
+                            }
+                            la_ram(in_addr) <= lao_ram(offset_addr);
+                            If(offset_addr < Start_Offset-1)
+                            {
+                                offset_addr <= offset_addr + 1;
+                            }
+                            Else
+                            {
+                                offset_addr <= 0;
+                            }
+                            in_addr := in_addr + 1;
+                        }
+                    }
                 }
             }
         }

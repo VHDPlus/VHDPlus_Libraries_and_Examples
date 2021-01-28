@@ -33,6 +33,15 @@
   </Items>
   <Items xsi:type="ProjectFolder">
     <Header>Libraries</Header>
+    <Items xsi:type="ProjectFolder">
+      <Header>PLL</Header>
+      <Items xsi:type="ProjectFile">
+        <Header>PLL.qip</Header>
+      </Items>
+      <Items xsi:type="ProjectFileVHDL">
+        <Header>PLL.vhd</Header>
+      </Items>
+    </Items>
     <Items xsi:type="ProjectFileVHDP">
       <Header>BinaryToBcd.vhdp</Header>
     </Items>
