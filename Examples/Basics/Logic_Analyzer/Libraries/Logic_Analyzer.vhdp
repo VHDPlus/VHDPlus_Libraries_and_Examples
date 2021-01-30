@@ -49,8 +49,10 @@ Component Logic_Analyzer
     Outputs      : OUT STD_LOGIC_VECTOR(Channels-1 downto 0);
 )
 {
-    SIGNAL sample_clk    : STD_LOGIC := '0';
     SIGNAL sample_clk_en : STD_LOGIC := '0';
+    
+    SIGNAL full_reg : STD_LOGIC;
+    Full <= full_reg;
 
     Process ()
     {
@@ -66,7 +68,7 @@ Component Logic_Analyzer
             div_cntr := div_cntr + 1;
         }
     }
-    sample_clk <= CLK when sample_clk_en = '1' else '0';
+    --sample_clk <= CLK when sample_clk_en = '1' else '0';
     
     
     TYPE la_ram_type IS ARRAY (0 to Max_Samples-1) OF STD_LOGIC_VECTOR(Channels-1 downto 0);
@@ -75,17 +77,22 @@ Component Logic_Analyzer
     
     TYPE lao_ram_type IS ARRAY (0 to Start_Offset-1) OF STD_LOGIC_VECTOR(Channels-1 downto 0);
     SIGNAL lao_ram   : lao_ram_type;
+    SIGNAL lao_ram_out : STD_LOGIC_VECTOR(Channels-1 downto 0);
+    lao_ram_out <= lao_ram(offset_addr);
     
     Process ()
     {
-        If(rising_edge(sample_clk))
+        SIGNAL in_addr      : NATURAL range 0 to Max_Samples := 0;
+        SIGNAL offset_addr  : NATURAL range 0 to Start_Offset := 0;
+        VARIABLE copy_start : BOOLEAN := false;
+        If(Start = '0')
         {
-            SIGNAL in_addr     : NATURAL range 0 to Max_Samples := 0;
-            SIGNAL offset_addr : NATURAL range 0 to Start_Offset := 0;
-            If(Start = '0')
+            full_reg   <= '0';
+            in_addr    <= Start_Offset;
+            copy_start := false;
+            
+            If(sample_clk_en = '1')
             {
-                Full <= '0';
-                in_addr <= Start_Offset;
                 lao_ram(offset_addr) <= Inputs;
                 If(offset_addr < Start_Offset-1)
                 {
@@ -96,42 +103,49 @@ Component Logic_Analyzer
                     offset_addr <= 0;
                 }
             }
+        }
+        Else
+        {
+            If(copy_start)
+            {
+                If(full_reg = '0')
+                {
+                    If(in_addr = Start_Offset-1)
+                    {
+                        full_reg <= '1';
+                    }
+                    la_ram(in_addr) <= lao_ram_out;
+                    If(offset_addr < Start_Offset-1)
+                    {
+                        offset_addr <= offset_addr + 1;
+                    }
+                    Else
+                    {
+                        offset_addr <= 0;
+                    }
+                    in_addr <= in_addr + 1;
+                }
+            }
             Else
             {
                 If(in_addr < Max_Samples)
                 {
-                    la_ram(in_addr) <= Inputs;
-                    in_addr := in_addr + 1;
+                    If(sample_clk_en = '1')
+                    {
+                        la_ram(in_addr) <= Inputs;
+                        in_addr <= in_addr + 1;
+                    }
                 }
                 Else
                 {
-                    If(Start_Offset = 0 OR Full = '1')
+                    if(Start_Offset = 0)
                     {
-                        Full <= '1';
+                        full_reg <= '1';
                     }
                     Else
                     {
-                        If(in_addr >= Start_Offset)
-                        {
-                            in_addr <= 0;
-                        }
-                        else
-                        {
-                            If(in_addr = Start_Offset-1)
-                            {
-                                Full <= '1';
-                            }
-                            la_ram(in_addr) <= lao_ram(offset_addr);
-                            If(offset_addr < Start_Offset-1)
-                            {
-                                offset_addr <= offset_addr + 1;
-                            }
-                            Else
-                            {
-                                offset_addr <= 0;
-                            }
-                            in_addr := in_addr + 1;
-                        }
+                        copy_start := true;
+                        in_addr    <= 0;
                     }
                 }
             }
