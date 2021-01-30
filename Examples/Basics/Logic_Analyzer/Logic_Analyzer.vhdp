@@ -11,6 +11,7 @@ Main
     Test_TX     : OUT STD_LOGIC;         --tx signal can be used as to test logic analyzer
     
     TX          : OUT STD_LOGIC;
+    RX          : IN  STD_LOGIC;
 )
 {
     CONSTANT GraphName : STD_LOGIC_VECTOR := s"Channel ";
@@ -24,9 +25,9 @@ Main
     CONSTANT Baud_Rate     : NATURAL := 1000000;    --1 mega baud
     CONSTANT Trig_Timeout  : NATURAL := 100000000;  --Show output after 100ms if no trigger point
     
-    SIGNAL Sample_Rate   : NATURAL range 1 to 100000000  := 100000000; --100MHz
-    SIGNAL Trig_Falling  : NATURAL range 0 to 1          := 0;         --rising edge
-    SIGNAL Trig_Channel  : NATURAL range 0 to Channels   := 0;         --no trigger -> directly after button pressed
+    SIGNAL Sample_Rate   : NATURAL range 1 to CLK_Frequency := 100000000; --100MHz
+    SIGNAL Trig_Falling  : NATURAL range 0 to 1             := 0;         --rising edge
+    SIGNAL Trig_Channel  : NATURAL range 0 to Channels      := 0;         --no trigger -> directly after button pressed
 
     
     SIGNAL CLK_100 : STD_LOGIC;
@@ -87,6 +88,50 @@ Main
         }
     }
     
+    Process Settings ()
+    {
+        Thread
+        {
+            --Read string from console in "readStr"
+            NewFunction newString (readStr);                       --Create string
+            NewFunction readString (readStr, UART_Interface_RX_Data, UART_Interface_RX_Busy);  --Read uart message in string
+            SIGNAL channel_i : INTEGER;
+            SIGNAL rate_i    : INTEGER;
+            SIGNAL fall_i    : INTEGER;
+            --Check if received string is channel or sample rate setting
+            rate_i    <= -1;                                       --Set sample rate index to -1 if indexof is skipped
+            NewFunction indexOf (readStr, s"c", 1, 0, channel_i);  --Find index of c: "c3" <- 0  "r10000" <- -1
+            If(channel_i /= 0)                                     --check if message was channel setting
+            {
+                NewFunction indexOf (readStr, s"r", 1, 0, rate_i); --Find index of r: "r10000" <- 0
+            }
+            If(channel_i /= 0 AND rate_i /= 0)
+            {
+                NewFunction indexOf (readStr, s"f", 1, 0, fall_i); --Find index of t: "f1" <- 0
+            }
+            If(rate_i = 0 OR channel_i = 0 OR fall_i = 0) --check if received string is channel or sample rate setting
+            {
+                --Convert received string to value of new sample rate or adc channel
+                NewFunction newString (convertStr);                --create string for the number in the message
+                NewFunction substring (readStr, 1, readStr.Length-1, convertStr);  --remove first char in message: "c3" -> "3", "r10000" -> "10000"
+                SIGNAL receivedValue : NATURAL;
+                NewFunction stringToNatural (convertStr, receivedValue); --Convert string to number
+                if(rate_i = 0 AND receivedValue > 0 AND receivedValue <= CLK_Frequency) --check if sample rate is from 1 - 100,000,000
+                {
+                    Sample_Rate <= receivedValue;                  --set new sample rate
+                }
+                Elsif(channel_i = 0 AND receivedValue < Channels)  --check if channel is from 0 - Channel-1
+                {
+                    Trig_Channel <= receivedValue;                 --set new trigger channel
+                }
+                Elsif(fall_i = 0 AND receivedValue < 2)            --check if falling/rising edge setting is 0 or 1
+                {
+                    Trig_Falling <= receivedValue;                 --set new trigger falling/rising edge setting
+                }
+            }
+        }
+    }
+    
     --Create 50 kHz signal to test input
     Process Test ()
     {
@@ -107,13 +152,15 @@ Main
         {
             NewFunction newConstString (s"Test\n", testStr);
             NewFunction printString (testStr, UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
-            Wait(10us);
+            Wait(50us);
         }
     }
     
     SIGNAL UART_Interface_TX_Enable     : STD_LOGIC := '0';
     SIGNAL UART_Interface_TX_Busy       : STD_LOGIC := '0';
     SIGNAL UART_Interface_TX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
+    SIGNAL UART_Interface_RX_Busy       : STD_LOGIC := '0';
+    SIGNAL UART_Interface_RX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
     NewComponent UART_Interface
     (
         CLK_Frequency => CLK_Frequency,
@@ -121,9 +168,12 @@ Main
 
         CLK           => CLK_100,
         TX            => Test_TX,
+        RX            => RX,
         TX_Enable     => UART_Interface_TX_Enable,
         TX_Busy       => UART_Interface_TX_Busy,
         TX_Data       => UART_Interface_TX_Data,
+        RX_Data       => UART_Interface_RX_Data,
+        RX_Busy       => UART_Interface_RX_Busy,
     );
     
     SIGNAL Logic_Analyzer_Rate_Div      : NATURAL          range 1 to CLK_Frequency := 12;
