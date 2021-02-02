@@ -39,6 +39,7 @@ Component Logic_Analyzer
     );
     
     Rate_Div     : IN  NATURAL range 1 to CLK_Frequency := 12; --12 = CLK_Frequency/12 = 1Mio samples per second
+    Samples      : IN  NATURAL range 1 to Max_Samples   := Max_Samples;
     
     Start        : IN  STD_LOGIC := '0'; --Saves data while Start is '1'
     Full         : OUT STD_LOGIC := '0'; --changes from '0' to '1' when ram is full -> Set Start to '0'
@@ -128,7 +129,7 @@ Component Logic_Analyzer
             }
             Else
             {
-                If(in_addr < Max_Samples)
+                If(in_addr < Samples)
                 {
                     If(sample_clk_en = '1')
                     {

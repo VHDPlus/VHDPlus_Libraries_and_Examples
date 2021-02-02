@@ -1,5 +1,16 @@
+--Logic Analyzer with max. 200MHz
+--Tested with Core MAX10 and Serial Plotter of the VHDPlus IDE
+
 --Press the button to start
 --Set the trigger channel and the trigger edge
+
+--Settings: (Send this strings with the Serial Monitor)
+--r25000000   --Sets sample rate to 25 Mega Samples (r+sample rate)
+--s10000      --Sets the number of samples to 10k
+--c3          --Sets trigger channel to 3 (starts recording on rising or falling edge of this channel)
+--f1          --Sets trigger to falling (f1 = falling, f0 = rising)
+--e2          --Enables channel 2 (This channel will be shown on the plotter)
+--d4          --Disables channel 4 (This channel will not be shown on the plotter)
 
 Main
 (
@@ -14,36 +25,38 @@ Main
     RX          : IN  STD_LOGIC;
 )
 {
-    CONSTANT GraphName : STD_LOGIC_VECTOR := s"Channel ";
+    CONSTANT GraphName : STD_LOGIC_VECTOR := s"Ch ";
     CONSTANT TimeUnit  : STD_LOGIC_VECTOR := s"ns";
-    CONSTANT NameChars : NATURAL := 10;
+    CONSTANT NameChars : NATURAL := 5;  --"Ch " + 2 digits
     
-    CONSTANT Max_Samples   : NATURAL := 5000;
+    CONSTANT Max_Samples   : NATURAL := 20000;
     CONSTANT Start_Offset  : NATURAL := 50;
     CONSTANT Channels      : NATURAL := 8;          --Only shows correct name from 0-19
-    CONSTANT CLK_Frequency : NATURAL := 100000000;  --100MHz
+    CONSTANT CLK_Frequency : NATURAL := 12000000;   --12MHz base clock
+    CONSTANT HS_CLK_Freq   : NATURAL := 200000000;  --200MHz high speed clock
     CONSTANT Baud_Rate     : NATURAL := 1000000;    --1 mega baud
-    CONSTANT Trig_Timeout  : NATURAL := 100000000;  --Show output after 100ms if no trigger point
+    CONSTANT Trig_Timeout  : NATURAL := HS_CLK_Freq; --Show output after 1s if no trigger point
     
-    SIGNAL Sample_Rate   : NATURAL range 1 to CLK_Frequency := 100000000; --100MHz
-    SIGNAL Trig_Falling  : NATURAL range 0 to 1             := 0;         --rising edge
-    SIGNAL Trig_Channel  : NATURAL range 0 to Channels      := 0;         --no trigger -> directly after button pressed
-
+    SIGNAL Sample_Rate    : NATURAL range 1 to HS_CLK_Freq   := 25000000;  --25MHz default
+    SIGNAL Trig_Falling   : NATURAL range 0 to 1             := 1;         --falling edge
+    SIGNAL Trig_Channel   : NATURAL range 0 to Channels      := 1;         --Trigger on channel 1
+    SIGNAL Enable_Channel : STD_LOGIC_VECTOR (Channels-1 downto 0) := (others => '1'); --Enable all channels
+    SIGNAL Samples        : NATURAL range 1 to Max_Samples   := 5000;      --5000 samples
     
-    SIGNAL CLK_100 : STD_LOGIC;
+    SIGNAL CLK_200 : STD_LOGIC;
     NewComponent PLL
     (
         inclk0 => CLK,
-        c0     => CLK_100,
+        c0     => CLK_200,
     );
-    
     
     Process Capture ()
     {
-        If(rising_edge(CLK_100))
+        If(rising_edge(CLK_200))    --High speed part -> find trigger edge
         {
             Thread
             {
+                --Wait until button is pressed
                 While(Button = '0')
                 {
                     Wait(10ms);
@@ -58,7 +71,9 @@ Main
                 {
                     VARIABLE timeout_cntr : NATURAL range 0 to Trig_Timeout := 0;
                     timeout_cntr := 0;
+                    --For rising edge wait for '0'
                     While((Inputs(Trig_Channel) = '0' XOR Trig_Falling = 0) AND timeout_cntr < Trig_Timeout){ timeout_cntr := timeout_cntr + 1; }
+                    --For rising edge wait for '1'
                     While((Inputs(Trig_Channel) = '0' XOR Trig_Falling = 1) AND timeout_cntr < Trig_Timeout){ timeout_cntr := timeout_cntr + 1; }
                 }
                 
@@ -67,10 +82,30 @@ Main
                 While(Logic_Analyzer_Full = '0'){}
                 Logic_Analyzer_Run <= '0';
                 
-                --Send saved data
-                For(Logic_Analyzer_Address <= 0; Logic_Analyzer_Address < Max_Samples; Logic_Analyzer_Address <= Logic_Analyzer_Address + 1)
+                --Start transmission to plotter
+                SIGNAL Send_Data         : STD_LOGIC := '0';
+                SIGNAL Finished_Sending  : STD_LOGIC := '1';
+                Send_Data <= '1';
+                While(Finished_Sending = '1'){}
+                Send_Data <= '0';
+                While(Finished_Sending = '0'){}
+            }
+        }
+    }
+    
+    Process Send ()
+    {
+        Thread
+        {
+            While(Send_Data = '0'){}
+            Finished_Sending <= '0';
+            
+            --Send saved data
+            For(Logic_Analyzer_Address <= 0; Logic_Analyzer_Address < Samples; Logic_Analyzer_Address <= Logic_Analyzer_Address + 1)
+            {
+                For(VARIABLE cur_channel : NATURAL := 0; cur_channel < Channels; cur_channel := cur_channel + 1)
                 {
-                    For(VARIABLE cur_channel : NATURAL := 0; cur_channel < Channels; cur_channel := cur_channel + 1)
+                    If(Enable_Channel(cur_channel) = '1')
                     {
                         If(cur_channel > 9) { Plotter_Graph_Name <= GraphName & s"1" & STD_LOGIC_VECTOR(TO_UNSIGNED(cur_channel-10+48, 8)); }
                         Else { Plotter_Graph_Name <= GraphName & STD_LOGIC_VECTOR(TO_UNSIGNED(cur_channel+48, 8)) & x"00"; }
@@ -85,6 +120,8 @@ Main
                     }
                 }
             }
+            
+            Finished_Sending <= '1';
         }
     }
     
@@ -98,8 +135,15 @@ Main
             SIGNAL channel_i : INTEGER;
             SIGNAL rate_i    : INTEGER;
             SIGNAL fall_i    : INTEGER;
+            SIGNAL ena_i     : INTEGER;
+            SIGNAL disa_i    : INTEGER;
+            SIGNAL sam_i    : INTEGER;
             --Check if received string is channel or sample rate setting
             rate_i    <= -1;                                       --Set sample rate index to -1 if indexof is skipped
+            fall_i    <= -1;
+            ena_i     <= -1;
+            disa_i    <= -1;
+            sam_i     <= -1;
             NewFunction indexOf (readStr, s"c", 1, 0, channel_i);  --Find index of c: "c3" <- 0  "r10000" <- -1
             If(channel_i /= 0)                                     --check if message was channel setting
             {
@@ -109,14 +153,26 @@ Main
             {
                 NewFunction indexOf (readStr, s"f", 1, 0, fall_i); --Find index of t: "f1" <- 0
             }
-            If(rate_i = 0 OR channel_i = 0 OR fall_i = 0) --check if received string is channel or sample rate setting
+            If(channel_i /= 0 AND rate_i /= 0 AND fall_i /= 0)
+            {
+                NewFunction indexOf (readStr, s"e", 1, 0, ena_i); --Find index of e: "e1" <- 0
+            }
+            If(channel_i /= 0 AND rate_i /= 0 AND fall_i /= 0 AND ena_i /= 0)
+            {
+                NewFunction indexOf (readStr, s"d", 1, 0, disa_i); --Find index of d: "d1" <- 0
+            }
+            If(channel_i /= 0 AND rate_i /= 0 AND fall_i /= 0 AND ena_i /= 0 AND disa_i /= 0)
+            {
+                NewFunction indexOf (readStr, s"s", 1, 0, sam_i); --Find index of s: "s100" <- 0
+            }
+            If(rate_i = 0 OR channel_i = 0 OR fall_i = 0 OR ena_i = 0 OR disa_i = 0 OR sam_i = 0) --check if received string is channel or sample rate setting
             {
                 --Convert received string to value of new sample rate or adc channel
                 NewFunction newString (convertStr);                --create string for the number in the message
                 NewFunction substring (readStr, 1, readStr.Length-1, convertStr);  --remove first char in message: "c3" -> "3", "r10000" -> "10000"
                 SIGNAL receivedValue : NATURAL;
                 NewFunction stringToNatural (convertStr, receivedValue); --Convert string to number
-                if(rate_i = 0 AND receivedValue > 0 AND receivedValue <= CLK_Frequency) --check if sample rate is from 1 - 100,000,000
+                if(rate_i = 0 AND receivedValue > 0 AND receivedValue <= HS_CLK_Freq) --check if sample rate is from 1 - 100,000,000
                 {
                     Sample_Rate <= receivedValue;                  --set new sample rate
                 }
@@ -127,6 +183,18 @@ Main
                 Elsif(fall_i = 0 AND receivedValue < 2)            --check if falling/rising edge setting is 0 or 1
                 {
                     Trig_Falling <= receivedValue;                 --set new trigger falling/rising edge setting
+                }
+                Elsif(ena_i = 0 AND receivedValue < Channels)      --check if channel to enable is from 0 - Channels-1
+                {
+                    Enable_Channel(receivedValue) <= '1';          --set new channel to enable
+                }
+                Elsif(disa_i = 0 AND receivedValue < Channels)     --check if channel to disable is from 0 - Channels-1
+                {
+                    Enable_Channel(receivedValue) <= '0';          --set new channel to disable
+                }
+                Elsif(sam_i = 0 AND receivedValue < Max_Samples)   --check if samples are from < max_samples
+                {
+                    Samples <= receivedValue;                      --set new samples
                 }
             }
         }
@@ -165,8 +233,8 @@ Main
     (
         CLK_Frequency => CLK_Frequency,
         Baud_Rate     => Baud_Rate,
+        OS_Rate       => 12,
 
-        CLK           => CLK_100,
         TX            => Test_TX,
         RX            => RX,
         TX_Enable     => UART_Interface_TX_Enable,
@@ -176,7 +244,9 @@ Main
         RX_Busy       => UART_Interface_RX_Busy,
     );
     
-    SIGNAL Logic_Analyzer_Rate_Div      : NATURAL          range 1 to CLK_Frequency := 12;
+    Logic_Analyzer_Rate_Div <= HS_CLK_Freq/Sample_Rate;
+    
+    SIGNAL Logic_Analyzer_Rate_Div      : NATURAL          range 1 to HS_CLK_Freq;
     SIGNAL Logic_Analyzer_Run           : STD_LOGIC := '0';
     SIGNAL Logic_Analyzer_Full          : STD_LOGIC := '0';
     SIGNAL Logic_Analyzer_Address       : NATURAL          range 0 to Max_Samples := 0;
@@ -184,12 +254,13 @@ Main
     NewComponent Logic_Analyzer
     (
         Max_Samples   => Max_Samples,
-        CLK_Frequency => CLK_Frequency,
+        CLK_Frequency => HS_CLK_Freq,
         Channels      => Channels,
         Start_Offset  => Start_Offset,
 
-        CLK           => CLK_100,
+        CLK           => CLK_200,
         Rate_Div      => Logic_Analyzer_Rate_Div,
+        Samples       => Samples,
         Start         => Logic_Analyzer_Run,
         Full          => Logic_Analyzer_Full,
         Inputs        => Inputs,
@@ -210,7 +281,6 @@ Main
         CLK_Frequency => CLK_Frequency,
         Baud_Rate     => Baud_Rate,
 
-        CLK           => CLK_100,
         Value         => Plotter_Value,
         Time          => Plotter_Time,
         Graph_Name    => Plotter_Graph_Name,
