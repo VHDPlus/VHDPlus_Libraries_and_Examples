@@ -56,7 +56,6 @@ Component MAX9867_Interface
         ADC_Volume       : INTEGER := 3;            --  +3 - -12 (dB)
         Line_In_Gain     : INTEGER := 20;           -- +24 - -6  (dB)
         Mic_In_Gain      : INTEGER := 20;           -- +50 -  0  (dB)
-        Playback_Volume  : STD_LOGIC_VECTOR := x"09";  --  MAX9867 Datasheet P.38 VOLL/VOLR
     );
     
     Reset           : IN    STD_LOGIC;
@@ -87,8 +86,10 @@ Component MAX9867_Interface
     CONSTANT DAC_Mute    : STD_LOGIC_VECTOR := "0";         --1 = Mute
     CONSTANT DAC_Gain    : STD_LOGIC_VECTOR := "00";        --If Audio_Mode = 0: 01 = +6dB, 10 = +12dB, 11 = +18dB
     
-    CONSTANT Line_L_Mute : STD_LOGIC_VECTOR := "0";         --0 = Line input is connected to the headphone amplifiers
-    CONSTANT Line_R_Mute : STD_LOGIC_VECTOR := "0";         --0 = Line input is connected to the headphone amplifiers
+    CONSTANT Line_L_Mute : STD_LOGIC_VECTOR := "1";         --0 = Line input is connected to the headphone amplifiers
+    CONSTANT Line_R_Mute : STD_LOGIC_VECTOR := "1";         --0 = Line input is connected to the headphone amplifiers
+
+    CONSTANT Playback_Volume : STD_LOGIC_VECTOR := x"09";   --  MAX9867 Datasheet P.38 VOLL/VOLR
   
     Connections
     {
