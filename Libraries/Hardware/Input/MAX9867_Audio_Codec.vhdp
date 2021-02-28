@@ -56,6 +56,7 @@ Component MAX9867_Interface
         ADC_Volume       : INTEGER := 3;            --  +3 - -12 (dB)
         Line_In_Gain     : INTEGER := 20;           -- +24 - -6  (dB)
         Mic_In_Gain      : INTEGER := 20;           -- +50 -  0  (dB)
+        Playback_Volume  : STD_LOGIC_VECTOR := x"09";  --  MAX9867 Datasheet P.38 VOLL/VOLR
     );
     
     Reset           : IN    STD_LOGIC;
@@ -88,9 +89,7 @@ Component MAX9867_Interface
     
     CONSTANT Line_L_Mute : STD_LOGIC_VECTOR := "0";         --0 = Line input is connected to the headphone amplifiers
     CONSTANT Line_R_Mute : STD_LOGIC_VECTOR := "0";         --0 = Line input is connected to the headphone amplifiers
-    
-    CONSTANT Volume      : STD_LOGIC_VECTOR := "000000";    --Datasheet P.38 VOLL/VOLR
-    
+  
     Connections
     {
         IRQ => LS_4,
@@ -210,8 +209,8 @@ Component MAX9867_Interface
             When(x"09"){ sreg <=  x"0D" & STD_LOGIC_VECTOR(TO_UNSIGNED(abs(ADC_Volume-3),4)) & STD_LOGIC_VECTOR(TO_UNSIGNED(abs(ADC_Volume-3),4)); }
             When(x"0A"){ sreg <=  x"0E" & "0" & Line_L_Mute & "00" & STD_LOGIC_VECTOR(TO_UNSIGNED(abs(Line_In_Gain/2-12),4)); }
             When(x"0B"){ sreg <=  x"0F" & "0" & Line_R_Mute & "00" & STD_LOGIC_VECTOR(TO_UNSIGNED(abs(Line_In_Gain/2-12),4)); }
-            When(x"0C"){ sreg <=  x"10" & "00" & Volume; }
-            When(x"0D"){ sreg <=  x"11" & "00" & Volume; }
+            When(x"0C"){ sreg <=  x"10" & Playback_Volume; }
+            When(x"0D"){ sreg <=  x"11" & Playback_Volume; }
             When(x"0E" | x"0F") --Mic L/R Gain
             {
                 If(Mic_In_Gain > 30)
