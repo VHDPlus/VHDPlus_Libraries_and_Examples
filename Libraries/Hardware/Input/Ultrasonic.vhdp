@@ -50,7 +50,7 @@ Component Ultrasonic_Controller
     Reset   : IN  STD_LOGIC := '0';             --active high reset (set to '1' to pause measuring)
     Trigger : OUT STD_LOGIC := '0';             --Trigger from Sensor
     Echo    : IN  STD_LOGIC := '0';             --Echo from Sensor
-    Dist    : OUT NATURAL range 0 to 1000 := 0; --0 to 1000 cm
+    Dist    : OUT NATURAL range 0 to 1000 := 1000; --0 to 1000 cm
 )
 {
     AttributeDeclaration
