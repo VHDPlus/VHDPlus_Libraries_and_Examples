@@ -1,0 +1,285 @@
+/*
+    Name: MAX9867_Audio_Codec
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 14.06.2020
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+    Important: Interface for SCD40-D-R2 CO2, temperature and humidity sensor, LPS22HBTR pressure sensor and TSL25403M ambient light sensor
+    
+    
+ */
+
+Component Environment_Interface
+(
+    Generic
+    (
+        --General
+        CLK_Frequency    : NATURAL := 12000000;     --10MHz - 60MHz
+    );
+    
+    Reset       : IN    STD_LOGIC := '0';
+    
+    SCL         : INOUT STD_LOGIC := 'Z';
+    SDA         : INOUT STD_LOGIC := 'Z';
+    
+    Temperature : OUT   INTEGER := 0; -- -4500 - ... (/10 -> °C)       -> higher resolution is possible
+    Humidity    : OUT   INTEGER := 0; -- 0 - 10000   (/10 -> percent)  -> higher resolution is possible
+    CO2         : OUT   INTEGER := 0; -- 0 - ...     ppm
+    Pressure    : OUT   INTEGER := 0; -- 0 - ...     (/10 -> Pa)       -> higher resolution is possible
+    Light       : OUT   INTEGER := 0; -- 0 - 65536
+    IR_Light    : OUT   INTEGER := 0; -- 0 - 65536
+)
+{
+    CONSTANT Light_Gain : STD_LOGIC_VECTOR(2 downto 0) := "111"; --*1 - *128
+    
+    Connections
+    {
+        SDA    => LS_1,
+        SCL    => LS_2,
+        LED_R  => LS_8,
+        LED_G  => LS_6,
+        LED_B  => LS_5,
+        Buzzer => LS_3,
+        INT1   => LS_4,
+        INT2   => LS_7,
+    }
+
+    Process ()
+    {
+        Thread
+        {
+            Wait(CLK_Frequency);
+            Address       <= x"62"; --Start CO2 Measurement
+            Write_Data(0) <= x"21";
+            Write_Data(1) <= x"B1";
+            Write_Data(2) <= x"CD";
+            Write_Bytes   <= 3;
+            Read_Bytes    <= 0;
+            NewFunction I2C_Transmit (Enable, Busy);
+            Address       <= x"39";
+            Write_Data(0) <= x"80";
+            Write_Data(1) <= x"0B";
+            Write_Bytes   <= 2;
+            Read_Bytes    <= 0;
+            NewFunction I2C_Transmit (Enable, Busy);
+            Write_Data(0) <= x"90";
+            Write_Data(1) <= "000000" & Light_Gain(1 downto 0);
+            Write_Bytes   <= 2;
+            Read_Bytes    <= 0;
+            NewFunction I2C_Transmit (Enable, Busy);
+            Write_Data(0) <= x"9F";
+            Write_Data(1) <= "000" & Light_Gain(2) & "0100";
+            Write_Bytes   <= 2;
+            Read_Bytes    <= 0;
+            NewFunction I2C_Transmit (Enable, Busy);
+            While(Reset = '0')
+            {
+                Wait(3*CLK_Frequency);
+                
+                --Read CO2/Humidity/Temperature
+                Address       <= x"62";
+                Write_Data(0) <= x"EC";
+                Write_Data(1) <= x"05";
+                Write_Data(2) <= x"AC";
+                Write_Bytes   <= 3;
+                Read_Bytes    <= 9;
+                NewFunction I2C_Transmit (Enable, Busy);
+                VARIABLE buf_16 : STD_LOGIC_VECTOR(15 downto 0);
+                buf_16        := Read_Data(0) & Read_Data(1);
+                CO2           <= TO_INTEGER(UNSIGNED(buf_16));
+                buf_16        := Read_Data(3) & Read_Data(4);
+                Temperature   <= TO_INTEGER(UNSIGNED(buf_16))/38 - 450;
+                buf_16        := Read_Data(6) & Read_Data(7);
+                Humidity      <= TO_INTEGER(UNSIGNED(buf_16))/66;
+                
+                --Read Pressure/Temperature
+                --Trigger one shot
+                Address       <= x"5D";
+                Write_Data(0) <= x"11";
+                Write_Data(1) <= x"01";
+                Write_Bytes   <= 2;
+                Read_Bytes    <= 0;
+                NewFunction I2C_Transmit (Enable, Busy);
+                Wait(CLK_Frequency);
+                --Read OUT_L (no XL, because only integer received)
+                Write_Data(0) <= x"29";
+                Write_Bytes   <= 1;
+                Read_Bytes    <= 1;
+                NewFunction I2C_Transmit (Enable, Busy);
+                buf_16(7 downto 0) := Read_Data(0);
+                --Read OUT_H
+                Write_Data(0) <= x"2A";
+                NewFunction I2C_Transmit (Enable, Busy);
+                buf_16(15 downto 8) := Read_Data(0);
+                Pressure      <= (TO_INTEGER(UNSIGNED(buf_16))*10)/16;
+                
+                --Read Ambient Light
+                --Trigger one shot
+                Address       <= x"39";
+                Write_Data(0) <= x"93";
+                Write_Data(1) <= x"00";
+                Write_Bytes   <= 2;
+                Read_Bytes    <= 0;
+                NewFunction I2C_Transmit (Enable, Busy);
+                Wait(CLK_Frequency);
+                --Visual Data L 0x94
+                Write_Data(0) <= x"94";
+                Write_Bytes   <= 1;
+                Read_Bytes    <= 1;
+                NewFunction I2C_Transmit (Enable, Busy);
+                buf_16(7 downto 0) := Read_Data(0);
+                --Visual Data H 0x95
+                Write_Data(0) <= x"95";
+                NewFunction I2C_Transmit (Enable, Busy);
+                buf_16(15 downto 8) := Read_Data(0);
+                Light         <= TO_INTEGER(UNSIGNED(buf_16));
+                --IR Data L 0x96
+                Write_Data(0) <= x"96";
+                NewFunction I2C_Transmit (Enable, Busy);
+                buf_16(7 downto 0) := Read_Data(0);
+                --IR Data H 0x97
+                Write_Data(0) <= x"97";
+                NewFunction I2C_Transmit (Enable, Busy);
+                buf_16(15 downto 8) := Read_Data(0);
+                IR_Light      <= TO_INTEGER(UNSIGNED(buf_16));
+                
+            }
+        }
+    }
+    
+    SeqFunction I2C_Transmit (Enable : STD_LOGIC; Busy : STD_LOGIC)
+    {
+        Enable <= '1';
+        Step{ Enable <= '0'; }
+        While(Busy = '1') {}
+    }
+    
+    TYPE Bytes IS ARRAY (natural range <>) OF STD_LOGIC_VECTOR(7 downto 0);
+    SIGNAL Enable      : STD_LOGIC := '0';
+    SIGNAL Busy        : STD_LOGIC := '0';
+    SIGNAL Address     : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    SIGNAL Write_Bytes : NATURAL range 0 to 3 := 0;
+    SIGNAL Write_Data  : Bytes(2 downto 0) := (others => (others => '0'));
+    SIGNAL Read_Bytes  : NATURAL range 0 to 9 := 0;
+    SIGNAL Read_Data   : Bytes(8 downto 0) := (others => (others => '0'));
+    
+    Process I2C_Controller ()
+    {
+        VARIABLE ena_prev  : STD_LOGIC := '0';
+        SIGNAL busy_cnt      : NATURAL range 0 to 16 := 0;
+        SIGNAL get_data      : STD_LOGIC := '0';
+        SIGNAL busy_prev     : STD_LOGIC := '0';
+        
+        If(ena_prev = '0' AND Enable = '1')                 --rising edge of ena
+        {
+            get_data <= '1';
+            Busy     <= '1';
+        }
+        ena_prev := Enable;
+        
+        If(get_data = '1')
+        {
+            If(busy_prev = '0' AND i2c_busy = '1')          --busy rising edge
+            {
+                busy_cnt <= busy_cnt + 1;                   --counts the times busy has gone from low to high during transaction
+            }
+            busy_prev <= i2c_busy;
+            
+            If(busy_cnt = 0)                                --no command latched in yet
+            {
+                i2c_ena <= '1';                             --initiate the transaction
+                i2c_addr <= Address(6 downto 0);            --set the address of the slave
+                If(Write_Bytes > 0)
+                {
+                    i2c_rw <= '0';                          --command 1 is a write
+                    i2c_data_wr <= Write_Data(0);           --data to be written
+                }
+                Else
+                {
+                    i2c_rw <= '1';                          --command 1 is a read (Address stays the same)
+                }
+                
+                If(i2c_busy = '1')
+                {
+                    busy_cnt <= 1;
+                }
+            }
+            Elsif(busy_cnt < Write_Bytes)                   --not all bytes transmitted
+            {
+                i2c_data_wr <= Write_Data(busy_cnt);        --data to be written
+                If(i2c_busy = '0' AND busy_cnt = Write_Bytes+Read_Bytes-1)
+                {
+                    i2c_ena  <= '0';
+                }
+            }
+            Elsif(busy_cnt < Write_Bytes+Read_Bytes)
+            {
+                If(busy_cnt = Write_Bytes)                  --first byte
+                {
+                    i2c_rw <= '1';                          --command 1 is a read (Address stays the same)
+                }
+                Else
+                {
+                    If(i2c_busy = '0')
+                    {
+                        Read_Data(busy_cnt-Write_Bytes-1) <= i2c_data_rd;    --retrieve data from command 2
+                    }
+                }
+                
+                If(busy_cnt = Write_Bytes+Read_Bytes-1 AND i2c_busy = '0')
+                {
+                    i2c_ena  <= '0';
+                }
+            }
+            Elsif (i2c_busy = '0')
+            {
+                Read_Data(busy_cnt-Write_Bytes-1) <= i2c_data_rd;--retrieve data from command 2
+                busy_cnt <= 0;                              --reset busy_cnt for next transaction
+                get_data <= '0';
+                Busy     <= '0';
+                i2c_ena  <= '0';                            --stop the transaction
+            }
+        }
+    }
+
+    SIGNAL i2c_ena       : STD_LOGIC;
+    SIGNAL i2c_addr      : STD_LOGIC_VECTOR (6 DOWNTO 0);
+    SIGNAL i2c_rw        : STD_LOGIC;
+    SIGNAL i2c_data_wr   : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL i2c_busy      : STD_LOGIC;
+    SIGNAL i2c_data_rd   : STD_LOGIC_VECTOR (7 DOWNTO 0);
+
+    NewComponent I2C_Master_Interface
+    (
+        CLK_Frequency => 12000000,
+        Bus_CLK       => 400000,
+        
+        Reset         => '0',
+        Enable        => i2c_ena,
+        Address       => i2c_addr,
+        RW            => i2c_rw,
+        Data_WR       => i2c_data_wr,
+        Busy          => i2c_busy,
+        Data_RD       => i2c_data_rd,
+        SDA           => SDA,
+        SCL           => SCL,
+    );
+}
