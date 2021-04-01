@@ -57,7 +57,7 @@ Component Environment_Interface
         LED_R  => LS_8,
         LED_G  => LS_6,
         LED_B  => LS_5,
-        Buzzer => LS_3,
+        Buzz => LS_3,
         INT1   => LS_4,
         INT2   => LS_7,
     }
