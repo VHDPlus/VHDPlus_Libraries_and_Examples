@@ -1,0 +1,238 @@
+<?xml version="1.0"?>
+<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Header>SCD40_Software</Header>
+  <Items xsi:type="ProjectFolder">
+    <Header>Generated</Header>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>NIOSDuino_Processor.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>SCD40_Software.vhd</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Header>Libraries</Header>
+    <Items xsi:type="ProjectFolder">
+      <Header>ISSP</Header>
+      <Items xsi:type="ProjectFile">
+        <Header>ISSP.qsys</Header>
+      </Items>
+      <Items xsi:type="ProjectFileVHDP">
+        <Header>ISSP.qsys.vhdp</Header>
+      </Items>
+    </Items>
+    <Items xsi:type="ProjectFolder">
+      <Header>NIOSDuino</Header>
+      <Items xsi:type="ProjectFile">
+        <Header>NIOSDuino_Core.qsys</Header>
+      </Items>
+      <Items xsi:type="ProjectFileVHDP">
+        <Header>NIOSDuino_Core.vhdp</Header>
+      </Items>
+      <Items xsi:type="ProjectFileVerilog">
+        <Header>avalon_pwm.v</Header>
+      </Items>
+      <Items xsi:type="ProjectFile">
+        <Header>avalon_pwm_hw.tcl</Header>
+      </Items>
+      <Items xsi:type="ProjectFile">
+        <Header>avalon_pwm_sw.tcl</Header>
+      </Items>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Header>Software</Header>
+    <Items xsi:type="ProjectFolder">
+      <Header>NIOSDuino</Header>
+      <Items xsi:type="ProjectFolder">
+        <Header>LPS22HB</Header>
+        <Items xsi:type="ProjectFile">
+          <Header>Arduino_LPS22HB.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>BARO.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>BARO.cpp</Header>
+        </Items>
+      </Items>
+      <Items xsi:type="ProjectFolder">
+        <Header>SCD40</Header>
+        <Items xsi:type="ProjectFile">
+          <Header>scd40.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>scd40.cpp</Header>
+        </Items>
+      </Items>
+      <Items xsi:type="ProjectFolder">
+        <Header>arduino</Header>
+        <Items xsi:type="ProjectFolder">
+          <Header>SPI</Header>
+          <Items xsi:type="ProjectFolder">
+            <Header>src</Header>
+            <Items xsi:type="ProjectFile">
+              <Header>SPI.cpp</Header>
+            </Items>
+            <Items xsi:type="ProjectFile">
+              <Header>SPI.h</Header>
+            </Items>
+          </Items>
+        </Items>
+        <Items xsi:type="ProjectFolder">
+          <Header>Wire</Header>
+          <Items xsi:type="ProjectFolder">
+            <Header>src</Header>
+            <Items xsi:type="ProjectFile">
+              <Header>Wire.cpp</Header>
+            </Items>
+            <Items xsi:type="ProjectFile">
+              <Header>Wire.h</Header>
+            </Items>
+          </Items>
+        </Items>
+        <Items xsi:type="ProjectFolder">
+          <Header>avr</Header>
+          <Items xsi:type="ProjectFile">
+            <Header>eeprom.c</Header>
+          </Items>
+          <Items xsi:type="ProjectFile">
+            <Header>eeprom.h</Header>
+          </Items>
+          <Items xsi:type="ProjectFile">
+            <Header>interrupt.h</Header>
+          </Items>
+          <Items xsi:type="ProjectFile">
+            <Header>io.h</Header>
+          </Items>
+          <Items xsi:type="ProjectFile">
+            <Header>pgmspace.h</Header>
+          </Items>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>Adafruit_Sensor.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>Arduino.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>Client.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>EEPROM.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>GenericSerial.cpp</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>GenericSerial.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>HardwareSerial.cpp</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>HardwareSerial.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>HardwareSerial0.cpp</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>HardwareSerial1.cpp</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>HardwareSerial2.cpp</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>HardwareSerial3.cpp</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>IPAddress.cpp</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>IPAddress.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>Print.cpp</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>Print.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>Printable.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>SPIFlash.cpp</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>SPIFlash.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>Server.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>Stream.cpp</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>Stream.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>Udp.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>WCharacter.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>WMath.cpp</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>WString.cpp</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>WString.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>avalon_pwm_regs.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>binary.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>main.cpp</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>pins_arduino.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>wiring_analog.cpp</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>wiring_digital.cpp</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>wiring_pulse.c</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>wiring_shift.c</Header>
+        </Items>
+      </Items>
+      <Items xsi:type="ProjectFile">
+        <Header>NIOSDuino.cpp</Header>
+      </Items>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>SCD40_Software.vhdp</Header>
+  </Items>
+  <CruviHSExtensions>
+    <string xsi:nil="true" />
+  </CruviHSExtensions>
+  <CruviLSExtensions>
+    <string>LevelShifterExtension</string>
+    <string xsi:nil="true" />
+    <string xsi:nil="true" />
+    <string xsi:nil="true" />
+  </CruviLSExtensions>
+  <IOVoltage>0</IOVoltage>
+  <SoftwareStartPathRelative>Software\NIOSDuino</SoftwareStartPathRelative>
+  <UseShield>false</UseShield>
+</ProjectRoot>
