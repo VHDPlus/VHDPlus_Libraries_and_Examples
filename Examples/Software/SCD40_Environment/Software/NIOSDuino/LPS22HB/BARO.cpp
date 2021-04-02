@@ -17,6 +17,7 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#include <Arduino.h>
 #include <Wire.h>
 
 #include "BARO.h"
@@ -59,7 +60,7 @@ float LPS22HBClass::readPressure(int units)
 
   // wait for ONE_SHOT bit to be cleared by the hardware
   while ((i2cRead(LPS22HB_CTRL2_REG) & 0x01) != 0) {
-    yield();
+    //yield();
   }
 
   float reading = (i2cRead(LPS22HB_PRESS_OUT_XL_REG) |
