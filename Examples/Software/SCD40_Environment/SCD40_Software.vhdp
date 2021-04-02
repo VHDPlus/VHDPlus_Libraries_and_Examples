@@ -13,7 +13,7 @@ Main
     NIOS_uart_txd      : OUT STD_LOGIC;
     NIOS_i2c_sda       : INOUT STD_LOGIC := 'Z';
     NIOS_i2c_scl       : INOUT STD_LOGIC := 'Z';
-    NIOS_pwm_out       : OUT STD_LOGIC_VECTOR (2 downto 0);
+    NIOS_pwm_out       : OUT STD_LOGIC_VECTOR (3 downto 0);
 )
 {
     Connections

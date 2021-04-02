@@ -2,8 +2,8 @@
 <sch:Settings xmlns:sch="http://www.altera.com/embeddedsw/bsp/schema">
         <BspType>hal</BspType>
         <BspVersion>default</BspVersion>
-        <BspGeneratedTimeStamp>02.04.2021 15:50:14</BspGeneratedTimeStamp>
-        <BspGeneratedUnixTimeStamp>1617371414135</BspGeneratedUnixTimeStamp>
+        <BspGeneratedTimeStamp>02.04.2021 16:59:09</BspGeneratedTimeStamp>
+        <BspGeneratedUnixTimeStamp>1617375549810</BspGeneratedUnixTimeStamp>
         <BspGeneratedLocation>generated_bsp\</BspGeneratedLocation>
         <BspSettingsFile>settings.bsp</BspSettingsFile>
         <SopcDesignFile>..\..\NIOSDuino_Core.sopcinfo</SopcDesignFile>

@@ -3,13 +3,13 @@
 #include "SCD40/scd40.h"
 #include "LPS22HB/Arduino_LPS22HB.h"
 #include "TSL25403/TSL25403.h"
-#include "Tone/Tone.h"
 #include "RGB_LED/RGB.h"
+#include "Tone/Tone.h"
 
 SCD40 scd40;
 TSL25403 light;
-Tone buzzer;
 RGBLED led;
+Tone buzzer;
 
 void setup() {
     Serial0.begin(9600);
@@ -17,8 +17,8 @@ void setup() {
     scd40.begin();
     BARO.begin();
     light.begin();
-    buzzer.begin(15);
     led.begin(0, 1, 2);
+    buzzer.begin(3);
 }
 
 void loop() {
@@ -41,9 +41,11 @@ void loop() {
     Serial0.println(message);
     
     if (lux < 200) {
-        buzzer.play(NOTE_G5, 200);
+        buzzer.play(NOTE_G5);
     }
     led.setHSV(lux/(1023/light.divider), 1.0, 0.1);
     
-    delay(500);
+    delay(200);
+    if(buzzer.isPlaying()) buzzer.stop();
+    delay(300);
 }

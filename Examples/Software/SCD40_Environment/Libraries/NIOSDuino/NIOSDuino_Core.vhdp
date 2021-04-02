@@ -60,7 +60,7 @@ Component NIOSDuino_Processor
     sdram_clk_clk              : OUT   STD_LOGIC;
     --NIOSDuino External
     pio_export                 : INOUT STD_LOGIC_VECTOR(15 downto 0) := (others => 'X');
-    pwm_out                    : OUT   STD_LOGIC_VECTOR(2 downto 0);
+    pwm_out                    : OUT   STD_LOGIC_VECTOR(3 downto 0);
     uart_rxd                   : IN    STD_LOGIC := 'X';
     uart_txd                   : OUT   STD_LOGIC;
     i2c_sda                    : INOUT STD_LOGIC := 'Z';
@@ -154,7 +154,7 @@ Component NIOSDuino_Processor
                 sdram_clk_clk         : out   std_logic;                                        --      sdram_clk.clk
                 uart_rxd              : in    std_logic                     := '0';             --           uart.rxd
                 uart_txd              : out   std_logic;                                        -- txd
-                pwm_out               : out   std_logic_vector(2 downto 0)                     -- out
+                pwm_out               : out   std_logic_vector(3 downto 0)                     -- out
             );
             end component;
         }

@@ -84,6 +84,15 @@
         </Items>
       </Items>
       <Items xsi:type="ProjectFolder">
+        <Header>Tone</Header>
+        <Items xsi:type="ProjectFile">
+          <Header>Tone.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>Tone.cpp</Header>
+        </Items>
+      </Items>
+      <Items xsi:type="ProjectFolder">
         <Header>arduino</Header>
         <Items xsi:type="ProjectFolder">
           <Header>SPI</Header>
