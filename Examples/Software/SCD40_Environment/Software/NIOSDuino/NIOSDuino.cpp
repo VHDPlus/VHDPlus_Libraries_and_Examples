@@ -2,16 +2,19 @@
 #include <Arduino.h>
 #include "SCD40/scd40.h"
 #include "LPS22HB/Arduino_LPS22HB.h"
+#include "TSL25403/TSL25403.h"
 
 SCD40 scd40;
+TSL25403 light;
 
 void setup() {
     Serial0.begin(9600);
     
-    Serial0.print("Start");
+    Serial0.println("Start");
     
     scd40.begin();
     BARO.begin();
+    light.begin();
 }
 
 void loop() {
@@ -23,7 +26,12 @@ void loop() {
     Serial0.println(message);
     sprintf(message, "Humidity: %.2f%%", scd40.hum_value());
     Serial0.println(message);
-    sprintf(message, "Pressure: %.2fPa", BARO.readPressure());
+    //sprintf(message, "Pressure: %.2fPa", BARO.readPressure());
+    //Serial0.println(message);
+    light.read();
+    sprintf(message, "Light: %.2flx", light.lux_value());
+    Serial0.println(message);
+    sprintf(message, "IR Light: %.2flx", light.ir_lux_value());
     Serial0.println(message);
     delay(5000);
 }

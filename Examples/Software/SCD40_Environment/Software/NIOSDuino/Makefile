@@ -148,6 +148,7 @@ C_SRCS += arduino/wiring_shift.c
 CXX_SRCS += LPS22HB/BARO.cpp
 CXX_SRCS += NIOSDuino.cpp
 CXX_SRCS += SCD40/scd40.cpp
+CXX_SRCS += TSL25403/TSL25403.cpp
 CXX_SRCS += arduino/GenericSerial.cpp
 CXX_SRCS += arduino/HardwareSerial.cpp
 CXX_SRCS += arduino/HardwareSerial0.cpp

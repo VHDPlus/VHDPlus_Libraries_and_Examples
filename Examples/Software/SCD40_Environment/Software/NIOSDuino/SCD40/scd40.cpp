@@ -18,8 +18,6 @@
 #define AUTO_SELF_CALIBRATION_SET 0x2416
 #define AUTO_SELF_CALIBRATION_GET 0x2313
 
-ALT_AVALON_I2C_DEV_t *i2c_dev = NULL;
-
 alt_u8 SCD40::gencrc8(alt_u8 *data) {
     alt_u8 crc = 0xff;
     alt_8 i, j;
@@ -51,12 +49,6 @@ alt_8 SCD40::i2c_write(alt_u8 target_addr, alt_u16 command, const alt_u16* argum
         buffer[j++] = (argument[i] & 0x00FF) >> 0;
         buffer[j++] = gencrc8(&buffer[i+2]);
     }
-    for (i=0; i < j; i++)
-    {
-        printf("%02X", buffer[i]);
-    }
-    printf("%02X", gencrc8(&buffer[2]));
-    printf("\n");
     alt_avalon_i2c_master_target_set(i2c_dev, target_addr);
     alt_8 status = alt_avalon_i2c_master_tx(i2c_dev, buffer, j, ALT_AVALON_I2C_NO_INTERRUPTS);
 
@@ -89,6 +81,7 @@ alt_8 SCD40::busy()
 
 void SCD40::begin()
 {
+    
     i2c_init();
     
     while (busy() != 0) {
@@ -139,11 +132,6 @@ void SCD40::read()
         // Measure co2, temperature and humidity
         alt_u16 data[3];
         status = i2c_read(SCD40_I2C_ADDRESS, READ_MEASUREMENT, &data[0], sizeof(data)/2);
-        printf("Data: ");
-        for (int i=0; i < 3; i ++) {
-            printf("%d, ",data[i]);
-        }
-        printf("\n");
 
         co2  = (float)data[0]; // co2
         // The measured temperature and humidity are influenced by the waste heat of the FPGA.

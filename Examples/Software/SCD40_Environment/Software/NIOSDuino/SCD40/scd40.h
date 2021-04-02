@@ -1,4 +1,5 @@
 #include "alt_types.h"
+#include "altera_avalon_i2c.h"
 #include <unistd.h>
 
 class SCD40
@@ -11,6 +12,7 @@ private:
     alt_u16 ambient_pressure_mbar = 0; // allowed range: 0 & 700mbar - 1400mbar
     float co2, temp, hum;
     alt_16 status;
+    ALT_AVALON_I2C_DEV_t *i2c_dev = NULL;
     
 public:
     void i2c_init(void);
