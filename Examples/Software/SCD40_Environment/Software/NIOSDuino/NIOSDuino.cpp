@@ -9,9 +9,7 @@ TSL25403 light;
 
 void setup() {
     Serial0.begin(9600);
-    
-    Serial0.println("Start");
-    
+
     scd40.begin();
     BARO.begin();
     light.begin();
@@ -20,17 +18,17 @@ void setup() {
 void loop() {
     scd40.read();
     char message[32];
-    sprintf(message, "CO2: %.2fppm", scd40.co2_value());
+    sprintf(message, "CO2: %.0fppm", scd40.co2_value());
     Serial0.println(message);
-    sprintf(message, "Temperature: %.2fC", scd40.temp_value());
+    sprintf(message, "Temperature: %.3fC", scd40.temp_value());
     Serial0.println(message);
-    sprintf(message, "Humidity: %.2f%%", scd40.hum_value());
+    sprintf(message, "Humidity: %.3f%%", scd40.hum_value());
     Serial0.println(message);
-    sprintf(message, "Pressure: %.2fPa", BARO.readPressure());
+    sprintf(message, "Pressure: %.5fkPa", BARO.readPressure());
     Serial0.println(message);
-    sprintf(message, "Light: %.2flx", light.read_lux());
+    sprintf(message, "Light: %.0flx", light.read_lux());
     Serial0.println(message);
-    sprintf(message, "IR Light: %.2flx", light.read_ir_lux());
+    sprintf(message, "IR Light: %.0flx", light.read_ir_lux());
     Serial0.println(message);
     delay(5000);
 }
