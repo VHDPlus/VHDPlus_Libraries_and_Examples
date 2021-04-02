@@ -22,7 +22,6 @@ void setup() {
 }
 
 void loop() {
-    /*
     scd40.read();
     char message[32];
     sprintf(message, "CO2: %.0fppm", scd40.co2_value());
@@ -42,16 +41,9 @@ void loop() {
     Serial0.println(message);
     
     if (lux < 200) {
-        buzzer.play(NOTE_G4, 200);
+        buzzer.play(NOTE_G5, 200);
     }
-    led.setHSV(lux/1000, 1.0, 0.2);
+    led.setHSV(lux/(1023/light.divider), 1.0, 0.1);
     
-    delay(5000);
-     */
-    float lux = light.read_lux();
-    led.setHSV(lux/1000, 1.0, 0.1);
-    if (lux < 200) {
-        buzzer.play(NOTE_G4, 200);
-        delay(500);
-    }
+    delay(500);
 }
