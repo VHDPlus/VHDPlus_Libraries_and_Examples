@@ -1,5 +1,5 @@
 /*
-    Name: MAX9867_Audio_Codec
+    Name: SCD40_Environment
     Rev: 1.0
     Creator: Leon Beier
     Date: 14.06.2020
@@ -24,7 +24,6 @@
 
     Important: Interface for SCD40-D-R2 CO2, temperature and humidity sensor, LPS22HBTR pressure sensor and TSL25403M ambient light sensor
     
-    
  */
 
 Component Environment_Interface
@@ -40,15 +39,15 @@ Component Environment_Interface
     SCL         : INOUT STD_LOGIC := 'Z';
     SDA         : INOUT STD_LOGIC := 'Z';
     
-    Temperature : OUT   INTEGER := 0; -- -4500 - ... (/10 -> °C)       -> higher resolution is possible
-    Humidity    : OUT   INTEGER := 0; -- 0 - 10000   (/10 -> percent)  -> higher resolution is possible
+    Temperature : OUT   INTEGER := 0; -- -450 - ...  (/10 -> 100 = 10°C)     -> higher resolution is possible
+    Humidity    : OUT   INTEGER := 0; -- 0 - 1000    (/10 -> 100 = 10%)      -> higher resolution is possible
     CO2         : OUT   INTEGER := 0; -- 0 - ...     ppm
-    Pressure    : OUT   INTEGER := 0; -- 0 - ...     (/10 -> Pa)       -> higher resolution is possible
+    Pressure    : OUT   INTEGER := 0; -- 0 - ...     (/10 -> 10000 = 1000Pa) -> higher resolution is possible
     Light       : OUT   INTEGER := 0; -- 0 - 65536
     IR_Light    : OUT   INTEGER := 0; -- 0 - 65536
 )
 {
-    CONSTANT Light_Gain : STD_LOGIC_VECTOR(2 downto 0) := "111"; --*1 - *128
+    CONSTANT Light_Gain : STD_LOGIC_VECTOR(2 downto 0) := "010"; --*1 - *128
     
     Connections
     {
@@ -57,7 +56,7 @@ Component Environment_Interface
         LED_R  => LS_8,
         LED_G  => LS_6,
         LED_B  => LS_5,
-        Buzz => LS_3,
+        Buzzer => LS_3,
         INT1   => LS_4,
         INT2   => LS_7,
     }
@@ -92,7 +91,7 @@ Component Environment_Interface
             NewFunction I2C_Transmit (Enable, Busy);
             While(Reset = '0')
             {
-                Wait(3*CLK_Frequency);
+                Wait(4*CLK_Frequency);
                 
                 --Read CO2/Humidity/Temperature
                 Address       <= x"62";
@@ -132,18 +131,9 @@ Component Environment_Interface
                 Pressure      <= (TO_INTEGER(UNSIGNED(buf_16))*10)/16;
                 
                 --Read Ambient Light
-                --Trigger one shot
-                Address       <= x"39";
-                Write_Data(0) <= x"93";
-                Write_Data(1) <= x"00";
-                Write_Bytes   <= 2;
-                Read_Bytes    <= 0;
-                NewFunction I2C_Transmit (Enable, Busy);
-                Wait(CLK_Frequency);
                 --Visual Data L 0x94
+                Address       <= x"39";
                 Write_Data(0) <= x"94";
-                Write_Bytes   <= 1;
-                Read_Bytes    <= 1;
                 NewFunction I2C_Transmit (Enable, Busy);
                 buf_16(7 downto 0) := Read_Data(0);
                 --Visual Data H 0x95
