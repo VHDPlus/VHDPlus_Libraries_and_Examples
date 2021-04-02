@@ -43,8 +43,8 @@ Component Environment_Interface
     Humidity    : OUT   INTEGER := 0; -- 0 - 1000    (/10 -> 100 = 10%)      -> higher resolution is possible
     CO2         : OUT   INTEGER := 0; -- 0 - ...     ppm
     Pressure    : OUT   INTEGER := 0; -- 0 - ...     (/10 -> 10000 = 1000Pa) -> higher resolution is possible
-    Light       : OUT   INTEGER := 0; -- 0 - 65536
-    IR_Light    : OUT   INTEGER := 0; -- 0 - 65536
+    Light       : OUT   INTEGER := 0; -- 0 - 1023
+    IR_Light    : OUT   INTEGER := 0; -- 0 - 1023
 )
 {
     CONSTANT Light_Gain : STD_LOGIC_VECTOR(2 downto 0) := "010"; --*1 - *128
