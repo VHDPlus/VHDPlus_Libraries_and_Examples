@@ -26,12 +26,11 @@ void loop() {
     Serial0.println(message);
     sprintf(message, "Humidity: %.2f%%", scd40.hum_value());
     Serial0.println(message);
-    //sprintf(message, "Pressure: %.2fPa", BARO.readPressure());
-    //Serial0.println(message);
-    light.read();
-    sprintf(message, "Light: %.2flx", light.lux_value());
+    sprintf(message, "Pressure: %.2fPa", BARO.readPressure());
     Serial0.println(message);
-    sprintf(message, "IR Light: %.2flx", light.ir_lux_value());
+    sprintf(message, "Light: %.2flx", light.read_lux());
+    Serial0.println(message);
+    sprintf(message, "IR Light: %.2flx", light.read_ir_lux());
     Serial0.println(message);
     delay(5000);
 }

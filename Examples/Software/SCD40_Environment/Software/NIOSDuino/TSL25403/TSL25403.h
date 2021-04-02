@@ -30,14 +30,12 @@ public:
     
     void end();
     
-    void read();
-    
     void calibrate(float lux);
     
     void calibrate_ir(float lux);
     
-    float lux_value();
+    float read_lux();
     
-    float ir_lux_value();
+    float read_ir_lux();
 
 };

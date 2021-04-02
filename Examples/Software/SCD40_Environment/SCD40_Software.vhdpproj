@@ -236,7 +236,7 @@
     <string xsi:nil="true" />
   </CruviHSExtensions>
   <CruviLSExtensions>
-    <string>LevelShifterExtension</string>
+    <string xsi:nil="true" />
     <string xsi:nil="true" />
     <string xsi:nil="true" />
     <string xsi:nil="true" />

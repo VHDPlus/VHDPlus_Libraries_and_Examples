@@ -113,28 +113,23 @@ void TSL25403::end()
     i2c_write(TSL25403_I2C_ADDRESS, ENABLE, &cfg, 1);
 }
 
-void TSL25403::read()
+float TSL25403::read_lux()
 {
     i2c_read(TSL25403_I2C_ADDRESS, VISIBLE_DATA_LOW, &rx_reg, 1);
     lux = rx_reg;
     i2c_read(TSL25403_I2C_ADDRESS, VISIBLE_DATA_HIGH, &rx_reg, 1);
     lux += 256*rx_reg;
     lux /= divider;
+    return lux;
+}
+
+float TSL25403::read_ir_lux()
+{
     i2c_read(TSL25403_I2C_ADDRESS, IR_DATA_LOW, &rx_reg, 1);
     ir_lux = rx_reg;
     i2c_read(TSL25403_I2C_ADDRESS, IR_DATA_HIGH, &rx_reg, 1);
     ir_lux += 256*rx_reg;
     ir_lux /= divider;
-    
-}
-
-float TSL25403::lux_value()
-{
-    return lux;
-}
-
-float TSL25403::ir_lux_value()
-{
     return ir_lux;
 }
 

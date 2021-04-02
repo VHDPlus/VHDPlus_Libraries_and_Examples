@@ -17,12 +17,18 @@ Main
     button : IN STD_LOGIC;
     led    : OUT STD_LOGIC;
     
+    sda_deb : OUT STD_LOGIC;
+    scl_deb : OUT STD_LOGIC;
+    
     LED_R : OUT STD_LOGIC := '1';
     LED_G : OUT STD_LOGIC := '1';
     LED_B : OUT STD_LOGIC := '1';
     Buzz  : OUT STD_LOGIC;
 )
 {
+    sda_deb <= NIOS_i2c_sda;
+    scl_deb <= NIOS_i2c_scl;
+    
     Connections
     {
         sda => LS_1,
