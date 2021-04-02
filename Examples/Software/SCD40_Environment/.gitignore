@@ -19,11 +19,17 @@ Libraries/.qsys_edit
 *.map
 *.objdump
 *.elf
-mem_init
-.clangd
-.cache
 *.flash
 *.sopcinfo
+
+.clangd/
+.cache/
+obj/
+mem_init/
+
+## BSP Libraries
+**/Software/**/generated_bsp/
+**/Software/**/compile_commands.json
 
 ## Python
 *__pycache__*
