@@ -276,6 +276,7 @@
   <interface name="clk_in" internal="clk_0.clk_in" type="clock" dir="end" />
   <interface name="i2c" internal="i2c_0.i2c_serial" type="conduit" dir="end" />
   <interface name="pio" internal="pio_0.external_connection" type="conduit" dir="end" />
+  <interface name="pwm" internal="pwm_0.ext" type="conduit" dir="end" />
   <interface name="reset" internal="clk_0.clk_in_reset" type="reset" dir="end" />
   <interface name="sdram" internal="sdram_controller_0.wire" type="conduit" dir="end" />
   <interface name="sdram_clk" internal="pll.c1" type="clock" dir="start" />
@@ -710,6 +711,15 @@
     <parameter name="WIDTH_CLOCK" value="5" />
     <parameter name="WIDTH_PHASECOUNTERSELECT" value="" />
   </module>
+  <module name="pwm_0" kind="avalon_pwm" version="1.0" enabled="1">
+    <parameter name="CLK_PRESCALER_WIDTH" value="16" />
+    <parameter name="CONSTANT_MAX" value="true" />
+    <parameter name="PRELOAD_REGS" value="false" />
+    <parameter name="PULSE_DITHER" value="false" />
+    <parameter name="PWM_COUNTER_WIDTH" value="8" />
+    <parameter name="PWM_OUTPUTS_COUNT" value="32" />
+    <parameter name="clockRate" value="50000000" />
+  </module>
   <module name="sdram_controller_0" kind="altera_avalon_new_sdram_controller" version="18.1" enabled="1">
     <parameter name="TAC" value="6.0" />
     <parameter name="TMRD" value="3" />
@@ -769,6 +779,11 @@
   <connection kind="avalon" version="18.1" start="nios2_qsys_0.data_master" end="jtag_uart_0.avalon_jtag_slave">
     <parameter name="arbitrationPriority" value="1" />
     <parameter name="baseAddress" value="0x01111160" />
+    <parameter name="defaultConnection" value="false" />
+  </connection>
+  <connection kind="avalon" version="18.1" start="nios2_qsys_0.data_master" end="pwm_0.avalon_slave_0">
+    <parameter name="arbitrationPriority" value="1" />
+    <parameter name="baseAddress" value="0x0000" />
     <parameter name="defaultConnection" value="false" />
   </connection>
   <connection kind="avalon" version="18.1" start="nios2_qsys_0.data_master" end="sysid_qsys_0.control_slave">
@@ -871,9 +886,13 @@
   <connection kind="clock" version="18.1" start="pll.c0" end="onchip_flash_0.clk" />
   <connection kind="clock" version="18.1" start="pll.c0" end="onchip_memory2_0.clk1" />
   <connection kind="clock" version="18.1" start="pll.c0" end="i2c_0.clock" />
+  <connection kind="clock" version="18.1" start="pll.c0" end="pwm_0.clock" />
   <connection kind="clock" version="18.1" start="clk_0.clk" end="pll.inclk_interface" />
   <connection kind="interrupt" version="18.1" start="nios2_qsys_0.irq" end="i2c_0.interrupt_sender">
     <parameter name="irqNumber" value="5" />
+  </connection>
+  <connection kind="interrupt" version="18.1" start="nios2_qsys_0.irq" end="pwm_0.interrupt_sender">
+    <parameter name="irqNumber" value="2" />
   </connection>
   <connection kind="interrupt" version="18.1" start="nios2_qsys_0.irq" end="uart_0.irq">
     <parameter name="irqNumber" value="0" />
@@ -893,6 +912,7 @@
   <connection kind="reset" version="18.1" start="clk_0.clk_reset" end="uart_0.reset" />
   <connection kind="reset" version="18.1" start="clk_0.clk_reset" end="timer_0.reset" />
   <connection kind="reset" version="18.1" start="clk_0.clk_reset" end="jtag_uart_0.reset" />
+  <connection kind="reset" version="18.1" start="clk_0.clk_reset" end="pwm_0.reset" />
   <connection kind="reset" version="18.1" start="clk_0.clk_reset" end="onchip_memory2_0.reset1" />
   <connection kind="reset" version="18.1" start="clk_0.clk_reset" end="i2c_0.reset_sink" />
   <connection kind="reset" version="18.1" start="nios2_qsys_0.debug_reset_request" end="pll.inclk_interface_reset" />

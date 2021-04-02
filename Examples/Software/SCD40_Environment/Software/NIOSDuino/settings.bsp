@@ -2,8 +2,8 @@
 <sch:Settings xmlns:sch="http://www.altera.com/embeddedsw/bsp/schema">
         <BspType>hal</BspType>
         <BspVersion>default</BspVersion>
-        <BspGeneratedTimeStamp>02.04.2021 13:29:16</BspGeneratedTimeStamp>
-        <BspGeneratedUnixTimeStamp>1617362956409</BspGeneratedUnixTimeStamp>
+        <BspGeneratedTimeStamp>02.04.2021 15:50:14</BspGeneratedTimeStamp>
+        <BspGeneratedUnixTimeStamp>1617371414135</BspGeneratedUnixTimeStamp>
         <BspGeneratedLocation>generated_bsp\</BspGeneratedLocation>
         <BspSettingsFile>settings.bsp</BspSettingsFile>
         <SopcDesignFile>..\..\NIOSDuino_Core.sopcinfo</SopcDesignFile>
@@ -922,6 +922,12 @@
                 <Enabled>false</Enabled>
                 <Group xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
         </Setting>
+        <MemoryMap>
+                <slaveDescriptor>pwm_0</slaveDescriptor>
+                <addressRange>0x00000000 - 0x000000FF</addressRange>
+                <addressSpan>256</addressSpan>
+                <attributes/>
+        </MemoryMap>
         <MemoryMap>
                 <slaveDescriptor>sdram_controller_0</slaveDescriptor>
                 <addressRange>0x00800000 - 0x00FFFFFF</addressRange>

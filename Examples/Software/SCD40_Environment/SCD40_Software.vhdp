@@ -13,22 +13,9 @@ Main
     NIOS_uart_txd      : OUT STD_LOGIC;
     NIOS_i2c_sda       : INOUT STD_LOGIC := 'Z';
     NIOS_i2c_scl       : INOUT STD_LOGIC := 'Z';
-    
-    button : IN STD_LOGIC;
-    led    : OUT STD_LOGIC;
-    
-    sda_deb : OUT STD_LOGIC;
-    scl_deb : OUT STD_LOGIC;
-    
-    LED_R : OUT STD_LOGIC := '1';
-    LED_G : OUT STD_LOGIC := '1';
-    LED_B : OUT STD_LOGIC := '1';
-    Buzz  : OUT STD_LOGIC;
+    NIOS_pwm_out       : OUT STD_LOGIC_VECTOR (2 downto 0);
 )
 {
-    sda_deb <= NIOS_i2c_sda;
-    scl_deb <= NIOS_i2c_scl;
-    
     Connections
     {
         sda => LS_1,
@@ -51,6 +38,7 @@ Main
         sdram_we_n    =>NIOS_sdram_we_n,
         sdram_clk_clk =>NIOS_sdram_clk_clk,
         pio_export    =>NIOS_pio_export,
+        pwm_out       =>NIOS_pwm_out,
         uart_rxd      =>NIOS_uart_rxd,
         uart_txd      =>NIOS_uart_txd,
         i2c_sda       =>NIOS_i2c_sda,

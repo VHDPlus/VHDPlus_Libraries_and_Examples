@@ -57,6 +57,15 @@
         </Items>
       </Items>
       <Items xsi:type="ProjectFolder">
+        <Header>RGB_LED</Header>
+        <Items xsi:type="ProjectFile">
+          <Header>RGB.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>RGB.cpp</Header>
+        </Items>
+      </Items>
+      <Items xsi:type="ProjectFolder">
         <Header>SCD40</Header>
         <Items xsi:type="ProjectFile">
           <Header>scd40.h</Header>
@@ -72,6 +81,15 @@
         </Items>
         <Items xsi:type="ProjectFile">
           <Header>TSL25403.h</Header>
+        </Items>
+      </Items>
+      <Items xsi:type="ProjectFolder">
+        <Header>Tone</Header>
+        <Items xsi:type="ProjectFile">
+          <Header>Tone.h</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>Tone.cpp</Header>
         </Items>
       </Items>
       <Items xsi:type="ProjectFolder">
@@ -236,7 +254,7 @@
     <string xsi:nil="true" />
   </CruviHSExtensions>
   <CruviLSExtensions>
-    <string xsi:nil="true" />
+    <string>EnvironmentExtension</string>
     <string xsi:nil="true" />
     <string xsi:nil="true" />
     <string xsi:nil="true" />
