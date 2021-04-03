@@ -90,7 +90,7 @@ Component MAX9867_Interface
     CONSTANT Line_R_Mute : STD_LOGIC_VECTOR := "1";         --0 = Line input is connected to the headphone amplifiers
 
     CONSTANT Playback_Volume : STD_LOGIC_VECTOR := x"09";   --  MAX9867 Datasheet P.38 VOLL/VOLR
-  
+    
     Connections
     {
         IRQ => LS_4,
@@ -339,10 +339,14 @@ Component MAX9867_Interface
             SIGNAL   Write_Ena  : STD_LOGIC := '0';
             VARIABLE LRCLK_Reg : STD_LOGIC := '0';
             VARIABLE Bit_Count : NATURAL range 0 to 15 := 15;
+            VARIABLE DAC_L_Reg : SIGNED(15 downto 0);
+            VARIABLE DAC_R_Reg : SIGNED(15 downto 0);
             If(LRCLK /= LRCLK_Reg)      --Prepare for read
             {
                 Write_Ena <= '1';
                 Bit_Count := 15;
+                DAC_L_Reg := DAC_L;
+                DAC_R_Reg := DAC_R;
             }
             LRCLK_Reg := LRCLK;
             
@@ -355,11 +359,11 @@ Component MAX9867_Interface
                 
                 If(LRCLK = '0')
                 {
-                    SDIN <= DAC_L(Bit_Count);
+                    SDIN <= DAC_L_Reg(Bit_Count);
                 }
                 Else
                 {
-                    SDIN <= DAC_R(Bit_Count);
+                    SDIN <= DAC_R_Reg(Bit_Count);
                 }
                 
                 Bit_Count := Bit_Count - 1;
