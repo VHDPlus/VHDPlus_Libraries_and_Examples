@@ -1,0 +1,147 @@
+/*
+    Name: I2S IN
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 22.08.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Insertion: -Right click on I2C_IN.vhdp -> Add to project
+               -Add NewComponent of I2S_Interface_IN in your code
+               -Remove CLK_Frequency if you use a VHDP Core and no PLL
+               -Change Sampling_Frequency, Data_Width, Sample_Bits and BCLK_Edge depending on the device to connect
+                (see the description next to the declarations and use the datasheet for your device)
+               -Remove Reset or connect it to a signal or input
+               -Right click the name I2S_Interface_IN next to NewComponent and create the needed signals
+    
+    Function:  -Wait until Ready changes it's value
+               -Read the data in Data_L if Ready is now '1' and the data in Data_R if Ready is '0'
+                
+    Example:   I2S_Example
+*/
+
+Component I2S_Interface_IN_Passive
+(
+    Include();
+    Generic
+    (
+        Data_Width          : INTEGER range 16 to 32    := 18;       --Number of data bits in a sample
+        BCLK_Edge           : STD_LOGIC                 := '0';      --'1' for Receiving Data on falling edge and '0' for Receiving Data on rising edge
+        Delay_Edge          : STD_LOGIC                 := '1';      --'1' for one rising edge delay before recieving
+    );
+    LRCLK   : IN  STD_LOGIC                                 := '0';             --LRCLK input from adc
+    BCLK    : IN  STD_LOGIC                                 := '0';             --BCLK input from adc
+    Data    : IN  STD_LOGIC                                 := '0';             --DATA input from adc
+    Data_L  : OUT STD_LOGIC_VECTOR(Data_Width-1 downto 0)   := (others => '0'); --Data received from adc when LRCLK is '0'
+    Data_R  : OUT STD_LOGIC_VECTOR(Data_Width-1 downto 0)   := (others => '0'); --Data received from adc when LRCLK is '1'
+)
+{
+    Connections
+    {
+        LRCLK,
+        BCLK,
+        Data,
+    }
+    
+    Generate (if BCLK_Edge = '0')
+    {
+        Process I2C_PROCESS ()
+        {
+            If(rising_edge(BCLK))
+            {
+                VARIABLE DATA_REG         : STD_LOGIC_VECTOR(Data_Width-1 downto 0)   := (others => '0');
+                VARIABLE LRCLK_Reg        : STD_LOGIC := '0';
+                VARIABLE BIT_COUNTER      : NATURAL range 0 to Data_Width := 0;
+                VARIABLE BIT_DELAY        : STD_LOGIC := '0';
+                
+                If(LRCLK /= LRCLK_Reg)
+                {
+                    If(LRCLK = '1')
+                    {
+                        Data_L <= DATA_REG;
+                    }
+                    Else
+                    {
+                        Data_R <= DATA_REG;
+                    }
+                    BIT_COUNTER := Data_Width;
+                    BIT_DELAY := Delay_Edge;
+                    DATA_REG := (others => '0');
+                    LRCLK_Reg := LRCLK;
+                }
+                
+                if(BIT_COUNTER > 0)
+                {
+                    If(BIT_DELAY = '1')
+                    {
+                        BIT_DELAY := '0';
+                    }
+                    Else
+                    {
+                        DATA_REG(BIT_COUNTER-1) := Data;
+                        BIT_COUNTER := BIT_COUNTER - 1;
+                    }
+                }
+            }
+        }
+    }
+    
+    Generate (if BCLK_Edge = '1')
+    {
+        Process I2C_PROCESS ()
+        {
+            If(falling_edge(BCLK))
+            {
+                VARIABLE DATA_REG         : STD_LOGIC_VECTOR(Data_Width-1 downto 0)   := (others => '0');
+                VARIABLE LRCLK_Reg        : STD_LOGIC := '0';
+                VARIABLE BIT_COUNTER      : NATURAL range 0 to Data_Width := 0;
+                VARIABLE BIT_DELAY        : STD_LOGIC := '0';
+                
+                If(LRCLK /= LRCLK_Reg)
+                {
+                    If(LRCLK = '1')
+                    {
+                        Data_L <= DATA_REG;
+                    }
+                    Else
+                    {
+                        Data_R <= DATA_REG;
+                    }
+                    BIT_COUNTER := Data_Width;
+                    BIT_DELAY := Delay_Edge;
+                    DATA_REG := (others => '0');
+                    LRCLK_Reg := LRCLK;
+                }
+                
+                if(BIT_COUNTER > 0)
+                {
+                    If(BIT_DELAY = '1')
+                    {
+                        BIT_DELAY := '0';
+                    }
+                    Else
+                    {
+                        DATA_REG(BIT_COUNTER-1) := Data;
+                        BIT_COUNTER := BIT_COUNTER - 1;
+                    }
+                }
+            }
+        }
+    }
+}
