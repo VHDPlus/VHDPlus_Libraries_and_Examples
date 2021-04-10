@@ -1,6 +1,6 @@
 [
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -21,7 +21,7 @@
     "file": "NIOSDuino.cpp"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -42,7 +42,7 @@
     "file": "LIS3DH/SparkFunLIS3DH.cpp"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -63,7 +63,7 @@
     "file": "LIS3DH/SparkFunLIS3DH.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -84,7 +84,7 @@
     "file": "arduino/Adafruit_Sensor.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -105,7 +105,7 @@
     "file": "arduino/Arduino.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -126,7 +126,7 @@
     "file": "arduino/Client.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -147,7 +147,7 @@
     "file": "arduino/EEPROM.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -168,7 +168,7 @@
     "file": "arduino/GenericSerial.cpp"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -189,7 +189,7 @@
     "file": "arduino/GenericSerial.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -210,7 +210,7 @@
     "file": "arduino/HardwareSerial.cpp"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -231,7 +231,7 @@
     "file": "arduino/HardwareSerial.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -252,7 +252,7 @@
     "file": "arduino/HardwareSerial0.cpp"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -273,7 +273,7 @@
     "file": "arduino/HardwareSerial1.cpp"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -294,7 +294,7 @@
     "file": "arduino/HardwareSerial2.cpp"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -315,7 +315,7 @@
     "file": "arduino/HardwareSerial3.cpp"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -336,7 +336,7 @@
     "file": "arduino/IPAddress.cpp"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -357,7 +357,7 @@
     "file": "arduino/IPAddress.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -378,7 +378,7 @@
     "file": "arduino/Print.cpp"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -399,7 +399,7 @@
     "file": "arduino/Print.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -420,7 +420,7 @@
     "file": "arduino/Printable.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -441,7 +441,7 @@
     "file": "arduino/SPIFlash.cpp"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -462,7 +462,7 @@
     "file": "arduino/SPIFlash.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -483,7 +483,7 @@
     "file": "arduino/Server.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -504,7 +504,7 @@
     "file": "arduino/Stream.cpp"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -525,7 +525,7 @@
     "file": "arduino/Stream.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -546,7 +546,7 @@
     "file": "arduino/Udp.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -567,7 +567,7 @@
     "file": "arduino/WCharacter.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -588,7 +588,7 @@
     "file": "arduino/WMath.cpp"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -609,7 +609,7 @@
     "file": "arduino/WString.cpp"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -630,7 +630,7 @@
     "file": "arduino/WString.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -651,7 +651,7 @@
     "file": "arduino/avalon_pwm_regs.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -672,7 +672,7 @@
     "file": "arduino/binary.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -693,7 +693,7 @@
     "file": "arduino/main.cpp"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -714,7 +714,7 @@
     "file": "arduino/pins_arduino.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -735,7 +735,7 @@
     "file": "arduino/wiring_analog.cpp"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -756,7 +756,7 @@
     "file": "arduino/wiring_digital.cpp"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -777,7 +777,7 @@
     "file": "arduino/wiring_pulse.c"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -798,7 +798,7 @@
     "file": "arduino/wiring_shift.c"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -819,7 +819,7 @@
     "file": "arduino/SPI/src/SPI.cpp"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -840,7 +840,7 @@
     "file": "arduino/SPI/src/SPI.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -861,7 +861,7 @@
     "file": "arduino/Wire/src/Wire.cpp"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -882,7 +882,7 @@
     "file": "arduino/Wire/src/Wire.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -903,7 +903,7 @@
     "file": "arduino/avr/eeprom.c"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -924,7 +924,7 @@
     "file": "arduino/avr/eeprom.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -945,7 +945,7 @@
     "file": "arduino/avr/interrupt.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
@@ -966,7 +966,7 @@
     "file": "arduino/avr/io.h"
   },
   {
-    "directory": "C:\\Users\\LeonB\\Documents\\VHDPlus\\Projects\\Accelerometer_Software\\Software\\NIOSDuino",
+    "directory": "C:\\Users\\LeonB\\Documents\\GitHub\\VHDPlus_Libraries_and_Examples\\Examples\\Software\\Accelerometer_Software\\Software\\NIOSDuino",
     "arguments": [
       "C:\\intelFPGA_lite\\18.1\\nios2eds\\bin\\gnu\\H-x86_64-mingw32\\bin\\nios2-elf-gcc.exe",
       "-Iarduino",
