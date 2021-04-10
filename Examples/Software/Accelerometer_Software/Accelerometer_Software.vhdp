@@ -1,0 +1,51 @@
+Main
+(
+    NIOSDuino_Processor_Reset         : IN STD_LOGIC := '0';
+    NIOSDuino_Processor_sdram_addr    : OUT STD_LOGIC_VECTOR (11 downto 0);
+    NIOSDuino_Processor_sdram_ba      : OUT STD_LOGIC_VECTOR (1 downto 0);
+    NIOSDuino_Processor_sdram_cas_n   : OUT STD_LOGIC;
+    NIOSDuino_Processor_sdram_cke     : OUT STD_LOGIC;
+    NIOSDuino_Processor_sdram_cs_n    : OUT STD_LOGIC;
+    NIOSDuino_Processor_sdram_dq      : INOUT STD_LOGIC_VECTOR (15 downto 0) := (others => 'X');
+    NIOSDuino_Processor_sdram_dqm     : OUT STD_LOGIC_VECTOR (1 downto 0);
+    NIOSDuino_Processor_sdram_ras_n   : OUT STD_LOGIC;
+    NIOSDuino_Processor_sdram_we_n    : OUT STD_LOGIC;
+    NIOSDuino_Processor_sdram_clk_clk : OUT STD_LOGIC;
+    NIOSDuino_Processor_uart_rxd      : IN STD_LOGIC := 'X';
+    NIOSDuino_Processor_uart_txd      : OUT STD_LOGIC;
+    NIOSDuino_Processor_spi_MISO      : IN STD_LOGIC := 'X';
+    NIOSDuino_Processor_spi_MOSI      : OUT STD_LOGIC;
+    NIOSDuino_Processor_spi_SCLK      : OUT STD_LOGIC;
+    NIOSDuino_Processor_pio_export    : INOUT STD_LOGIC_VECTOR (15 downto 0) := (others => 'X');
+    
+)
+{
+    Connections
+    {
+        MOSI           => ACCEL_3,
+        MISO           => ACCEL_2,
+        SCLK           => ACCEL_1,
+        pio_export(15) => ACCEL_4,
+    }
+    
+    NewComponent NIOSDuino_Processor
+    (
+        Reset         =>NIOSDuino_Processor_Reset,
+        sdram_addr    =>NIOSDuino_Processor_sdram_addr,
+        sdram_ba      =>NIOSDuino_Processor_sdram_ba,
+        sdram_cas_n   =>NIOSDuino_Processor_sdram_cas_n,
+        sdram_cke     =>NIOSDuino_Processor_sdram_cke,
+        sdram_cs_n    =>NIOSDuino_Processor_sdram_cs_n,
+        sdram_dq      =>NIOSDuino_Processor_sdram_dq,
+        sdram_dqm     =>NIOSDuino_Processor_sdram_dqm,
+        sdram_ras_n   =>NIOSDuino_Processor_sdram_ras_n,
+        sdram_we_n    =>NIOSDuino_Processor_sdram_we_n,
+        sdram_clk_clk =>NIOSDuino_Processor_sdram_clk_clk,
+        uart_rxd      =>NIOSDuino_Processor_uart_rxd,
+        uart_txd      =>NIOSDuino_Processor_uart_txd,
+        pio_export    =>NIOSDuino_Processor_pio_export,
+        spi_MISO      =>NIOSDuino_Processor_spi_MISO,
+        spi_MOSI      =>NIOSDuino_Processor_spi_MOSI,
+        spi_SCLK      =>NIOSDuino_Processor_spi_SCLK,
+    );
+}
