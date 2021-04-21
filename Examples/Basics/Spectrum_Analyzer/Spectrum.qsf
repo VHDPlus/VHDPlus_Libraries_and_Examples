@@ -145,8 +145,8 @@ set_location_assignment PIN_K1 -to CS_O
 set_location_assignment PIN_M3 -to CLK_O
 set_location_assignment PIN_C9 -to Data
 set_location_assignment PIN_C10 -to BCLK
-set_location_assignment PIN_B3 -to LRCLK
 set_location_assignment PIN_H1 -to VS[0]
 set_location_assignment PIN_B7 -to VS[1]
 set_location_assignment PIN_L1 -to VS[2]
 set_location_assignment PIN_K13 -to VS_EN
+set_location_assignment PIN_D8 -to LRCLK

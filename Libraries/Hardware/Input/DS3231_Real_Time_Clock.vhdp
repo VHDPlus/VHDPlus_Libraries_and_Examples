@@ -50,6 +50,7 @@ Component DS3231_Interface
     Include
     (
         Date_Time_Package.all,
+        I2C_Data_Array_Package.all,
     );
     Package Date_Time_Package
     (

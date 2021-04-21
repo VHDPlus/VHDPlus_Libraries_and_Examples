@@ -77,7 +77,6 @@ Component I2C_Array
 		SIGNAL i2c_data_wr   : STD_LOGIC_VECTOR (7 DOWNTO 0);
 		SIGNAL i2c_busy      : STD_LOGIC;
 		SIGNAL i2c_data_rd   : STD_LOGIC_VECTOR (7 DOWNTO 0);
-		SIGNAL i2c_ack_error : STD_LOGIC;
 		
 		SIGNAL busy_cnt      : NATURAL range 0 to Max_Bytes*2 := 0;
 		SIGNAL get_data      : STD_LOGIC := '0';
