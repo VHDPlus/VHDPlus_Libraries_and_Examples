@@ -13,6 +13,7 @@ Main
     
 )
 {
+    --I2C Light Sensor
     Process ()
     {
         Thread
@@ -39,7 +40,7 @@ Main
                 I2C_Array_Enable     <= '1';
                 Step{ I2C_Array_Enable <= '0'; }
                 While(I2C_Array_Busy = '1') {}
-                --Receive
+                --Read
                 ISSP_probe2(7 downto 0) <= I2C_Array_Data_RD(0);
                 
                 --Settings
@@ -48,18 +49,20 @@ Main
                 I2C_Array_Enable     <= '1';
                 Step{ I2C_Array_Enable <= '0'; }
                 While(I2C_Array_Busy = '1') {}
-                --Receive
+                --Read
                 ISSP_probe2(15 downto 8) <= I2C_Array_Data_RD(0);
             }
         }
     }
     
+    --Output Value (Tools -> Debug with ISSP)
     SIGNAL ISSP_probe2  : std_logic_vector (31 downto 0) := (others => 'X');
     NewComponent ISSP
     (
         probe  =>ISSP_probe2,
     );
     
+    --I2C Interface for multiple write and read bytes
     SIGNAL I2C_Array_Enable        : STD_LOGIC := '0';
     SIGNAL I2C_Array_Address       : STD_LOGIC_VECTOR (6 DOWNTO 0) := (others => '0');
     SIGNAL I2C_Array_WR_Bytes      : NATURAL          range 0 to 4 := 0;
@@ -90,13 +93,16 @@ Main
         SCL    => LS_2,
     }
     
+    --SPI Accelerometer
     Process ()
     {
         Thread
         {
+            --Settings
             RW <= '0';
             Address  <= "100000";
             Data_OUT <= "01110111";
+            --Send
             SPI_Master_Enable <= '1';
             Step { SPI_Master_Enable <= '0'; }
             While(SPI_Master_Busy = '1'){}
@@ -104,22 +110,27 @@ Main
             While(true)
             {
                 Wait(2500us);
+                --Settings
                 RW <= '1';
                 Address  <= "101001";
+                --Send
                 SPI_Master_Enable <= '1';
                 Step { SPI_Master_Enable <= '0'; }
                 While(SPI_Master_Busy = '1'){}
+                --Read
                 ISSP_probe(7 downto 0) <= Data_IN;
             }
         }
     }
     
+    --Output Value (Tools -> Debug with ISSP)
     SIGNAL ISSP_probe  : std_logic_vector (31 downto 0) := (others => 'X');
     NewComponent ISSP
     (
         probe  =>ISSP_probe,
     );
     
+    --First byte for address and read/write setting, second byte read or write data
     SIGNAL RW       : STD_LOGIC := '0';
     SIGNAL Address  : STD_LOGIC_VECTOR(5 downto 0);
     SIGNAL Data_IN  : STD_LOGIC_VECTOR(7 downto 0);
@@ -130,6 +141,7 @@ Main
     SPI_Master_TX_Data(7 downto 0) <= Data_OUT;
     Data_IN <= SPI_Master_RX_Data(7 downto 0);
     
+    --SPI interface
     SIGNAL SPI_Master_TX_Data       : STD_LOGIC_VECTOR (16-1 downto 0) := (others => '0');
     SIGNAL SPI_Master_Enable        : STD_LOGIC := '0';
     SIGNAL SPI_Master_Cont          : STD_LOGIC := '0';
@@ -162,23 +174,29 @@ Main
         SS   => ACCEL_4,
     }
     
+    --UART Demo
     Process ()
     {
         Thread
         {
             CONSTANT hw_str    : STD_LOGIC_VECTOR(7*8-1 downto 0) := s"Hello!\n";
             SIGNAL   read_data : STD_LOGIC_VECTOR(7 downto 0);
+            --Read one byte
             NewFunction read (read_data, UART_Interface_RX_Data, UART_Interface_RX_Busy);
+            --Check if byte = 'h' (ascii)
             If(read_data = s"h")
             {
+                --Send 7 chars (Hello!\n)
                 For(VARIABLE c : NATURAL range 0 to 7 := 0; c < 7; c := c + 1)
                 {
+                    --Write byte
                     NewFunction write (hw_str((7-c)*8-1 downto (7-c)*8-8), UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
                 }
             }
         }
     }
     
+    --UART interface
     SIGNAL UART_Interface_TX_Enable     : STD_LOGIC := '0';
     SIGNAL UART_Interface_TX_Busy       : STD_LOGIC := '0';
     SIGNAL UART_Interface_TX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
