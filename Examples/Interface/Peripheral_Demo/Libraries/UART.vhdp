@@ -1,0 +1,299 @@
+/*
+    Name: UART
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 06.06.2019
+
+    This file is a derivation of the implementation found at: https://www.digikey.com/eewiki/pages/viewpage.action?pageId=59507062
+    
+    Important: Only one process can send data
+    
+    Insertion: -Right click on UART.vhdp -> Add to project
+               -Add NewComponent of UART_Interface in your code
+               -Remove CLK_Frequency if you use a VHDP Core and no PLL
+               -Set Baud_Rate to the baud rate of the device to connect
+               -OS_Rate, D_Width, Parity and Parity_EO can be removed or assigned own values to match the setting of the device to connect
+               -Remove Reset or connect it to a signal or input
+               -Right click the name UART_Interface next to NewComponent and create the needed signals
+    
+    Function:  Transmitting:
+                -Set TX_Data to the byte (or bits) to transmitt and TX_Enable from '0' to '1'
+                -Wait until TX_Busy changes from '1' to '0'
+                Or:
+                -Use NewFunction write ([iData], [tx_data], [tx_busy], [tx_ena]); in a Thread
+               Receiving:
+                -Wait until RX_Busy changes from '1' to '0'
+                -Read the data in RX_Data (If RX_Error is '1', the parity bit was wrong and the uart setting are wrong or there was a problem while transmission)
+                Or:
+                -Use NewFunction read ([oData], [rx_data], [rx_busy]); in a Thread
+    
+    Example:   UART_Array_Example
+ */
+
+Component UART_Interface
+(
+    Include();
+    Generic
+    (
+        CLK_Frequency   :   INTEGER     := 12000000;    --frequency of system clock in Hertz
+        Baud_Rate       :   INTEGER     := 19200;       --data link baud rate in bits/second
+        OS_Rate         :   INTEGER     := 16;          --oversampling rate to find center of receive bits (in samples per baud period)
+        D_Width         :   INTEGER     := 8;           --data bus width
+        Parity          :   INTEGER     := 0;           --0 for no parity, 1 for parity
+        Parity_EO       :   STD_LOGIC   := '0';         --'0' for even, '1' for odd parity
+    );
+    
+    Reset       : IN    STD_LOGIC := '0';                       --active high reset
+    RX          : IN    STD_LOGIC := '1';                       --receive pin
+    TX          : OUT   STD_LOGIC := '1';                       --transmit pin
+    
+    TX_Enable   : IN    STD_LOGIC := '0';                       --initiate transmission
+    TX_Busy     : OUT   STD_LOGIC := '0';                       --transmission in progress
+    TX_Data     : IN    STD_LOGIC_VECTOR(D_Width-1 DOWNTO 0) := (others => '0');    --data to transmit
+    RX_Busy     : OUT   STD_LOGIC := '0';                       --data reception in progress
+    RX_Data     : OUT   STD_LOGIC_VECTOR(D_Width-1 DOWNTO 0) := (others => '0');    --data received
+    RX_Error    : OUT   STD_LOGIC := '0';                       --start, parity, or stop bit error detected
+)
+{
+    AttributeDeclaration
+    {
+        TYPE    tx_machine      IS  (idle, transmit);                       --tranmit state machine data type
+        TYPE    rx_machine      IS  (idle, receive);                        --receive state machine data type
+        SIGNAL  tx_state        :   tx_machine;                             --transmit state machine
+        SIGNAL  rx_state        :   rx_machine;                             --receive state machine
+        SIGNAL  baud_pulse      :   STD_LOGIC := '0';                       --periodic pulse that occurs at the baud rate
+        SIGNAL  os_pulse        :   STD_LOGIC := '0';                       --periodic pulse that occurs at the oversampling rate
+        SIGNAL  parity_error    :   STD_LOGIC;                              --receive parity error flag
+        SIGNAL  rx_parity       :   STD_LOGIC_VECTOR(D_Width DOWNTO 0);     --calculation of receive parity
+        SIGNAL  tx_parity       :   STD_LOGIC_VECTOR(D_Width DOWNTO 0);     --calculation of transmit parity
+        SIGNAL  rx_buffer       :   STD_LOGIC_VECTOR(Parity+D_Width DOWNTO 0) := (OTHERS => '0');   --values received
+        SIGNAL  tx_buffer       :   STD_LOGIC_VECTOR(Parity+D_Width+1 DOWNTO 0) := (OTHERS => '1'); --values to be transmitted
+    }
+    
+    Connections
+    {
+        RX => UART_TXD,
+        TX => UART_RXD,
+    }
+    
+    SeqFunction write
+    (
+        iData    : STD_LOGIC_VECTOR(D_Width-1 DOWNTO 0);
+        
+        tx_data  : STD_LOGIC_VECTOR;
+        tx_busy  : STD_LOGIC;
+        tx_ena   : STD_LOGIC;
+    )
+    {
+        
+        tx_data <= iData;
+        tx_ena <= '1';
+        While(tx_busy = '0'){}
+        tx_ena <= '0';
+        While(tx_busy = '1'){}
+    }
+    
+    SeqFunction read
+    (
+        oData    : STD_LOGIC_VECTOR(D_Width-1 DOWNTO 0);
+        
+        rx_data  : STD_LOGIC_VECTOR;
+        rx_busy  : STD_LOGIC;
+    )
+    {
+        While(rx_busy = '0'){}
+        While(rx_busy = '1'){}
+        oData <= rx_data;
+    }
+    
+    --generate clock enable pulses at the baud rate and the oversampling rate
+    Process CLK_GENERATOR
+    (
+        VARIABLE count_baud :   INTEGER RANGE 0 TO CLK_Frequency/Baud_Rate-1 := 0;          --counter to determine baud rate period
+        VARIABLE count_os   :   INTEGER RANGE 0 TO CLK_Frequency/Baud_Rate/OS_Rate-1 := 0;  --counter to determine oversampling period
+    )
+    {
+        if(Reset = '1')
+        {
+            baud_pulse <= '0';                                                  --reset baud rate pulse
+            os_pulse <= '0';                                                    --reset oversampling rate pulse
+            count_baud := 0;                                                    --reset baud period counter
+            count_os := 0;                                                      --reset oversampling period counter
+        }
+        else
+        {
+            --create baud enable pulse
+            if(count_baud < CLK_Frequency/Baud_Rate-1)                              --baud period not reached
+            {
+                count_baud := count_baud + 1;                                   --increment baud period counter
+                baud_pulse <= '0';                                              --deassert baud rate pulse
+            }
+            else                                                                --baud period reached
+            {
+                count_baud := 0;                                                --reset baud period counter
+                baud_pulse <= '1';                                              --assert baud rate pulse
+                count_os := 0;                                                  --reset oversampling period counter to avoid cumulative error
+            }
+            
+            --create oversampling enable pulse
+            if(count_os < CLK_Frequency/Baud_Rate/OS_Rate-1)                            --oversampling period not reached
+            {
+                count_os := count_os + 1;                                       --increment oversampling period counter
+                os_pulse <= '0';                                                --deassert oversampling rate pulse
+            }
+            else                                                                --oversampling period reached
+            {
+                count_os := 0;                                                  --reset oversampling period counter
+                os_pulse <= '1';                                                --assert oversampling pulse
+            }
+        }
+    }
+    
+    --receive state machine
+    Process RECEIVE_PROCESS
+    (
+        VARIABLE rx_count   :   INTEGER RANGE 0 TO Parity+D_Width+2 := 0;       --count the bits received
+        VARIABLE os_count   :   INTEGER RANGE 0 TO OS_Rate-1 := 0;              --count the oversampling rate pulses
+    )
+    {
+        If(Reset = '1')
+        {
+            os_count := 0;                                                      --clear oversampling pulse counter
+            rx_count := 0;                                                      --clear receive bit counter
+            RX_Busy <= '0';                                                     --clear receive busy signal
+            RX_Error <= '0';                                                    --clear receive errors
+            RX_Data <= (OTHERS => '0');                                         --clear received data output
+            rx_state <= idle;                                                   --put in idle state
+        }
+        elsif(os_pulse = '1')                                                   --enable clock at oversampling rate
+        {
+            case(rx_state)
+            {
+                when(idle)                                                      --idle state
+                {
+                    RX_Busy <= '0';                                             --clear receive busy flag
+                    if(RX = '0')
+                    {
+                        if(os_count < OS_Rate/2)
+                        {
+                            os_count := os_count + 1;                           --increment oversampling pulse counter
+                            rx_state <= idle;                                   --remain in idle state
+                        }
+                        else                                                    --oversampling pulse counter is at bit center
+                        {
+                            os_count := 0;                                      --clear oversampling pulse counter
+                            rx_count := 0;                                      --clear the bits received counter
+                            RX_Busy <= '1';                                     --assert busy flag
+                            rx_state <= receive;                                --advance to receive state
+                        }
+                    }
+                    else                                                        --start bit not present
+                    {
+                        os_count := 0;                                          --clear oversampling pulse counter
+                        rx_state <= idle;                                       --remain in idle state
+                    }
+                }
+                when(receive)
+                {
+                    if(os_count < OS_Rate-1)                                    --not center of bit
+                    {
+                        os_count := os_count + 1;                               --increment oversampling pulse counter
+                        rx_state <= receive;                                    --remain in receive state
+                    }
+                    elsif(rx_count < Parity+D_Width)
+                    {
+                        os_count := 0;                                              --reset oversampling pulse counter
+                        rx_count := rx_count + 1;                                   --increment number of bits received counter
+                        rx_buffer <= RX & rx_buffer(Parity+D_Width DOWNTO 1);       --shift new received bit into receive buffer
+                        rx_state <= receive;                                        --remain in receive state
+                    }
+                    else
+                    {
+                        RX_Data <= rx_buffer(D_Width DOWNTO 1);                     --output data received to user logic
+                        RX_Error <= rx_buffer(0) OR parity_error OR NOT RX;         --output start, parity, and stop bit error flag
+                        RX_Busy <= '0';                                             --deassert received busy flag
+                        rx_state <= idle;                                           --return to idle state
+                    }
+                }
+            }
+        }
+    }
+    
+    --receive parity calculation logic
+    rx_parity(0) <= Parity_EO;
+    VHDL
+    {
+        rx_parity_logic: FOR i IN 0 to D_Width-1 GENERATE
+        rx_parity(i+1) <= rx_parity(i) XOR rx_buffer(i+1);
+        END GENERATE;
+        
+        WITH Parity SELECT parity_error <= rx_parity(D_Width) XOR rx_buffer(Parity+D_Width) WHEN 1, '0' WHEN OTHERS; --compare calculated parity bit with received parity bit to determine error using parity
+    }
+    
+    --transmit state machine
+    Process TRANSMIT_PROCESS
+    (
+        VARIABLE tx_count   :   INTEGER RANGE 0 TO Parity+D_Width+3 := 0;               --count bits transmitted
+    )
+    {
+        if(Reset = '1')
+        {
+            tx_count := 0;                                                              --clear transmit bit counter
+            TX <= '1';                                                                  --set tx pin to idle value of high
+            TX_Busy <= '1';                                                             --set transmit busy signal to indicate unavailable
+            tx_state <= idle;                                                           --set tx state machine to ready state
+        }
+        else
+        {
+            case(tx_state)
+            {
+                when(idle)                                                              --idle state
+                {
+                    if(TX_Enable = '1')                                                 --new transaction latched in
+                    {
+                        tx_buffer(D_Width+1 DOWNTO 0) <=  TX_Data & '0' & '1';          --latch in data for transmission and start/stop bits
+                        if(Parity = 1)
+                        {
+                            tx_buffer(Parity+D_Width+1) <= tx_parity(D_Width);          --latch in parity bit from parity logic
+                        }
+                        TX_Busy <= '1';                                                 --assert transmit busy flag
+                        tx_count := 0;                                                  --clear transmit bit count
+                        tx_state <= transmit;                                           --proceed to transmit state
+                    }
+                    else
+                    {
+                        TX_Busy <= '0';                                                 --clear transmit busy flag
+                        tx_state <= idle;                                               --remain in idle state
+                    }
+                }
+                When(transmit)
+                {
+                    if(baud_pulse = '1')
+                    {
+                        tx_count := tx_count + 1;                                       --increment transmit bit counter
+                        tx_buffer <= '1' & tx_buffer(Parity+D_Width+1 DOWNTO 1);        --shift transmit buffer to output next bit
+                    }
+                    
+                    if(tx_count < Parity+D_Width+3)                                     --not all bits transmitted
+                    {
+                        tx_state <= transmit;                                           --remain in transmit state
+                    }
+                    else
+                    {
+                        tx_state <= idle;                                               --return to idle state
+                    }
+                }
+            }
+            TX <= tx_buffer(0);                                                         --output last bit in transmit transaction buffer
+        }
+    }
+    
+    --transmit parity calculation logic
+    tx_parity(0) <= Parity_EO;
+    VHDL
+    {
+        tx_parity_logic: FOR i IN 0 to D_Width-1 GENERATE
+        tx_parity(i+1) <= tx_parity(i) XOR TX_Data(i);
+        END GENERATE;
+    }
+}

@@ -1,0 +1,202 @@
+Main
+(
+    UART_Interface_RX            : IN STD_LOGIC := '1';
+    UART_Interface_TX            : OUT STD_LOGIC := '1';
+    
+    SPI_Master_MISO          : IN STD_LOGIC := '0';
+    SPI_Master_SCLK          : BUFFER STD_LOGIC := '0';
+    SPI_Master_SS            : BUFFER STD_LOGIC := '0';
+    SPI_Master_MOSI          : OUT STD_LOGIC := '0';
+    
+    I2C_Array_SDA           : INOUT STD_LOGIC := 'Z';
+    I2C_Array_SCL           : INOUT STD_LOGIC := 'Z';
+    
+)
+{
+    Process ()
+    {
+        Thread
+        {
+            --Settings
+            I2C_Array_Address    <= "0111001";
+            I2C_Array_Data_WR(0) <= x"80";
+            I2C_Array_Data_WR(1) <= x"0B";
+            I2C_Array_WR_Bytes   <= 2;
+            I2C_Array_RD_Bytes   <= 0;
+            --Send
+            I2C_Array_Enable     <= '1';
+            Step{ I2C_Array_Enable <= '0'; }
+            While(I2C_Array_Busy = '1') {}
+            
+            While(true)
+            {
+                Wait(5ms);
+                --Settings
+                I2C_Array_Data_WR(0) <= x"94";
+                I2C_Array_WR_Bytes   <= 1;
+                I2C_Array_RD_Bytes   <= 1;
+                --Send
+                I2C_Array_Enable     <= '1';
+                Step{ I2C_Array_Enable <= '0'; }
+                While(I2C_Array_Busy = '1') {}
+                --Receive
+                ISSP_probe2(7 downto 0) <= I2C_Array_Data_RD(0);
+                
+                --Settings
+                I2C_Array_Data_WR(0) <= x"95";
+                --Send
+                I2C_Array_Enable     <= '1';
+                Step{ I2C_Array_Enable <= '0'; }
+                While(I2C_Array_Busy = '1') {}
+                --Receive
+                ISSP_probe2(15 downto 8) <= I2C_Array_Data_RD(0);
+            }
+        }
+    }
+    
+    SIGNAL ISSP_probe2  : std_logic_vector (31 downto 0) := (others => 'X');
+    NewComponent ISSP
+    (
+        probe  =>ISSP_probe2,
+    );
+    
+    SIGNAL I2C_Array_Enable        : STD_LOGIC := '0';
+    SIGNAL I2C_Array_Address       : STD_LOGIC_VECTOR (6 DOWNTO 0) := (others => '0');
+    SIGNAL I2C_Array_WR_Bytes      : NATURAL          range 0 to 4 := 0;
+    SIGNAL I2C_Array_Data_WR       : I2C_Data_Array   (2-1 downto 0) := (others => (others => '0'));
+    SIGNAL I2C_Array_Busy          : STD_LOGIC := '0';
+    SIGNAL I2C_Array_RD_Bytes      : NATURAL          range 0 to 4 := 0;
+    SIGNAL I2C_Array_Data_RD       : I2C_Data_Array   (2-1 downto 0) := (others => (others => '0'));
+    NewComponent I2C_Array
+    (
+        CLK_Frequency => 12000000,
+        Bus_CLK       => 400000,
+        Max_Bytes     => 2,
+
+        Enable        =>I2C_Array_Enable,
+        Address       =>I2C_Array_Address,
+        WR_Bytes      =>I2C_Array_WR_Bytes,
+        Data_WR       =>I2C_Array_Data_WR,
+        Busy          =>I2C_Array_Busy,
+        RD_Bytes      =>I2C_Array_RD_Bytes,
+        Data_RD       =>I2C_Array_Data_RD,
+        SDA           =>I2C_Array_SDA,
+        SCL           =>I2C_Array_SCL,
+    );
+    
+    Connections
+    {
+        SDA    => LS_1,
+        SCL    => LS_2,
+    }
+    
+    Process ()
+    {
+        Thread
+        {
+            RW <= '0';
+            Address  <= "100000";
+            Data_OUT <= "01110111";
+            SPI_Master_Enable <= '1';
+            Step { SPI_Master_Enable <= '0'; }
+            While(SPI_Master_Busy = '1'){}
+            
+            While(true)
+            {
+                Wait(2500us);
+                RW <= '1';
+                Address  <= "101001";
+                SPI_Master_Enable <= '1';
+                Step { SPI_Master_Enable <= '0'; }
+                While(SPI_Master_Busy = '1'){}
+                ISSP_probe(7 downto 0) <= Data_IN;
+            }
+        }
+    }
+    
+    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0) := (others => 'X');
+    NewComponent ISSP
+    (
+        probe  =>ISSP_probe,
+    );
+    
+    SIGNAL RW       : STD_LOGIC := '0';
+    SIGNAL Address  : STD_LOGIC_VECTOR(5 downto 0);
+    SIGNAL Data_IN  : STD_LOGIC_VECTOR(7 downto 0);
+    SIGNAL Data_OUT : STD_LOGIC_VECTOR(7 downto 0);
+    SPI_Master_TX_Data(15) <= RW;
+    SPI_Master_TX_Data(14) <= '0';
+    SPI_Master_TX_Data(13 downto 8) <= Address;
+    SPI_Master_TX_Data(7 downto 0) <= Data_OUT;
+    Data_IN <= SPI_Master_RX_Data(7 downto 0);
+    
+    SIGNAL SPI_Master_TX_Data       : STD_LOGIC_VECTOR (16-1 downto 0) := (others => '0');
+    SIGNAL SPI_Master_Enable        : STD_LOGIC := '0';
+    SIGNAL SPI_Master_Cont          : STD_LOGIC := '0';
+    SIGNAL SPI_Master_Busy          : STD_LOGIC := '0';
+    SIGNAL SPI_Master_RX_Data       : STD_LOGIC_VECTOR (16-1 downto 0) := (others => '0');
+    NewComponent SPI_Master
+    (
+        CLK_Frequency => 12000000,
+        SPI_CLK       => 1000000,
+        Bits          => 16,
+        CPol          => '1',
+        CPha          => '1',
+
+        MISO          =>SPI_Master_MISO,
+        SCLK          =>SPI_Master_SCLK,
+        SS            =>SPI_Master_SS,
+        MOSI          =>SPI_Master_MOSI,
+        TX_Data       =>SPI_Master_TX_Data,
+        Enable        =>SPI_Master_Enable,
+        Cont          =>SPI_Master_Cont,
+        Busy          =>SPI_Master_Busy,
+        RX_Data       =>SPI_Master_RX_Data,
+    );
+    
+    Connections
+    {
+        MOSI => ACCEL_3,
+        MISO => ACCEL_2,
+        SCLK => ACCEL_1,
+        SS   => ACCEL_4,
+    }
+    
+    Process ()
+    {
+        Thread
+        {
+            CONSTANT hw_str    : STD_LOGIC_VECTOR(7*8-1 downto 0) := s"Hello!\n";
+            SIGNAL   read_data : STD_LOGIC_VECTOR(7 downto 0);
+            NewFunction read (read_data, UART_Interface_RX_Data, UART_Interface_RX_Busy);
+            If(read_data = s"h")
+            {
+                For(VARIABLE c : NATURAL range 0 to 7 := 0; c < 7; c := c + 1)
+                {
+                    NewFunction write (hw_str((7-c)*8-1 downto (7-c)*8-8), UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+                }
+            }
+        }
+    }
+    
+    SIGNAL UART_Interface_TX_Enable     : STD_LOGIC := '0';
+    SIGNAL UART_Interface_TX_Busy       : STD_LOGIC := '0';
+    SIGNAL UART_Interface_TX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
+    SIGNAL UART_Interface_RX_Busy       : STD_LOGIC := '0';
+    SIGNAL UART_Interface_RX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
+    SIGNAL UART_Interface_RX_Error      : STD_LOGIC := '0';
+    NewComponent UART_Interface
+    (
+        CLK_Frequency => 12000000,
+        Baud_Rate     => 19200,
+
+        RX            => UART_Interface_RX,
+        TX            => UART_Interface_TX,
+        TX_Enable     => UART_Interface_TX_Enable,
+        TX_Busy       => UART_Interface_TX_Busy,
+        TX_Data       => UART_Interface_TX_Data,
+        RX_Busy       => UART_Interface_RX_Busy,
+        RX_Data       => UART_Interface_RX_Data,
+        RX_Error      => UART_Interface_RX_Error,
+    );
+}

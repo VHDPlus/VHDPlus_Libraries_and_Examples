@@ -1,0 +1,197 @@
+/*
+    Name: I2C
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 07.06.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of 
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the 
+    HDL Code without restriction, including without limitation the rights to use, 
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important: -You need to add I2C.vhdp too
+    
+    Insertion: -Right click on I2C.vhdp -> Add to project
+               -Right click on I2C_Array.vhdp -> Add to project
+               -Add NewComponent of I2C_Array in your code
+               -Remove CLK_Frequency if you use a VHDP Core and no PLL
+               -Right click the name I2C_Array next to NewComponent and create the signals
+    
+    Function:  -Set Address to the address of the I2C slave,
+                the data to Transmit (e.g. Data_WR(0) <= ...),
+                WR_Bytes to the number of bytes in Data_WR to transmit,
+                RD_Bytes to the number of bytes to receive and
+                Enable from '0' to '1'.
+               -If Busy changes from '1' to '0', you can read the received data from Data_RD
+               
+    Example:   I2C_Array_Example
+*/
+
+Component I2C_Array
+(
+    Include
+    (
+        I2C_Data_Array_Package.all,
+    );
+    Generic
+    (
+        CLK_Frequency   : INTEGER := 12000000; --input clock speed from user logic in Hz
+        Bus_CLK         : INTEGER := 400000;   --speed the i2c bus (scl) will run at in Hz
+        Max_Bytes       : NATURAL := 4;        --maximum bytes to read or write
+    );
+    Package I2C_Data_Array_Package
+    (
+        TYPE I2C_Data_Array IS ARRAY (natural range <>) OF STD_LOGIC_VECTOR(7 DOWNTO 0);
+    );
+    Reset     : IN     STD_LOGIC := '0';                                --active high reset
+    Enable    : IN     STD_LOGIC := '0';                                --rising edge starts transimission
+    Address   : IN     STD_LOGIC_VECTOR(6 DOWNTO 0) := (others => '0'); --address of target slave
+    WR_Bytes  : IN     NATURAL range 0 to Max_Bytes := 0;               --bytes to write in this transmission
+    Data_WR   : IN     I2C_Data_Array(Max_Bytes-1 downto 0) := (others => (others => '0')); --data to write to slave -> 0 is transmitted first
+    Busy      : OUT    STD_LOGIC := '0';                                --indicates transaction in progress
+    RD_Bytes  : IN     NATURAL range 0 to Max_Bytes := 0;               --bytes to read in this transmission
+    Data_RD   : OUT    I2C_Data_Array(Max_Bytes-1 downto 0) := (others => (others => '0')); --data read from slave -> 0 was received first
+    Ack_Error : BUFFER STD_LOGIC := '0';                                --flag if improper acknowledge from slave
+    SDA       : INOUT  STD_LOGIC := 'Z';                                --serial data output of i2c bus
+    SCL       : INOUT  STD_LOGIC := 'Z';                                --serial clock output of i2c bus
+)
+{
+    AttributeDeclaration
+    {
+        SIGNAL i2c_ena       : STD_LOGIC;
+        SIGNAL i2c_addr      : STD_LOGIC_VECTOR (6 DOWNTO 0);
+        SIGNAL i2c_rw        : STD_LOGIC;
+        SIGNAL i2c_data_wr   : STD_LOGIC_VECTOR (7 DOWNTO 0);
+        SIGNAL i2c_busy      : STD_LOGIC;
+        SIGNAL i2c_data_rd   : STD_LOGIC_VECTOR (7 DOWNTO 0);
+        
+        SIGNAL busy_cnt      : NATURAL range 0 to Max_Bytes*2 := 0;
+        SIGNAL get_data      : STD_LOGIC := '0';
+        SIGNAL busy_prev     : STD_LOGIC := '0';
+    }
+    
+    Connections
+    {
+        SDA,
+        SCL,
+    }
+    
+    NewComponent I2C_Master_Interface 
+    (
+        CLK_Frequency => CLK_Frequency,
+        Bus_CLK       => Bus_CLK,
+
+        Reset         => Reset,
+        Enable        => i2c_ena,
+        Address       => i2c_addr,
+        RW            => i2c_rw,
+        Data_WR       => i2c_data_wr,
+        Busy          => i2c_busy,
+        Data_RD       => i2c_data_rd,
+        Ack_Error     => Ack_Error,
+        SDA           => SDA,
+        SCL           => SCL,
+    );
+    
+    Process I2C_Controller
+    (
+        VARIABLE ena_prev  : STD_LOGIC := '0';
+    )
+    {
+        If(Reset = '1')
+        {
+            ena_prev    := '0';
+            get_data    <= '0';
+            Busy        <= '0';
+            busy_prev   <= '0';
+            busy_cnt    <= 0;
+            i2c_ena     <= '0';
+        }
+        Else
+        {
+            If(ena_prev = '0' AND Enable = '1')                 --rising edge of ena
+            {
+                get_data <= '1';
+                Busy     <= '1';
+            }
+            ena_prev := Enable;
+            
+            If(get_data = '1')
+            {
+                If(busy_prev = '0' AND i2c_busy = '1')          --busy rising edge
+                {
+                    busy_cnt <= busy_cnt + 1;                   --counts the times busy has gone from low to high during transaction
+                }
+                busy_prev <= i2c_busy;
+                
+                If(busy_cnt = 0)                                --no command latched in yet
+                {
+                    i2c_ena <= '1';                             --initiate the transaction
+                    i2c_addr <= Address;                        --set the address of the slave
+                    If(WR_Bytes > 0)
+                    {
+                        i2c_rw <= '0';                          --command 1 is a write
+                        i2c_data_wr <= Data_WR(0);              --data to be written
+                    }
+                    Else
+                    {
+                        i2c_rw <= '1';                          --command 1 is a read (Address stays the same)
+                    }
+                    
+                    If(i2c_busy = '1')
+                    {
+                        busy_cnt <= 1;
+                    }
+                }
+                Elsif(busy_cnt < WR_Bytes)                      --not all bytes transmitted
+                {
+                    i2c_data_wr <= Data_WR(busy_cnt);           --data to be written
+                    If(i2c_busy = '0' AND busy_cnt = WR_Bytes+RD_Bytes-1)
+                    {
+                        i2c_ena  <= '0';
+                    }
+                }
+                Elsif(busy_cnt < WR_Bytes+RD_Bytes)
+                {
+                    If(busy_cnt = WR_Bytes)                     --first byte
+                    {
+                        i2c_rw <= '1';                          --command 1 is a read (Address stays the same)
+                    }
+                    Else
+                    {
+                        If(i2c_busy = '0')
+                        {
+                            Data_RD(busy_cnt-WR_Bytes-1) <= i2c_data_rd;    --retrieve data from command 2
+                        }
+                    }
+                    
+                    If(busy_cnt = WR_Bytes+RD_Bytes-1 AND i2c_busy = '0')
+                    {
+                        i2c_ena  <= '0';
+                    }
+                }
+                Elsif (i2c_busy = '0')
+                {
+                    Data_RD(busy_cnt-WR_Bytes-1) <= i2c_data_rd;--retrieve data from command 2
+                    busy_cnt <= 0;                              --reset busy_cnt for next transaction
+                    get_data <= '0';
+                    Busy     <= '0';
+                    i2c_ena  <= '0';                            --stop the transaction
+                }
+            }
+        }
+    }
+}
