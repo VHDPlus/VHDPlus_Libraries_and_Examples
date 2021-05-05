@@ -4,9 +4,6 @@
   <Items xsi:type="ProjectFolder">
     <Header>Generated</Header>
     <Items xsi:type="ProjectFileVHDL">
-      <Header>Environment_Interface.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFileVHDL">
       <Header>I2C_Array.vhd</Header>
     </Items>
     <Items xsi:type="ProjectFileVHDL">

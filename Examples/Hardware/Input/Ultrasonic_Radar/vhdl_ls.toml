@@ -1,0 +1,19 @@
+[libraries]
+work.files = [
+	'Libraries/HDMI/HDMI/VS_PLL.vhd',
+	'Libraries/HDMI/HDMI/VS_RAM_PLL.vhd',
+	'Generated/BinaryToBcd.vhd',
+	'Generated/BinaryToBcdDigit.vhd',
+	'Generated/Graphics_Render.vhd',
+	'Generated/HDMI_Out.vhd',
+	'Generated/Image_Data_Package.vhd',
+	'Generated/Servo_Controller.vhd',
+	'Generated/Single_Port_RAM.vhd',
+	'Generated/Single_Port_ROM.vhd',
+	'Generated/String_Type_Package.vhd',
+	'Generated/UART_Interface.vhd',
+	'Generated/US_Radar.vhd',
+	'Generated/Ultrasonic_Controller.vhd',
+	'Generated/VS_Converter.vhd',
+	'Generated/VS_RAM_Interface.vhd'
+]

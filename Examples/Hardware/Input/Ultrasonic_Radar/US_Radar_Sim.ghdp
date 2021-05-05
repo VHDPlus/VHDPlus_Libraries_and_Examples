@@ -1,0 +1,38 @@
+Component US_Radar_tb()
+{
+    SIGNAL finished : STD_LOGIC:= '0';
+    CONSTANT period_time : TIME := 83333 ps;
+
+    Process Sim_finished()
+    {
+        wait for 10000000 us;
+        finished <= '1';
+        wait;
+    }
+
+    NewComponent US_Radar
+    (
+        US_Trigger => US_Trigger,
+        US_Echo => US_Echo,
+        Servo => Servo,
+        CLK => CLK,
+    );
+
+    SIGNAL US_Trigger : STD_LOGIC ;
+    SIGNAL US_Echo : STD_LOGIC_VECTOR (0 to 9);
+    SIGNAL Servo : STD_LOGIC  := '0';
+    SIGNAL CLK : STD_LOGIC := '0';
+
+
+    Process Sim_CLK()
+    {
+        While(finished /= '1')
+        {
+            CLK <= '0';
+            wait for period_time/2;
+            CLK <= '1';
+            wait for period_time/2;
+        }
+        wait;
+    }
+}

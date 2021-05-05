@@ -1,0 +1,22 @@
+{
+	"system" : {
+		"platform" : "windows64",
+		"os_name" : "Windows 10",
+		"os_version" : "10.0"
+	},
+	"error" : {
+		"executable" : "quartus_map",
+		"comment" : "not_applicable",
+		"error_message" : "Access Violation at 0X00007FFABC73A69C",
+		"source_file" : "unknown",
+		"line" : "0",
+		"stack_trace" : "\t0x7ffabc73a69b: DB_HDB + 0x1a69b (?get_library@HDB_SOURCE_FILE@@QEBAPEBDXZ + 0x3)\n\t0x7ffab44f744c: synth_sgn + 0x6744c (?create_new_hierarchy_info@SGN_QIC_UTILS@@QEAAXPEAVSGN_WRAPPER_INFO@@@Z + 0xe8c)\n\t0x7ffab45475ae: synth_sgn + 0xb75ae (?recursive_extraction@SGN_EXTRACTOR@@AEAAKPEAVHDB_INSTANCE_NAME@@PEAVSGN_WRAPPER_INFO@@PEBD@Z + 0x28e)\n\t0x7ffab4546e6f: synth_sgn + 0xb6e6f (?recurse_into_newly_extracted_netlist@SGN_EXTRACTOR@@AEAAXPEAVHDB_ENTITY@@PEAVHDB_INSTANCE_NAME@@KPEAVSGN_WRAPPER_INFO@@@Z + 0x36f)\n\t0x7ffab454757b: synth_sgn + 0xb757b (?recursive_extraction@SGN_EXTRACTOR@@AEAAKPEAVHDB_INSTANCE_NAME@@PEAVSGN_WRAPPER_INFO@@PEBD@Z + 0x25b)\n\t0x7ffab4546e6f: synth_sgn + 0xb6e6f (?recurse_into_newly_extracted_netlist@SGN_EXTRACTOR@@AEAAXPEAVHDB_ENTITY@@PEAVHDB_INSTANCE_NAME@@KPEAVSGN_WRAPPER_INFO@@@Z + 0x36f)\n\t0x7ffab454757b: synth_sgn + 0xb757b (?recursive_extraction@SGN_EXTRACTOR@@AEAAKPEAVHDB_INSTANCE_NAME@@PEAVSGN_WRAPPER_INFO@@PEBD@Z + 0x25b)\n\t0x7ffab4546e6f: synth_sgn + 0xb6e6f (?recurse_into_newly_extracted_netlist@SGN_EXTRACTOR@@AEAAXPEAVHDB_ENTITY@@PEAVHDB_INSTANCE_NAME@@KPEAVSGN_WRAPPER_INFO@@@Z + 0x36f)\n\t0x7ffab454757b: synth_sgn + 0xb757b (?recursive_extraction@SGN_EXTRACTOR@@AEAAKPEAVHDB_INSTANCE_NAME@@PEAVSGN_WRAPPER_INFO@@PEBD@Z + 0x25b)\n\t0x7ffab4546e6f: synth_sgn + 0xb6e6f (?recurse_into_newly_extracted_netlist@SGN_EXTRACTOR@@AEAAXPEAVHDB_ENTITY@@PEAVHDB_INSTANCE_NAME@@KPEAVSGN_WRAPPER_INFO@@@Z + 0x36f)\n\t0x7ffab454757b: synth_sgn + 0xb757b (?recursive_extraction@SGN_EXTRACTOR@@AEAAKPEAVHDB_INSTANCE_NAME@@PEAVSGN_WRAPPER_INFO@@PEBD@Z + 0x25b)\n\t0x7ffab4540edd: synth_sgn + 0xb0edd (?extract_jtag_sharing_hub@SGN_EXTRACTOR@@AEAAXXZ + 0x2cd)\n\t0x7ffab4539289: synth_sgn + 0xa9289 (?add_signaltap_and_jtag_sharing_hub@SGN_EXTRACTOR@@AEAAXXZ + 0x5d9)\n\t0x7ffab45389e3: synth_sgn + 0xa89e3 (?add_jtag_sharing@SGN_EXTRACTOR@@AEAAXXZ + 0xa3)\n\t0x7ffab4544409: synth_sgn + 0xb4409 (?post_processing@SGN_EXTRACTOR@@AEAAXXZ + 0xb9)\n\t0x7ffab454093b: synth_sgn + 0xb093b (?extract@SGN_EXTRACTOR@@QEAAXXZ + 0x24b)\n\t0x7ffab44a324e: synth_sgn + 0x1324e (?sgn_qic_full@@YA?AW4SGN_STATE_ENUM@@PEAVCMP_FACADE@@AEAV?$vector@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@std@@AEAV?$vector@NV?$allocator@N@std@@@4@@Z + 0x19e)\n\t0x7ff71ca04351: quartus_map + 0x4351 (?qsyn_execute_sgn@@YA?AW4SGN_STATE_ENUM@@PEAVCMP_FACADE@@AEAV?$vector@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@4@PEAVTHR_NAMED_PIPE@@3@Z + 0x131)\n\t0x7ff71ca13f9c: quartus_map + 0x13f9c (?execute_core@QSYN_FRAMEWORK@@AEAA_NPEAVTHR_NAMED_PIPE@@0@Z + 0x12c)\n\t0x7ff71ca13aa6: quartus_map + 0x13aa6 (?execute@QSYN_FRAMEWORK@@UEAA_NXZ + 0x496)\n\t0x7ffb790a12bc: comp_qexe + 0x112bc (qexe_do_normal + 0x1ec)\n\t0x7ffb790a6142: comp_qexe + 0x16142 (qexe_run + 0x432)\n\t0x7ffb790a6e51: comp_qexe + 0x16e51 (?qexe_standard_main@@YAHPEAVQEXE_FRAMEWORK@@PEAPEBUQEXE_OPTION_DEFINITION@@HPEAPEBD@Z + 0xc1)\n\t0x7ff71ca1b08b: quartus_map + 0x1b08b (?qsyn_main@@YAHHPEAPEBD@Z + 0x51b)\n\t0x7ffb3faa2e98: CCL_MSG + 0x12e98 (?msg_main_thread@@YAPEAXPEAX@Z + 0x18)\n\t0x7ffb3faa467e: CCL_MSG + 0x1467e (?msg_thread_wrapper@@YAPEAXP6APEAXPEAX@Z0@Z + 0x6e)\n\t0x7ffb94796660: ccl_mem + 0x16660 (?mem_thread_wrapper@@YAPEAXP6APEAXPEAX@Z0@Z + 0x70)\n\t0x7ffb3faa2761: CCL_MSG + 0x12761 (?msg_exe_main@@YAHHPEAPEBDP6AHH0@Z@Z + 0xa1)\n\t0x7ff71ca29872: quartus_map + 0x29872 (__tmainCRTStartup + 0x10e)\n\t0x7ffbb9e77033: KERNEL32 + 0x17033 (BaseThreadInitThunk + 0x13)\n\t0x7ffbbb5c2650: ntdll + 0x52650 (RtlUserThreadStart + 0x20)\n",
+		"subsystem" : "unknown"
+	},
+	"quartus" : {
+		"quartus_bits" : "64",
+		"version" : "18.1.0",
+		"build" : "625",
+		"edition" : "Lite Edition"
+	}
+}

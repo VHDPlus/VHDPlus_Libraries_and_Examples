@@ -1,0 +1,141 @@
+<?xml version="1.0"?>
+<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Header>US_Radar</Header>
+  <Items xsi:type="ProjectFolder">
+    <Header>Generated</Header>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>BinaryToBcd.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>BinaryToBcdDigit.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>Graphics_Render.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>HDMI_Out.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>Image_Data_Package.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>Servo_Controller.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>Single_Port_RAM.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>Single_Port_ROM.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>String_Type_Package.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>UART_Interface.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>US_Radar.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>Ultrasonic_Controller.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>VS_Converter.vhd</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDL">
+      <Header>VS_RAM_Interface.vhd</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFolder">
+    <Header>Libraries</Header>
+    <Items xsi:type="ProjectFolder">
+      <Header>HDMI</Header>
+      <Items xsi:type="ProjectFolder">
+        <Header>HDMI</Header>
+        <Items xsi:type="ProjectFileVerilog">
+          <Header>DVI_OUT.v</Header>
+        </Items>
+        <Items xsi:type="ProjectFileVHDP">
+          <Header>HDMI_Out.vhdp</Header>
+        </Items>
+        <Items xsi:type="ProjectFileVerilog">
+          <Header>TMDS_ENCODE.v</Header>
+        </Items>
+        <Items xsi:type="ProjectFileVHDP">
+          <Header>VS_Converter.vhdp</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>VS_PLL.qip</Header>
+        </Items>
+        <Items xsi:type="ProjectFileVHDL">
+          <Header>VS_PLL.vhd</Header>
+        </Items>
+        <Items xsi:type="ProjectFileVHDP">
+          <Header>VS_RAM_Interface.vhdp</Header>
+        </Items>
+        <Items xsi:type="ProjectFile">
+          <Header>VS_RAM_PLL.qip</Header>
+        </Items>
+        <Items xsi:type="ProjectFileVHDL">
+          <Header>VS_RAM_PLL.vhd</Header>
+        </Items>
+      </Items>
+      <Items xsi:type="ProjectFileVHDP">
+        <Header>Graphics_Render.vhdp</Header>
+      </Items>
+      <Items xsi:type="ProjectFileVHDP">
+        <Header>Image_Data.vhdp</Header>
+      </Items>
+    </Items>
+    <Items xsi:type="ProjectFolder">
+      <Header>ISSP</Header>
+      <Items xsi:type="ProjectFile">
+        <Header>ISSP.qsys</Header>
+      </Items>
+      <Items xsi:type="ProjectFileVHDP">
+        <Header>ISSP.qsys.vhdp</Header>
+      </Items>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>BinaryToBcd.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>BinaryToBcdDigit.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Servo.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Single-Port_RAM.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Single-Port_ROM.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>String_Type.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>UART.vhdp</Header>
+    </Items>
+    <Items xsi:type="ProjectFileVHDP">
+      <Header>Ultrasonic.vhdp</Header>
+    </Items>
+  </Items>
+  <Items xsi:type="ProjectFileVHDP">
+    <Header>US_Radar.vhdp</Header>
+  </Items>
+  <Items xsi:type="ProjectFileGHDP">
+    <Header>US_Radar_Sim.ghdp</Header>
+  </Items>
+  <CruviHSExtensions>
+    <string>CameraExtension</string>
+  </CruviHSExtensions>
+  <CruviLSExtensions>
+    <string>LevelShifterExtension</string>
+    <string xsi:nil="true" />
+    <string>LevelShifterExtension</string>
+    <string xsi:nil="true" />
+  </CruviLSExtensions>
+  <IOVoltage>0</IOVoltage>
+  <UseShield>true</UseShield>
+</ProjectRoot>

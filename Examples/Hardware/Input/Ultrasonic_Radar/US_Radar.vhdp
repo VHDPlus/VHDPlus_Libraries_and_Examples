@@ -1,0 +1,336 @@
+Main
+(
+
+    US_Trigger          : OUT STD_LOGIC;
+    US_Echo             : IN  STD_LOGIC_VECTOR (0 to 9);
+    
+    Servo               : OUT STD_LOGIC := '0';
+    --UART_Interface_TX   : OUT STD_LOGIC := '1';
+    
+    HDMI_DATA            : OUT    STD_LOGIC_VECTOR(2 downto 0);
+    HDMI_CLK             : OUT    STD_LOGIC;
+    HDMI_HPD             : IN     STD_LOGIC;
+    
+)
+{
+    --Settings for capture
+    CONSTANT Image_Compression : NATURAL := 2;  --Image size divider
+    CONSTANT Image_Depth       : NATURAL := 1;  --Color depth
+    CONSTANT Image_RGB         : BOOLEAN := false;
+    
+    Process ()
+    {
+        Thread
+        {
+            NewFunction graphics_fill ((others => '1'), Render_Data_CLK, Render_Data, Render_Function_Sel, Render_Busy);
+
+            /*
+            For(VARIABLE i : NATURAL := 0; i <= 100; i := i + 1)
+            {
+                NewFunction graphics_line ((others => '0'), 0, i, 50, 50, 1, Render_Data_CLK, Render_Point_X, Render_Point_Y, Render_Data, Render_Function_Sel, Render_Busy);
+                Wait(30ms);
+            }
+            */
+            For(VARIABLE n : NATURAL range 0 to 10 := 0; n < 10; n := n + 1)
+            {
+                
+                VARIABLE x : NATURAL range 0 to 10000;
+                VARIABLE y : NATURAL range 0 to 10000;
+                --US_Distance(n)
+                Case(n)
+                {
+                    When(0 | 5)
+                    {
+                        y := US_Distance(n)*10;
+                        --y := 5000;
+                        x := 0;
+                    }
+                    When(1 | 4 | 6 | 9)
+                    {
+                        y := (US_Distance(n)*8);
+                        --y := 4000;
+                        x := (US_Distance(n)*6);
+                        --x := 3000;
+                    }
+                    When(others)
+                    {
+                        y := (US_Distance(n)*3);
+                        --y := 1500;
+                        x := (US_Distance(n)*9);
+                        --x := 4500;
+                    }
+                }
+                
+                y := y / TO_INTEGER(UNSIGNED(ISSP1_source));
+                x := x / TO_INTEGER(UNSIGNED(ISSP1_source));
+                
+                VARIABLE x1 : NATURAL range 0 to 200;
+                VARIABLE y1 : NATURAL range 0 to 200;
+                VARIABLE x2 : NATURAL range 0 to 200;
+                VARIABLE y2 : NATURAL range 0 to 200;
+                
+                If(n > 2 AND n < 8)
+                {
+                    y1 := 100;
+                    y2 := 100 + y;
+                }
+                Else
+                {
+                    y1 := 100 - y;
+                    y2 := 100;
+                }
+
+                If(n > 0 AND n < 3)
+                {
+                    x1 := 100 - x;
+                    x2 := 100;
+                }
+                Elsif(n > 2 AND n < 5)
+                {
+                    x2 := 100 - x;
+                    x1 := 100;
+                }
+                Elsif(n > 4 AND n < 8)
+                {
+                    x1 := 100;
+                    x2 := 100 + x;
+                }
+                Else
+                {
+                    x2 := 100;
+                    x1 := 100 + x;
+                }
+                
+                /*
+                VARIABLE x1 : NATURAL range 0 to 250;
+                VARIABLE y1 : NATURAL range 0 to 250;
+                VARIABLE x2 : NATURAL range 0 to 250;
+                VARIABLE y2 : NATURAL range 0 to 250;
+                
+                x1 := n*10;
+                x2 := x1;
+                
+                y1 := 250;
+                y2 := 250-(US_Distance(n)/4);
+                */
+                
+                NewFunction graphics_line ((others => '0'), x1, y1, x2, y2, 1, Render_Data_CLK, Render_Point_X, Render_Point_Y, Render_Data, Render_Function_Sel, Render_Busy);
+            }
+            Wait(66ms);
+        }
+    }
+    
+    SIGNAL ISSP1_source : std_logic_vector (7 downto 0);
+    NewComponent ISSP
+    (
+        source => ISSP1_source,
+    );
+    
+    SIGNAL Render_Data_CLK     : STD_LOGIC := '0';
+    SIGNAL Render_Point_X      : NATURAL range 0 to Image_Width-1 := 0;
+    SIGNAL Render_Point_Y      : NATURAL range 0 to Image_Height-1 := 0;
+    SIGNAL Render_Data         : STD_LOGIC_VECTOR (23 downto 0) := x"000000";
+    SIGNAL Render_Function_Sel : render_functions := none;
+    SIGNAL Render_Busy         : STD_LOGIC := '0';
+    SIGNAL Render_oStream      : rgb_stream;
+    NewComponent Graphics_Render
+    (
+        Compression  => Image_Compression,
+        Width        => Image_Depth,
+        RGB          => Image_RGB,
+
+        Data_CLK     => Render_Data_CLK,
+        Point_X      => Render_Point_X,
+        Point_Y      => Render_Point_Y,
+        Data         => Render_Data,
+        Function_Sel => Render_Function_Sel,
+        Busy         => Render_Busy,
+        Pixel_CLK    => VS_PCLK,
+        oStream      => Render_oStream,
+    );
+    
+    Output_Stream <= Render_oStream;
+    
+    SIGNAL Output_Stream : rgb_stream;
+    NewComponent VS_Converter
+    (
+        iStream => Output_Stream,
+        VS_PCLK => VS_PCLK,
+        VS_SCLK => VS_SCLK,
+        VS_R    => VS_R,
+        VS_G    => VS_G,
+        VS_B    => VS_B,
+        VS_HS   => VS_HS,
+        VS_VS   => VS_VS,
+        VS_DE   => VS_DE,
+    );
+    
+    SIGNAL VS_PCLK   : STD_LOGIC;
+    SIGNAL VS_SCLK   : STD_LOGIC;
+    SIGNAL VS_R      : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL VS_G      : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL VS_B      : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL VS_HS     : STD_LOGIC;
+    SIGNAL VS_VS     : STD_LOGIC;
+    SIGNAL VS_DE     : STD_LOGIC;
+    NewComponent HDMI_Out
+    (
+        VS_PCLK    => VS_PCLK,
+        VS_SCLK    => VS_SCLK,
+        VS_R       => VS_R,
+        VS_G       => VS_G,
+        VS_B       => VS_B,
+        VS_HS      => VS_HS,
+        VS_VS      => VS_VS,
+        VS_DE      => VS_DE,
+
+        HDMI_DATA  => HDMI_DATA,
+        HDMI_CLK   => HDMI_CLK,
+        HDMI_HPD   => HDMI_HPD,
+    );
+    
+    /*
+    Process ()
+    {
+        Thread
+        {
+            For(VARIABLE n : NATURAL range 0 to 10 := 0; n < 10; n := n + 1)
+            {
+                NewFunction newString (dist_Str);
+                NewFunction naturalToStringInst (US_Distance(n), dist_str, bcdEna, bcdBus, bcdBin, bcdDec);
+                NewFunction charAppend (s"/", dist_Str);
+                NewFunction charAppend (STD_LOGIC_VECTOR(TO_UNSIGNED(n+48, 8)), dist_Str);
+                NewFunction charAppend (s"\n", dist_Str);
+                NewFunction printString (dist_Str, UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+            }
+            Wait(66666us);
+        }
+    }
+    */
+    /*
+    Process ()
+    {
+        Thread
+        {
+            For(VARIABLE n : NATURAL range 0 to 10 := 0; n < 10; n := n + 1)
+            {
+                VARIABLE x : NATURAL range 0 to 1000;
+                VARIABLE y : NATURAL range 0 to 1000;
+                --US_Distance(n)
+                Case(n)
+                {
+                    When(0 | 5)
+                    {
+                        y := US_Distance(n);
+                        x := 0;
+                    }
+                    When(1 | 4 | 6 | 9)
+                    {
+                        y := (US_Distance(n)*81)/100;
+                        x := (US_Distance(n)*59)/100;
+                    }
+                    When(others)
+                    {
+                        y := (US_Distance(n)*31)/100;
+                        x := (US_Distance(n)*95)/100;
+                    }
+                }
+                NewFunction newString (out_Str);
+                
+                NewFunction newString (y_Str);
+                NewFunction naturalToString (y, y_Str, bcdEna, bcdBus, bcdBin, bcdDec);
+                If(n > 2 AND n < 8)
+                {
+                    NewFunction charAppend (s"-", out_Str);
+                }
+                NewFunction stringAppend (y_Str, out_Str);
+                
+                NewFunction charAppend (s"/", out_Str);
+                
+                NewFunction newString (x_Str);
+                NewFunction naturalToStringInst (x, x_str, bcdEna, bcdBus, bcdBin, bcdDec);
+                If(n > 0 AND n < 5)
+                {
+                    NewFunction charAppend (s"-", out_Str);
+                }
+                NewFunction stringAppend (x_Str, out_Str);
+                
+                NewFunction charAppend (s"\n", out_Str);
+                NewFunction printString (out_Str, UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+            }
+            Wait(100ms);
+        }
+    }
+    
+    SIGNAL UART_Interface_TX_Enable     : STD_LOGIC := '0';
+    SIGNAL UART_Interface_TX_Busy       : STD_LOGIC := '0';
+    SIGNAL UART_Interface_TX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
+    
+    NewComponent UART_Interface
+    (
+        CLK_Frequency => 12000000,
+        Baud_Rate     => 115200,
+        
+        TX            =>UART_Interface_TX,
+        TX_Enable     =>UART_Interface_TX_Enable,
+        TX_Busy       =>UART_Interface_TX_Busy,
+        TX_Data       =>UART_Interface_TX_Data,
+    );
+    */
+    
+    SIGNAL Servo_Controller_Pos      : NATURAL   range 0 to 127 := 20;
+    NewComponent Servo_Controller
+    (
+        CLK_Frequency => 12000000,
+
+        Pos           => Servo_Controller_Pos,
+        Servo         => Servo,
+    );
+    
+    Process ()
+    {
+        Thread
+        {
+            For(Servo_Controller_Pos <= 30; Servo_Controller_Pos < 46; Servo_Controller_Pos <= Servo_Controller_Pos + 1)
+            {
+                Wait(5ms);
+            }
+            For(; Servo_Controller_Pos > 30; Servo_Controller_Pos <= Servo_Controller_Pos - 1)
+            {
+                Wait(5ms);
+            }
+        }
+    }
+    
+    ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(US_Distance(TO_INTEGER(UNSIGNED(ISSP_source))), ISSP_Probe'LENGTH));
+    
+    SIGNAL ISSP_source : std_logic_vector (7 downto 0);
+    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0) := (others => 'X');
+    NewComponent ISSP
+    (
+        source =>ISSP_source,
+        probe  =>ISSP_probe,
+    );
+    
+    CONSTANT Number_Of_Ultrasonic_Sensors : NATURAL := 10; --Set this and US_Echo range to your desired number of ultrasonic sensors
+    
+    TYPE US_Distance_type IS ARRAY (0 to Number_Of_Ultrasonic_Sensors-1) OF NATURAL range 0 to 1000;
+    SIGNAL US_Distance : US_Distance_type;                --Array of the measured distances
+    
+    SIGNAL US_Triggers : STD_LOGIC_VECTOR (0 to Number_Of_Ultrasonic_Sensors-1);
+    US_Trigger <= US_Triggers(0);
+    
+    Generate (for i in 0 to Number_Of_Ultrasonic_Sensors-1)
+    {
+        NewComponent Ultrasonic_Controller
+        (
+            CLK_Frequency    => 12000000,
+            Update_Frequency => 15,
+            
+            Reset            => '0',
+            Trigger          => US_Triggers(i),
+            Echo             => US_Echo(i),
+            Dist             => US_Distance(i),
+        );
+    }
+}
