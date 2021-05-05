@@ -48,13 +48,18 @@ Package Image_Data_Package
     --HDMI Timing
     --https://www.digi.com/resources/documentation/digidocs/90001945-13/reference/yocto/r_an_adding_custom_display.htm
     --https://tomverbeure.github.io/video_timings_calculator
-    CONSTANT HBP_Len : NATURAL := 0;     --Horizontal Back Porch    (0 for 1024*600)
-    CONSTANT HFP_Len : NATURAL := 0;     --Horizontal Front porch   (0 for 1024*600)
-    CONSTANT HSLEN_Len : NATURAL := 176; --HSYNC length             (176 for 1024*600)
+
+    CONSTANT HDMI_Width  : NATURAL := 1024; --1280, 1024, 640 or 320
+    CONSTANT HDMI_Height : NATURAL := 600; --960, 600, 480 or 240
     
-    CONSTANT VBP_Len : NATURAL := 0;     --Vertical Back Porch      (0 for 1024*600)
-    CONSTANT VFP_Len : NATURAL := 0;     --Vertical Front Porch     (0 for 1024*600)
-    CONSTANT VSLEN_Len : NATURAL := 25;  --VSYNC length             (25 for 1024*600)
+    CONSTANT HBP_Len : NATURAL := 0;      --Horizontal Back Porch    (47 for 640*480, 0 for 1024*600)
+    CONSTANT HFP_Len : NATURAL := 0;      --Horizontal Front porch   (16 for 640*480, 0 for 1024*600)
+    CONSTANT HSLEN_Len : NATURAL := 176;    --HSYNC length             (96 for 640*480, 176 for 1024*600)
+    
+    CONSTANT VBP_Len : NATURAL := 0;      --Vertical Back Porch      (33 for 640*480, 0 for 1024*600)
+    CONSTANT VFP_Len : NATURAL := 0;      --Vertical Front Porch     (10 for 640*480, 0 for 1024*600)
+    CONSTANT VSLEN_Len : NATURAL := 25;     --VSYNC length             (2 for 640*480, 25 for 1024*600)
+    
     
     TYPE rgb_data IS RECORD
     R : STD_LOGIC_VECTOR(7 downto 0);

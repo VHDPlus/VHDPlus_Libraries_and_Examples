@@ -37,8 +37,8 @@ Component VS_RAM_Interface
     );
     
     --RAM interface (VGA 24bit)
-    Read_Column : OUT    NATURAL range 0 to 639 := 0;
-    Read_Row    : OUT    NATURAL range 0 to 479 := 0;
+    Read_Column : OUT    NATURAL range 0 to Image_Width-1 := 0;
+    Read_Row    : OUT    NATURAL range 0 to Image_Height-1 := 0;
     Read_Data   : IN     STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
     Read_Ena    : OUT    STD_LOGIC := '0';
     
@@ -77,15 +77,20 @@ Component VS_RAM_Interface
         c1     => PLL_c1, --250MHz
     );
     
-    CONSTANT porchHF : NATURAL := 640; --start of horizntal front porch
-    CONSTANT syncH   : NATURAL := 656; --start of horizontal sync
-    CONSTANT porchHB : NATURAL := 752; --start of horizontal back porch
-    CONSTANT maxH    : NATURAL := 799; --total length of line
+    CONSTANT porchHF : NATURAL := HDMI_Width; --start of horizntal front porch
+    CONSTANT syncH   : NATURAL := HDMI_Width+HFP_Len; --start of horizontal sync
+    CONSTANT porchHB : NATURAL := HDMI_Width+HFP_Len+HSLEN_Len; --start of horizontal back porch
+    CONSTANT maxH    : NATURAL := HDMI_Width+HFP_Len+HSLEN_Len+HBP_Len; --total length of line (usually rgb_stream determines this)
     
-    CONSTANT porchVF : NATURAL := 480; --start of vertical front porch
-    CONSTANT syncV   : NATURAL := 490; --start of vertical sync
-    CONSTANT porchVB : NATURAL := 492; --start of vertical back porch
-    CONSTANT maxV    : NATURAL := 525; --total rows
+    CONSTANT porchVF : NATURAL := HDMI_Height; --start of vertical front porch
+    CONSTANT syncV   : NATURAL := HDMI_Height+VFP_Len; --start of vertical sync
+    CONSTANT porchVB : NATURAL := HDMI_Height+VFP_Len+VSLEN_Len; --start of vertical back porch
+    CONSTANT maxV    : NATURAL := HDMI_Height+VFP_Len+VSLEN_Len+VBP_Len; --total rows
+    
+    SIGNAL Row_Div   : NATURAL := 1;
+    SIGNAL Col_Div   : NATURAL := 1;
+    Row_Div <= HDMI_Height/Image_Height when HDMI_Height > Image_Height;
+    Col_Div <= HDMI_Width/Image_Width when HDMI_Width > Image_Width;
     
     SIGNAL xCountReg : INTEGER range 0 to maxH := 0;
     SIGNAL yCountReg : INTEGER range 0 to maxV := 0;
@@ -122,16 +127,34 @@ Component VS_RAM_Interface
                 VS_DE <= '1';
                 
                 --Set RAM address for next pixel
-                If(yCount < 479){ Read_Row <= (yCount+1); }
+                --If(yCount < HDMI_Height-1){ Read_Row <= ((yCount*Image_Height)/HDMI_Height)+1; }
+                If(yCount < HDMI_Height-1){ Read_Row <= yCount/Row_Div+1; }
                 Else            { Read_Row <= 0; }
                 
-                If(xCount < 639){ Read_Column <= (xCount+1); }
+                --If(xCount < HDMI_Width-1){ Read_Column <= ((xCount*Image_Width)/HDMI_Width)+1; }
+                If(xCount < HDMI_Width-1){ Read_Column <= xCount/Col_Div+1; }
                 Else            { Read_Column <= 0; }
 
                 --Set pixel data
+                
                 VS_R <= Read_Data(23 downto 16);
                 VS_G <= Read_Data(15 downto 8);
                 VS_B <= Read_Data(7 downto 0);
+                
+                /*
+                If(yCount < Image_Height AND xCount < Image_Width)
+                {
+                    VS_R <= Read_Data(23 downto 16);
+                    VS_G <= Read_Data(15 downto 8);
+                    VS_B <= Read_Data(7 downto 0);
+                }
+                Else
+                {
+                    VS_R <= (others => '0');
+                    VS_G <= (others => '0');
+                    VS_B <= (others => '0');
+                }
+                */
             }
             Else
             {

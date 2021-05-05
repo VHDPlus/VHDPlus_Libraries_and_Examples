@@ -87,6 +87,11 @@ Component VS_RAM_Interface
     CONSTANT porchVB : NATURAL := HDMI_Height+VFP_Len+VSLEN_Len; --start of vertical back porch
     CONSTANT maxV    : NATURAL := HDMI_Height+VFP_Len+VSLEN_Len+VBP_Len; --total rows
     
+    SIGNAL Row_Div   : NATURAL := 1;
+    SIGNAL Col_Div   : NATURAL := 1;
+    Row_Div <= HDMI_Height/Image_Height when HDMI_Height > Image_Height;
+    Col_Div <= HDMI_Width/Image_Width when HDMI_Width > Image_Width;
+    
     SIGNAL xCountReg : INTEGER range 0 to maxH := 0;
     SIGNAL yCountReg : INTEGER range 0 to maxV := 0;
     
@@ -122,16 +127,20 @@ Component VS_RAM_Interface
                 VS_DE <= '1';
                 
                 --Set RAM address for next pixel
-                If(yCount < Image_Height-1){ Read_Row <= (yCount+1); }
+                --If(yCount < HDMI_Height-1){ Read_Row <= ((yCount*Image_Height)/HDMI_Height)+1; }
+                If(yCount < HDMI_Height-1){ Read_Row <= yCount/Row_Div+1; }
                 Else            { Read_Row <= 0; }
                 
-                If(xCount < Image_Width-1){ Read_Column <= (xCount+1); }
+                --If(xCount < HDMI_Width-1){ Read_Column <= ((xCount*Image_Width)/HDMI_Width)+1; }
+                If(xCount < HDMI_Width-1){ Read_Column <= xCount/Col_Div+1; }
                 Else            { Read_Column <= 0; }
 
                 --Set pixel data
+                
                 VS_R <= Read_Data(23 downto 16);
                 VS_G <= Read_Data(15 downto 8);
                 VS_B <= Read_Data(7 downto 0);
+                
                 /*
                 If(yCount < Image_Height AND xCount < Image_Width)
                 {

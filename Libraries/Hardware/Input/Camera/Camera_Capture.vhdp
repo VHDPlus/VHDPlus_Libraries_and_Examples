@@ -37,7 +37,7 @@ Component Camera_Capture
     );
     Generic
     (
-        Compression : NATURAL := 3;  --640/Complression Columns and 480/Compression Rows are saved
+        Compression : NATURAL := 3;  --Image_Width/Complression Columns and Image_Height/Compression Rows are saved
         Width       : NATURAL := 4;  --number of bits for R,G and B
         Full_Image  : BOOLEAN := true; --if false, on
         RGB         : BOOLEAN := true;
@@ -48,13 +48,13 @@ Component Camera_Capture
     iStream     : IN     rgb_stream;
 
     --RAM Output interface
-    Read_Column : IN     NATURAL range 0 to 639 := 0;
-    Read_Row    : IN     NATURAL range 0 to 479 := 0;
+    Read_Column : IN     NATURAL range 0 to Image_Width-1 := 0;
+    Read_Row    : IN     NATURAL range 0 to Image_Height-1 := 0;
     Read_Data   : OUT    STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
 )
 {
-    CONSTANT xWidth : NATURAL := 639/Compression;
-    CONSTANT yWidth : NATURAL := 479/Compression;
+    CONSTANT xWidth : NATURAL := (Image_Width-1)/Compression;
+    CONSTANT yWidth : NATURAL := (Image_Height-1)/Compression;
 
     TYPE column_type IS ARRAY (xWidth-1 downto 0) OF STD_LOGIC_VECTOR((Width)-1 downto 0);
     TYPE frame_type IS ARRAY (yWidth-1 downto 0) OF column_type;
@@ -66,8 +66,8 @@ Component Camera_Capture
     SIGNAL RAM_Out_Row  : NATURAL range 0 to yWidth-1 := 0;
     SIGNAL RAM_Data_Out : STD_LOGIC_VECTOR((Width*3)-1 downto 0) := (others => '0');
     
-    SIGNAL Column_buf      : NATURAL range 0 to 639 := 0;
-    SIGNAL Row_buf         : NATURAL range 0 to 479 := 0;
+    SIGNAL Column_buf      : NATURAL range 0 to (Image_Width-1) := 0;
+    SIGNAL Row_buf         : NATURAL range 0 to (Image_Height-1) := 0;
     SIGNAL Pixel_R_buf     : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
     SIGNAL Pixel_G_buf     : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
     SIGNAL Pixel_B_buf     : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
@@ -94,8 +94,8 @@ Component Camera_Capture
     {
         If(rising_edge(New_Pixel_Buf))
         {
-            Column_buf <= iStream.Column * (640/Image_Width);
-            Row_buf    <= iStream.Row * (480/Image_Height);
+            Column_buf <= iStream.Column;
+            Row_buf    <= iStream.Row;
             Pixel_R_buf <= iStream.R;
             Pixel_G_buf <= iStream.G;
             Pixel_B_buf <= iStream.B;
@@ -142,7 +142,7 @@ Component Camera_Capture
             }
             Else
             {
-                If(Row_buf < 480/Compression AND Column_buf < 640/Compression)
+                If(Row_buf < Image_Height/Compression AND Column_buf < Image_Width/Compression)
                 {
                     RAM_Data_In_R := Pixel_R_buf(7 downto 8-Width);
                     RAM_Data_In_G := Pixel_G_buf(7 downto 8-Width);

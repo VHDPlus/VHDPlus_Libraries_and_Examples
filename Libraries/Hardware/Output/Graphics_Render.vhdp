@@ -59,7 +59,7 @@ Component Graphics_Render
     );
     
     Data_CLK     : IN  STD_LOGIC := '0';
-    Point_X      : IN  NATURAL range 0 to (Image_Width-1)/Compression := 0;
+    Point_X      : IN  NATURAL range 0 to (Image_Width-1)/Compression := 0;  --Image_Width/Height in -> Image_Width/Height out
     Point_Y      : IN  NATURAL range 0 to (Image_Height-1)/Compression := 0;
     Data         : IN  STD_LOGIC_VECTOR(23 downto 0) := x"000000";
     Function_Sel : IN  render_functions := none;
@@ -70,8 +70,8 @@ Component Graphics_Render
     oStream      : BUFFER rgb_stream;
 )
 {
-    CONSTANT maxH    : NATURAL := Image_Width + HBP_Len + HFP_Len + HSLEN_Len; --total length of line
-    CONSTANT maxV    : NATURAL := Image_Height + VBP_Len + VFP_Len + VSLEN_Len; --total rows
+    CONSTANT maxH    : NATURAL := HDMI_Width + HBP_Len + HFP_Len + HSLEN_Len; --total length of line
+    CONSTANT maxV    : NATURAL := HDMI_Height + VBP_Len + VFP_Len + VSLEN_Len; --total rows
     
     CONSTANT xWidth : NATURAL := (Image_Width-1)/Compression;
     CONSTANT yWidth : NATURAL := (Image_Height-1)/Compression;
