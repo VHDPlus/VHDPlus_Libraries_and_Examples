@@ -41,8 +41,8 @@ Package Image_Data_Package
     --Camera_Capture with VS_RAM_Interface:
     --640x480 50fps
     
-    CONSTANT Image_Width  : NATURAL := 640; --1280, 640 or 320
-    CONSTANT Image_Height : NATURAL := 480;  --960, 480 or 240
+    CONSTANT Image_Width  : NATURAL := 640; --1280, 1024, 640 or 320
+    CONSTANT Image_Height : NATURAL := 480;  --960, 600, 480 or 240
     CONSTANT Image_FPS    : NATURAL := 30;
     
     --HDMI Timing
