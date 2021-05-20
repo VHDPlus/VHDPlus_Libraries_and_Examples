@@ -30,6 +30,10 @@ Component Blob_Detect
 (
     Include
     (
+        IEEE.STD_LOGIC_1164.ALL,
+        IEEE.numeric_std.all,
+        Library altera_mf,
+        altera_mf.altera_mf_components.all,
         Image_Data_Package.all,
     );
     Generic
@@ -110,7 +114,8 @@ Component Blob_Detect
     SIGNAL ram1_out_addr : STD_LOGIC_VECTOR (log2(Blob_Number)-1 downto 0);
     ram1_out_addr <= STD_LOGIC_VECTOR(TO_UNSIGNED(blob_ram_copy_addr_in,log2(Blob_Number)));
     ram1_in_addr <= STD_LOGIC_VECTOR(TO_UNSIGNED(Blob_Addr,log2(Blob_Number)));
-    
+    --!!!!!!!!!!!!!!!
+    --Ersetzen durch Array -> Findet Modelsim nicht
     NewComponent ALTSYNCRAM
     (
         address_reg_b => "CLOCK0",
@@ -169,10 +174,10 @@ Component Blob_Detect
     blob_ram_data_in <= STD_LOGIC_VECTOR(TO_UNSIGNED(blob_in.y1, 9)) & STD_LOGIC_VECTOR(TO_UNSIGNED(blob_in.y0, 9)) &
     STD_LOGIC_VECTOR(TO_UNSIGNED(blob_in.x1/Compression, 9)) & STD_LOGIC_VECTOR(TO_UNSIGNED(blob_in.x0/Compression, 9));
     
-    Blob_X0 <= TO_INTEGER(UNSIGNED(blob_ram_data_out(8 downto 0)))*Compression;
-    Blob_X1 <= TO_INTEGER(UNSIGNED(blob_ram_data_out(17 downto 9)))*Compression;
-    Blob_Y0 <= TO_INTEGER(UNSIGNED(blob_ram_data_out(26 downto 18)));
-    Blob_Y1 <= TO_INTEGER(UNSIGNED(blob_ram_data_out(35 downto 27)));
+    Blob_X0 <= TO_INTEGER(UNSIGNED(blob_ram_data_out(8 downto 0)))*Compression when blob_ram_data_out(0) /= 'U' else 0;
+    Blob_X1 <= TO_INTEGER(UNSIGNED(blob_ram_data_out(17 downto 9)))*Compression when blob_ram_data_out(0) /= 'U' else 0;
+    Blob_Y0 <= TO_INTEGER(UNSIGNED(blob_ram_data_out(26 downto 18))) when blob_ram_data_out(0) /= 'U' else 0;
+    Blob_Y1 <= TO_INTEGER(UNSIGNED(blob_ram_data_out(35 downto 27))) when blob_ram_data_out(0) /= 'U' else 0;
     
     SIGNAL used_blobs : STD_LOGIC_VECTOR (0 to Blob_Buffer-1) := (others => '0');
     SIGNAL next_blob : NATURAL range 0 to Blob_Buffer := 0;
@@ -288,6 +293,7 @@ Component Blob_Detect
                 {
                     If(used_blobs(find_i) = '1')
                     {
+                        VARIABLE y0 : NATURAL range 0 to Image_Height-1;
                         VARIABLE x0 : NATURAL range 0 to Image_Width-1;
                         VARIABLE x1 : NATURAL range 0 to Image_Width-1;
                         VARIABLE x0_reg : NATURAL range 0 to Image_Width-1;
@@ -306,6 +312,7 @@ Component Blob_Detect
                         }
                         x0 := blob_reg(find_i).x0; --Current Blob
                         x1 := blob_reg(find_i).x1;
+                        y0 := blob_reg(find_i).y0;
                         x0_reg := blob_reg(this_find_i).x0; --First Blob
                         x1_reg := blob_reg(this_find_i).x1;
                         y0_reg := blob_reg(this_find_i).y0;
@@ -352,9 +359,14 @@ Component Blob_Detect
                             {
                                 x1_reg := x1;
                             }
+                            If(y0_reg > y0)
+                            {
+                                y0_reg := y0;
+                            }
 
                             blob_reg(this_find_i).x0 <= x0_reg;
                             blob_reg(this_find_i).x1 <= x1_reg;
+                            blob_reg(this_find_i).y0 <= y0_reg;
                         }
                         Elsif(y1_reg < Row-1 OR copy)
                         {
@@ -363,7 +375,10 @@ Component Blob_Detect
                             {
                                 blob_in <= blob_reg(find_i);
                                 in_blob_num <= cur_blob;
-                                cur_blob := cur_blob + 1;
+                                If(cur_blob < Blob_Number-1)
+                                {
+                                    cur_blob := cur_blob + 1;
+                                }
                             }
                             used_blobs(find_i) <= '0';
                             If(find_i < next_blob)
