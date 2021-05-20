@@ -24,37 +24,37 @@
     
     Important:   -This component is made for the black or white output of the threshold filter
     
-    Description: -This component combines multiple pixels into one to reduce noise. 
-	             -If objects on the bottom are bigger, you can set the MAX_Area higher than the MIN_Area
-				  so the image is compressed more on the bottom. With Start_Row you can set the Row to start
-				  increasing the compression
-				 -If you have filtered different colors, you can use one component for all:
-				  Colors => 2, iPixel(0) => Blue_Threshold_oStream.R(0), iPixel(1) => Green_Threshold_oStream.R(0), 
-				  
-				  _______________________________________________________
-				 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-				 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-				 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-				 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-				 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-				 |-------------------------------------------------------| <- Start_Row
-				 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||| <- MIN_Area
-				 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-				 |-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|
-				 |-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|
-				 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|-|
-				 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|-|
-				 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-				 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-				 |----|----|----|----|----|----|----|----|----|----|----||
-				 |----|----|----|----|----|----|----|----|----|----|----|| <- MAX_Area
-				 |_______________________________________________________|
-				 
+    Description: -This component combines multiple pixels into one to reduce noise.
+                 -If objects on the bottom are bigger, you can set the MAX_Area higher than the MIN_Area
+                  so the image is compressed more on the bottom. With Start_Row you can set the Row to start
+                  increasing the compression
+                 -If you have filtered different colors, you can use one component for all:
+                  Colors => 2, iPixel(0) => Blue_Threshold_oStream.R(0), iPixel(1) => Green_Threshold_oStream.R(0),
+                  
+                  _______________________________________________________
+                 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+                 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+                 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+                 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+                 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+                 |-------------------------------------------------------| <- Start_Row
+                 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||| <- MIN_Area
+                 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+                 |-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|
+                 |-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|
+                 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|-|
+                 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|-|
+                 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+                 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+                 |----|----|----|----|----|----|----|----|----|----|----||
+                 |----|----|----|----|----|----|----|----|----|----|----|| <- MAX_Area
+                 |_______________________________________________________|
+                 
     
     Insertion:   -Right click on the file -> Add to active project
                  -Add NewComponent of this component into your code
                  -Set the parameters according to your application
-				 -Connect the camera stream
+                 -Connect the camera stream
                     
     Example:     Camera_CSI_Example
  */
@@ -99,8 +99,8 @@ Component AreaLimitedCompression
     
     --!!!! In Buffer immer Summe von einer Spalte speichern, da man so das summieren der Reihen spart
     
-    TYPE col_add IS ARRAY (Colors-1 downto 0) OF NATURAL range 0 to MAX_Area*2;
-    TYPE matrix_add IS ARRAY (Colors-1 downto 0) OF NATURAL range 0 to MAX_Area**2;
+    TYPE col_add IS ARRAY (Colors-1 downto 0) OF NATURAL range 0 to (MAX_Area+1)*2;
+    TYPE matrix_add IS ARRAY (Colors-1 downto 0) OF NATURAL range 0 to (MAX_Area+1)**2;
     
     TYPE sum_matrix_type IS ARRAY (NATURAL range <>) OF col_add;
     SIGNAL sum_matrix : sum_matrix_type(Image_Width-1 downto 0);
@@ -137,7 +137,7 @@ Component AreaLimitedCompression
             sum_buf_o := sum_matrix(iColumn);
             For(k IN 0 to Colors-1)
             {
-                If(iPixel(k) = '1')
+                If(iPixel(k) = '1' AND sum_buf_o(k) < (MAX_Area+1)*2-1)
                 {
                     sum_buf_o(k) := sum_buf_o(k) + 1;
                 }
@@ -150,7 +150,7 @@ Component AreaLimitedCompression
             }
             Else
             {
-                oColumn_buf := Image_Width-area_width+iColumn-1;
+                oColumn_buf := Image_Width-area_width+iColumn-2;
             }
             
             If(iRow > 0)
@@ -222,7 +222,7 @@ Component AreaLimitedCompression
             --Calculate current column of pixel
             VARIABLE column_reg : NATURAL range 0 to Image_Width-1 := 0;
             SIGNAL add_c     : NATURAL range 0 to MAX_Area-1 := 0;
-            SIGNAL last_row_addr : NATURAL range 0 to Image_Width/MIN_Area;
+            SIGNAL last_row_addr : NATURAL range 0 to Image_Width/MIN_Area := 0;
             
             If(add_c < area_width-1 AND iColumn > column_reg)
             {
@@ -231,7 +231,10 @@ Component AreaLimitedCompression
             Else
             {
                 add_c <= 0;
-                last_row_addr <= last_row_addr + 1;
+                If(last_row_addr < (Image_Width/MIN_Area)-1)
+                {
+                    last_row_addr <= last_row_addr + 1;
+                }
             }
             column_reg := iColumn;
             
