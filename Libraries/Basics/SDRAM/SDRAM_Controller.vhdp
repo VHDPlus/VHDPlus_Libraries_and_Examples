@@ -29,7 +29,7 @@
 
 Component SDRAM_Interface
 (
-    Reset                 : IN    std_logic                     := '1';
+    Reset                 : IN    std_logic                     := '0';
     CLK_150_Out           : OUT   std_logic;                                        -- 50MHz Clock Output
     
     Address               : IN    std_logic_vector(21 downto 0) := (others => '0'); -- Data Address
