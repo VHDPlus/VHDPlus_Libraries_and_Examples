@@ -199,6 +199,8 @@ Component SDRAM_Interface
         sdram_ba[0]    => SDRAM_BAN_1,
         sdram_ba[1]    => SDRAM_BAN_2,
         sdram_cas_n    => SDRAM_CAS,
+        sdram_cs_n     => SDRAM_CSE,
+        sdram_cke      => SDRAM_CKE,
         sdram_clk      => SDRAM_CLK,
         sdram_ras_n    => SDRAM_RAS,
         sdram_we_n     => SDRAM_WEN,
