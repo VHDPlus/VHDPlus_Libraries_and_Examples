@@ -53,8 +53,8 @@ Component Camera_Capture
     Read_Data   : OUT    STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
 )
 {
-    CONSTANT xWidth : NATURAL := (Image_Width-1)/Compression;
-    CONSTANT yWidth : NATURAL := (Image_Height-1)/Compression;
+    CONSTANT xWidth : NATURAL := (Image_Width)/Compression;
+    CONSTANT yWidth : NATURAL := (Image_Height)/Compression;
 
     TYPE column_type IS ARRAY (xWidth-1 downto 0) OF STD_LOGIC_VECTOR((Width)-1 downto 0);
     TYPE frame_type IS ARRAY (yWidth-1 downto 0) OF column_type;
