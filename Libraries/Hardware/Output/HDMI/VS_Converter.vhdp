@@ -71,10 +71,13 @@ Component VS_Converter
     
     SIGNAL xCountReg : INTEGER range 0 to maxH := 0;
     SIGNAL yCountReg : INTEGER range 0 to maxV := 0;
+    
+    SIGNAL MaxH_Reg : INTEGER range 0 to maxH := maxH;
+    SIGNAL MaxV_Reg : INTEGER range 0 to maxV := maxV;
 
     Process ()
     {
-        If(rising_edge(PLL_c0))
+        If(falling_edge(PLL_c0))
         {
             VARIABLE xCount : INTEGER range 0 to maxH := 0;
             VARIABLE yCount : INTEGER range 0 to maxV := 0;
@@ -83,9 +86,17 @@ Component VS_Converter
                 xCount := xCount + 1;
             }
             
+            --Zählen wie viele reihen bei yCount < porchVF-1
+            --VS ein Cycle vorher setzen
+            
             VARIABLE Col_Reg : NATURAL range 0 to Image_Width-1 := 0;
-            If(iStream.Column < Col_Reg OR xCount > maxH)
+            If(iStream.Column < Col_Reg OR (xCount = MaxH_Reg AND yCount >= porchVF-1))
             {
+                If(yCount < porchVF-1)
+                {
+                    MaxH_Reg <= xCount;
+                }
+                
                 xCount := 0;
                 If(yCount < maxV)
                 {
@@ -97,6 +108,7 @@ Component VS_Converter
             VARIABLE Row_Reg : NATURAL range 0 to Image_Height-1 := 0;
             If(iStream.Row < Row_Reg)
             {
+                MaxV_Reg <= yCount;
                 yCount := 0;
             }
             Row_Reg := iStream.Row;
@@ -114,24 +126,25 @@ Component VS_Converter
             Else
             {
                 VS_DE <= '0';
-                --Check for HS
-                If(xCount >= syncH AND xCount < porchHB)
-                {
-                    VS_HS <= '0';
-                }
-                Else
-                {
-                    VS_HS <= '1';
-                }
+            }
+            
+            --Check for HS
+            If(xCount >= syncH AND xCount < MaxH_Reg-HBP_Len)
+            {
+                VS_HS <= '0';
+            }
+            Else
+            {
+                VS_HS <= '1';
+            }
                 --Check for VS
-                If(yCount >= syncV AND yCount < porchVB)
-                {
-                    VS_VS <= '0';
-                }
-                Else
-                {
-                    VS_VS <= '1';
-                }
+            If(yCount >= syncV AND yCount < MaxV_Reg-VBP_Len)
+            {
+                VS_VS <= '0';
+            }
+            Else
+            {
+                VS_VS <= '1';
             }
             
             xCountReg <= xCount;
