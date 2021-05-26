@@ -53,8 +53,8 @@ Component Camera_Capture
     sdram_addr   : OUT std_logic_vector (11 downto 0);
     sdram_ba     : OUT std_logic_vector (1 downto 0);
     sdram_cas_n  : OUT std_logic;
-    sdram_cke    : OUT std_logic;                                
-    sdram_cs_n   : OUT std_logic;                                 
+    sdram_cke    : OUT std_logic;
+    sdram_cs_n   : OUT std_logic;
     sdram_dq     : INOUT std_logic_vector (15 downto 0) := (others => '0');
     sdram_dqm    : OUT std_logic_vector (1 downto 0);
     sdram_ras_n  : OUT std_logic;
@@ -184,12 +184,14 @@ Component Camera_Capture
             VARIABLE states : states_t := idle;
             
             VARIABLE col : NATURAL range 0 to Image_Width := 0;
+            VARIABLE r_col : NATURAL range 0 to Image_Width := 0;
             
             Case(states)
             {
                 When(idle)
                 {
                     col := 0;
+                    r_col := 0;
                     
                     If(RAM_Out_Row_reg /= RAM_Out_Row)
                     {
@@ -222,9 +224,17 @@ Component Camera_Capture
                 {
                     If(SDRAM_Busy = '0')
                     {
-                        RAM_Out_Row_i  <= RAM_Out_Row_reg;
-                        RAM_Out_Col_i  <= col;
-                        RAM_Data_Out_i <= SDRAM_Read_Data;
+                        If(SDRAM_Read_Valid = '1')
+                        {
+                            RAM_Out_Row_i  <= RAM_Out_Row_reg;
+                            RAM_Out_Col_i  <= r_col;
+                            RAM_Data_Out_i <= SDRAM_Read_Data;
+                            
+                            If(r_col < Image_Width-1)
+                            {
+                                r_col := r_col + 1;
+                            }
+                        }
 
                         SDRAM_Read_Enable <= '0';
                         
@@ -233,7 +243,7 @@ Component Camera_Capture
                             col    := col + 1;
                             states := read_save;
                         }
-                        Else
+                        Elsif(SDRAM_Read_Valid = '0')
                         {
                             states := idle;
                             RAM_Out_Row_reg := RAM_Out_Row;
