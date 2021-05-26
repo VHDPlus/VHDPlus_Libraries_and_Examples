@@ -123,25 +123,22 @@ Component VS_RAM_Interface
                     yCount := 0;
                 }
             }
-            
             --Enable '1' while in display area
             If(xCount < porchHF AND yCount < porchVF)
             {
                 VS_DE <= '1';
                 
-                --Set RAM address for next pixel
-                If(yCount < HDMI_Height-1){ Read_Row <= yCount/Row_Div+1; }
-                Else            { Read_Row <= 0; }
+                    --Set RAM address for next pixel
+                If(yCount < HDMI_Height-2){ Read_Row <= yCount/Row_Div+2; }
+                Else            { Read_Row <= (yCount + 2 - HDMI_Height)/Col_Div; }
                 
-                If(xCount < HDMI_Width-1){ Read_Column <= xCount/Col_Div+1; }
-                Else            { Read_Column <= 0; }
-
+                If(xCount < HDMI_Width-2){ Read_Column <= xCount/Col_Div+2; }
+                Else            { Read_Column <= (xCount + 2 - HDMI_Width)/Col_Div; }
+                
                 --Set pixel data
-                
                 VS_R <= Read_Data(23 downto 16);
                 VS_G <= Read_Data(15 downto 8);
                 VS_B <= Read_Data(7 downto 0);
-                
             }
             Else
             {
