@@ -29,7 +29,7 @@
                  -If RGB is false, only the R value is saved
  */
 
-Component Camera_Capture
+Component Camera_Capture_SDRAM
 (
     Include
     (
@@ -184,14 +184,12 @@ Component Camera_Capture
             VARIABLE states : states_t := idle;
             
             VARIABLE col : NATURAL range 0 to Image_Width := 0;
-            VARIABLE r_col : NATURAL range 0 to Image_Width := 0;
             
             Case(states)
             {
                 When(idle)
                 {
                     col := 0;
-                    r_col := 0;
                     
                     If(RAM_Out_Row_reg /= RAM_Out_Row)
                     {
@@ -224,18 +222,10 @@ Component Camera_Capture
                 {
                     If(SDRAM_Busy = '0')
                     {
-                        If(SDRAM_Read_Valid = '1')
-                        {
-                            RAM_Out_Row_i  <= RAM_Out_Row_reg;
-                            RAM_Out_Col_i  <= r_col;
-                            RAM_Data_Out_i <= SDRAM_Read_Data;
+                        RAM_Out_Row_i  <= RAM_Out_Row_reg;
+                        RAM_Out_Col_i  <= col;
+                        RAM_Data_Out_i <= SDRAM_Read_Data;
                             
-                            If(r_col < Image_Width-1)
-                            {
-                                r_col := r_col + 1;
-                            }
-                        }
-
                         SDRAM_Read_Enable <= '0';
                         
                         If(col < Image_Width-1)
@@ -243,7 +233,7 @@ Component Camera_Capture
                             col    := col + 1;
                             states := read_save;
                         }
-                        Elsif(SDRAM_Read_Valid = '0')
+                        Else
                         {
                             states := idle;
                             RAM_Out_Row_reg := RAM_Out_Row;

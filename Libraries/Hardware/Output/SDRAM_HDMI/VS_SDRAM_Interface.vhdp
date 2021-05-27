@@ -25,7 +25,7 @@
     Description: This component takes a VGA 24bit RAM interface for image data and creates an video stream with 25MHz pixel clk
  */
 
-Component VS_RAM_Interface
+Component VS_SDRAM_Interface
 (
     Include
     (
@@ -33,7 +33,7 @@ Component VS_RAM_Interface
     );
     Generic
     (
-        image_size_div : NATURAL := 1;
+        pixel_shift : NATURAL := 3;
     );
     
     --RAM interface (VGA 24bit)
@@ -99,7 +99,7 @@ Component VS_RAM_Interface
     SIGNAL yCountReg : INTEGER range 0 to maxV := 0;
     
     --Pixel CLK = Request next pixel
-    Read_Ena <= PLL_c0 when xCountReg < porchHF/image_size_div AND yCountReg < porchVF/image_size_div else '0';
+    Read_Ena <= PLL_c0 when xCountReg < porchHF AND yCountReg < porchVF else '0';
     
     Process ()
     {
@@ -128,12 +128,12 @@ Component VS_RAM_Interface
             {
                 VS_DE <= '1';
                 
-                    --Set RAM address for next pixel
-                If(yCount < HDMI_Height-2){ Read_Row <= yCount/Row_Div+2; }
-                Else            { Read_Row <= (yCount + 2 - HDMI_Height)/Col_Div; }
+                --Set RAM address for next pixel
+                If(yCount < HDMI_Height-pixel_shift){ Read_Row <= yCount/Row_Div+pixel_shift; }
+                Else            { Read_Row <= (yCount + pixel_shift - HDMI_Height)/Col_Div; }
                 
-                If(xCount < HDMI_Width-2){ Read_Column <= xCount/Col_Div+2; }
-                Else            { Read_Column <= (xCount + 2 - HDMI_Width)/Col_Div; }
+                If(xCount < HDMI_Width-pixel_shift){ Read_Column <= xCount/Col_Div+pixel_shift; }
+                Else            { Read_Column <= (xCount + pixel_shift - HDMI_Width)/Col_Div; }
                 
                 --Set pixel data
                 VS_R <= Read_Data(23 downto 16);

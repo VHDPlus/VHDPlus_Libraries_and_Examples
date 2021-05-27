@@ -61,12 +61,10 @@ Component VS_Converter
 
     CONSTANT porchHF : NATURAL := HDMI_Width; --start of horizntal front porch
     CONSTANT syncH   : NATURAL := HDMI_Width+HFP_Len; --start of horizontal sync
-    CONSTANT porchHB : NATURAL := HDMI_Width+HFP_Len+HSLEN_Len; --start of horizontal back porch
     CONSTANT maxH    : NATURAL := 5000; --total length of line (usually rgb_stream determines this)
     
     CONSTANT porchVF : NATURAL := HDMI_Height; --start of vertical front porch
     CONSTANT syncV   : NATURAL := HDMI_Height+VFP_Len; --start of vertical sync
-    CONSTANT porchVB : NATURAL := HDMI_Height+VFP_Len+VSLEN_Len; --start of vertical back porch
     CONSTANT maxV    : NATURAL := 3000; --total rows
     
     SIGNAL xCountReg : INTEGER range 0 to maxH := 0;
