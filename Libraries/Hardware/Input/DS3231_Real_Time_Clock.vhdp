@@ -322,7 +322,7 @@ Component DS3231_Interface
                         }
                         When(x"0E")
                         {
-                            I2C_Array_data_wr(1)(2 downto 7)     <= "000111";
+                            I2C_Array_data_wr(1)(7 downto 2)     <= "000111";
                             I2C_Array_data_wr(1)(1)              <= Alarm2_En;
                             I2C_Array_data_wr(1)(0)              <= Alarm1_En;                          
                         }
