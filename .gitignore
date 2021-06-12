@@ -8,3 +8,5 @@ db
 Examples/Hardware/Input/Audio/Audio.qws
 Examples/Hardware/Input/Audio/ISSP.sopcinfo
 Examples/Hardware/Input/Audio/ISSP.sopcinfo
+UploadLibraries.txt
+publish/
