@@ -1,4 +1,4 @@
-SET version=1.2
+SET version=1.6
 Set OUTPUT=publish
 
 ::Clear output

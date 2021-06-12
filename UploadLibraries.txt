@@ -1,0 +1,14 @@
+# Connect
+open ftp://w0195abe:KxRGqGCc2Sr2YHB4@w0195abe.kasserver.com
+# Change remote directory
+cd /cdn.vhdplus.com/vhdpluslibraries/
+# Change local directory
+lcd publish
+# Upload libraries zip
+put *.zip
+# Upload version info
+put *.txt
+# Disconnect
+close
+# Exit WinSCP
+exit
