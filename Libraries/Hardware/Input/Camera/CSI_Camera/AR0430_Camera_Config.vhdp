@@ -1,0 +1,699 @@
+Component OnSemi_Cam_Config
+(
+    Include
+    (
+        Image_Data_Package.all,
+    );
+    Generic
+    (
+        CLK_Frequency : NATURAL := 12000000;
+    );
+    Reset       : IN STD_LOGIC := '0';
+    
+    Cam_Reset   : OUT STD_LOGIC := '1';
+    
+    SCL         : INOUT STD_LOGIC;
+    SDA         : INOUT STD_LOGIC;
+)
+{
+    
+    --Send initial data on startup
+    Process Cam_Init
+    (
+        VARIABLE state  : NATURAL range 0 to 10 := 10;
+        VARIABLE count  : NATURAL range 0 to CLK_Frequency/1000 := 0;
+    )
+    {
+        If(Reset = '1')
+        {
+            address <= (others => '0');
+            d_address <= 0;
+            state := 10;
+            count := 0;
+            I2C_Master_Interface_Enable <= '0';
+            Cam_Reset <= '0';
+        }
+        Else
+        {
+            If(state = 0)
+            {
+                I2C_Master_Interface_Address <= "0110110";
+                I2C_Master_Interface_RW      <= '0';
+                If(address /= init_len) { I2C_Master_Interface_Data_Wr <= sreg(15 downto 8); }
+                Else { I2C_Master_Interface_Data_Wr <= d_sreg(15 downto 8); }
+                I2C_Master_Interface_Enable  <= '1';
+                state := 1;
+            }
+            Elsif(state = 1)
+            {
+                If(I2C_Master_Interface_Busy = '1')
+                {
+                    If(address /= init_len) { I2C_Master_Interface_Data_Wr <= sreg(7 downto 0); }
+                    Else { I2C_Master_Interface_Data_Wr <= d_sreg(7 downto 0); }
+                    
+                    state := 2;
+                }
+            }
+            Elsif(state = 2)
+            {
+                If(I2C_Master_Interface_Busy = '0')
+                {
+                    If(address /= init_len)
+                    {
+                        If(dat2_en = '1') { state := 3; }
+                        Else { state := 5; }
+                    }
+                    Else
+                    {
+                        If(d_dat2_en = '1') { state := 3; }
+                        Else { state := 5; }
+                    }
+                }
+            }
+            Elsif(state = 3)
+            {
+                If(I2C_Master_Interface_Busy = '1')
+                {
+                    If(address /= init_len) { I2C_Master_Interface_Data_Wr <= data(15 downto 8); }
+                    Else { I2C_Master_Interface_Data_Wr <= d_data(15 downto 8); }
+                    state := 4;
+                }
+            }
+            Elsif(state = 4)
+            {
+                If(I2C_Master_Interface_Busy = '0')
+                {
+                    state := 5;
+                }
+            }
+            Elsif(state = 5)
+            {
+                If(I2C_Master_Interface_Busy = '1')
+                {
+                    If(address /= init_len) { I2C_Master_Interface_Data_Wr <= data(7 downto 0); }
+                    Else { I2C_Master_Interface_Data_Wr <= d_data(7 downto 0); }
+                    state := 6;
+                }
+            }
+            Elsif(state = 6)
+            {
+                If(I2C_Master_Interface_Busy = '0')
+                {
+                    I2C_Master_Interface_Enable  <= '0';
+                    state := 7;
+                }
+            }
+            Elsif(state = 7)
+            {
+                If(I2C_Master_Interface_Busy = '1')
+                {
+                    state := 8;
+                }
+            }
+            Elsif(state = 8)
+            {
+                If(I2C_Master_Interface_Busy = '0')
+                {
+                    If(address /= init_len)
+                    {
+                        address <= STD_LOGIC_VECTOR(UNSIGNED(address)+1);
+                        state   := 9;
+                    }
+                    Elsif(d_address < default_init_length-1)
+                    {
+                        d_address <= d_address + 1;
+                        state := 9;
+                    }
+                }
+            }
+            Else
+            {
+                If(state = 10)
+                {
+                    Cam_Reset <= '0';
+                }
+                Else
+                {
+                    Cam_Reset <= '1';
+                }
+                
+                If(count < CLK_Frequency/1000)
+                {
+                    count := count + 1;
+                }
+                Else
+                {
+                    count := 0;
+                    If(state = 10)
+                    {
+                        state := 9;
+                    }
+                    Else
+                    {
+                        state := 0;
+                    }
+                }
+            }
+            
+        }
+    }
+    
+    SIGNAL init_len : STD_LOGIC_VECTOR(7 downto 0) := x"25";
+    
+    SIGNAL address : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    SIGNAL sreg    : STD_LOGIC_VECTOR(15 downto 0) := x"0000";
+    SIGNAL data    : STD_LOGIC_VECTOR(15 downto 0) := x"0000";
+    SIGNAL dat2_en : STD_LOGIC := '1';
+    
+    --Initial data to send
+    Process Cam_Init_Register ()
+    {
+        Case(address)
+        {
+            When(x"00")
+            {
+                sreg <= x"0103";
+                data <= x"0001";
+                dat2_en <= '0';
+            }
+            When(x"01")
+            {
+                sreg <= x"301A";
+                data <= x"0018";
+                dat2_en <= '1';
+            }
+            When(x"02")
+            {
+                sreg <= x"31AE";
+                data <= x"0204";
+            }
+            When(x"03")
+            {
+                sreg <= x"31B0";
+                data <= x"003B";
+            }
+            When(x"04")
+            {
+                sreg <= x"31B2";
+                data <= x"003B";
+            }
+            When(x"05")
+            {
+                sreg <= x"31B4";
+                data <= x"130C";
+            }
+            When(x"06")
+            {
+                sreg <= x"31B6";
+                data <= x"16CB";
+            }
+            When(x"07")
+            {
+                sreg <= x"31B8";
+                data <= x"1253";
+            }
+            When(x"08")
+            {
+                sreg <= x"31BA";
+                data <= x"B808";
+            }
+            When(x"09")
+            {
+                sreg <= x"31BC";
+                data <= x"4D3D";
+            }
+            When(x"0A")
+            {
+                sreg <= x"0112";
+                data <= x"0A0A";
+            }
+            When(x"0B")
+            {
+                sreg <= x"0202";
+                data <= x"1000";
+            }
+            When(x"0C")
+            {
+                sreg <= x"0340";
+                data <= x"0320";
+            }
+            When(x"0D")
+            {
+                sreg <= x"0342";
+                data <= x"1500";
+            }
+            When(x"0E")
+            {
+                sreg <= x"0344";
+                data <= x"0008";
+            }
+            When(x"0F")
+            {
+                sreg <= x"0346";
+                data <= x"0008";
+            }
+            When(x"10")
+            {
+                sreg <= x"0348";
+                data <= x"1226";
+            }
+            When(x"11")
+            {
+                sreg <= x"034A";
+                data <= x"0DAA";
+            }
+            When(x"12")
+            {
+                sreg <= x"034C";
+                data <= STD_LOGIC_VECTOR(TO_UNSIGNED(Image_Width*2, 16));
+            }
+            When(x"13")
+            {
+                sreg <= x"034E";
+                data <= STD_LOGIC_VECTOR(TO_UNSIGNED(Image_Height*2, 16));
+            }
+            When(x"14")
+            {
+                sreg <= x"3040";
+                data <= x"0041";
+            }
+            When(x"15")
+            {
+                sreg <= x"3332";
+                data <= x"0002";
+            }
+            When(x"16")
+            {
+                sreg <= x"3172";
+                data <= x"0601";
+            }
+            When(x"17")
+            {
+                sreg <= x"0382";
+                data <= x"0001";
+            }
+            When(x"18")
+            {
+                sreg <= x"0386";
+                data <= x"0001";
+            }
+            When(x"19")
+            {
+                sreg <= x"0400";
+                data <= x"0000";
+            }
+            When(x"1A")
+            {
+                sreg <= x"0402";
+                data <= x"0000";
+            }
+            When(x"1B")
+            {
+                sreg <= x"0404";
+                data <= x"0010";
+            }
+            When(x"1C")
+            {
+                sreg <= x"0300";
+                data <= x"0006";
+            }
+            When(x"1D")
+            {
+                sreg <= x"0302";
+                data <= x"0C01";
+            }
+            When(x"1E")
+            {
+                sreg <= x"0304";
+                data <= x"0503";
+            }
+            When(x"1F")
+            {
+                sreg <= x"0306";
+                data <= x"4064";
+            }
+            When(x"20")
+            {
+                sreg <= x"0308";
+                data <= x"0010";
+            }
+            When(x"21")
+            {
+                sreg <= x"030A";
+                data <= x"0001";
+            }
+            When(x"22")
+            {
+                sreg <= x"030C";
+                data <= x"50A2";
+            }
+            When(x"23")
+            {
+                sreg <= x"030E";
+                data <= x"0002";
+            }
+            When(x"24")
+            {
+                sreg <= x"305E";
+                data <= x"402F";
+            }
+            /*
+            When(x"25")
+            {
+                sreg <= x"301A";
+                data <= x"001C";
+            }
+            */
+            When(others)
+            {
+                sreg <= x"FFFF";
+                data <= x"0000";
+            }
+        }
+    }
+
+    SIGNAL I2C_Master_Interface_Enable        : STD_LOGIC := '0';
+    SIGNAL I2C_Master_Interface_Address       : STD_LOGIC_VECTOR (6 DOWNTO 0) := (others => '0');
+    SIGNAL I2C_Master_Interface_RW            : STD_LOGIC := '0';
+    SIGNAL I2C_Master_Interface_Data_Wr       : STD_LOGIC_VECTOR (7 DOWNTO 0) := (others => '0');
+    SIGNAL I2C_Master_Interface_Busy          : STD_LOGIC;
+    SIGNAL I2C_Master_Interface_Data_RD       : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL I2C_Master_Interface_Ack_Error     : STD_LOGIC;
+
+    NewComponent I2C_Master_Interface
+    (
+        CLK_Frequency => CLK_Frequency,
+        Bus_CLK       => 40000,
+        
+        Reset         => Reset,
+        Enable        => I2C_Master_Interface_Enable,
+        Address       => I2C_Master_Interface_Address,
+        RW            => I2C_Master_Interface_RW,
+        Data_Wr       => I2C_Master_Interface_Data_Wr,
+        Busy          => I2C_Master_Interface_Busy,
+        Data_RD       => I2C_Master_Interface_Data_RD,
+        Ack_Error     => I2C_Master_Interface_Ack_Error,
+        SDA           => SDA,
+        SCL           => SCL,
+    );
+    
+    CONSTANT default_init_length : NATURAL := 280;
+    
+    SIGNAL d_address : NATURAL range 0 to default_init_length := 0;
+    SIGNAL d_sreg    : STD_LOGIC_VECTOR(15 downto 0) := x"0000";
+    SIGNAL d_data    : STD_LOGIC_VECTOR(15 downto 0) := x"0000";
+    SIGNAL d_dat2_en : STD_LOGIC := '1';
+    
+    d_sreg <= default_init(d_address)(0);
+    d_data <= default_init(d_address)(1);
+    d_dat2_en <= default_init(d_address)(2)(0);
+    
+    TYPE s IS ARRAY (0 to 2) OF STD_LOGIC_VECTOR(15 downto 0);
+    TYPE ds IS ARRAY (0 to default_init_length) OF s;
+    
+    --Default Config:
+    CONSTANT default_init : ds :=
+    (
+        (x"3EB4", x"676A", x"0001"),
+        (x"3EBC", x"0010", x"0001"),
+        (x"3ECE", x"008B", x"0001"),
+        (x"3ED0", x"0071", x"0001"),
+        (x"3ED2", x"B85C", x"0001"),
+        (x"3ED4", x"120A", x"0001"),
+        (x"3EDC", x"7D04", x"0001"),
+        (x"30EE", x"1140", x"0001"),
+        (x"3120", x"0001", x"0001"),
+        (x"3044", x"05E0", x"0001"),
+        (x"30C0", x"0004", x"0001"),
+        (x"30C2", x"0100", x"0001"),
+        (x"316E", x"8400", x"0001"),
+        (x"3EF0", x"3E3E", x"0001"),
+        (x"3EF2", x"8082", x"0001"),
+        (x"3EAE", x"003F", x"0001"),
+        (x"3EC0", x"8888", x"0001"),
+        (x"3EC2", x"008B", x"0001"),
+        (x"3EC4", x"2763", x"0001"),
+        (x"3EC6", x"913D", x"0001"),
+        (x"3ECA", x"90B7", x"0001"),
+        (x"3EBA", x"0C11", x"0001"),
+        (x"3EBE", x"5504", x"0001"),
+        (x"3ED8", x"9844", x"0001"),
+        (x"3EDA", x"B21D", x"0001"),
+        (x"3F3A", x"0080", x"0001"),
+        (x"3D00", x"046C", x"0001"),
+        (x"3D02", x"FF72", x"0001"),
+        (x"3D04", x"FFFF", x"0001"),
+        (x"3D06", x"FFFF", x"0001"),
+        (x"3D08", x"8000", x"0001"),
+        (x"3D0A", x"3251", x"0001"),
+        (x"3D0C", x"2328", x"0001"),
+        (x"3D0E", x"080C", x"0001"),
+        (x"3D10", x"6280", x"0001"),
+        (x"3D12", x"3105", x"0001"),
+        (x"3D14", x"4B73", x"0001"),
+        (x"3D16", x"11C0", x"0001"),
+        (x"3D18", x"1013", x"0001"),
+        (x"3D1A", x"3108", x"0001"),
+        (x"3D1C", x"2086", x"0001"),
+        (x"3D1E", x"8173", x"0001"),
+        (x"3D20", x"8073", x"0001"),
+        (x"3D22", x"821C", x"0001"),
+        (x"3D24", x"0082", x"0001"),
+        (x"3D26", x"588A", x"0001"),
+        (x"3D28", x"499E", x"0001"),
+        (x"3D2A", x"4380", x"0001"),
+        (x"3D2C", x"1103", x"0001"),
+        (x"3D2E", x"C560", x"0001"),
+        (x"3D30", x"8F73", x"0001"),
+        (x"3D32", x"9447", x"0001"),
+        (x"3D34", x"8568", x"0001"),
+        (x"3D36", x"8061", x"0001"),
+        (x"3D38", x"8049", x"0001"),
+        (x"3D3A", x"4759", x"0001"),
+        (x"3D3C", x"6880", x"0001"),
+        (x"3D3E", x"5680", x"0001"),
+        (x"3D40", x"558E", x"0001"),
+        (x"3D42", x"7384", x"0001"),
+        (x"3D44", x"4686", x"0001"),
+        (x"3D46", x"100C", x"0001"),
+        (x"3D48", x"8B6A", x"0001"),
+        (x"3D4A", x"8028", x"0001"),
+        (x"3D4C", x"4097", x"0001"),
+        (x"3D4E", x"100C", x"0001"),
+        (x"3D50", x"847B", x"0001"),
+        (x"3D52", x"8246", x"0001"),
+        (x"3D54", x"8273", x"0001"),
+        (x"3D56", x"9928", x"0001"),
+        (x"3D58", x"4055", x"0001"),
+        (x"3D5A", x"6A59", x"0001"),
+        (x"3D5C", x"8349", x"0001"),
+        (x"3D5E", x"6B82", x"0001"),
+        (x"3D60", x"6B82", x"0001"),
+        (x"3D62", x"6D82", x"0001"),
+        (x"3D64", x"7382", x"0001"),
+        (x"3D66", x"73AC", x"0001"),
+        (x"3D68", x"7388", x"0001"),
+        (x"3D6A", x"4785", x"0001"),
+        (x"3D6C", x"6882", x"0001"),
+        (x"3D6E", x"4947", x"0001"),
+        (x"3D70", x"5968", x"0001"),
+        (x"3D72", x"8358", x"0001"),
+        (x"3D74", x"801A", x"0001"),
+        (x"3D76", x"0081", x"0001"),
+        (x"3D78", x"738C", x"0001"),
+        (x"3D7A", x"200C", x"0001"),
+        (x"3D7C", x"8E10", x"0001"),
+        (x"3D7E", x"F080", x"0001"),
+        (x"3D80", x"4585", x"0001"),
+        (x"3D82", x"6A80", x"0001"),
+        (x"3D84", x"2840", x"0001"),
+        (x"3D86", x"4182", x"0001"),
+        (x"3D88", x"4181", x"0001"),
+        (x"3D8A", x"4354", x"0001"),
+        (x"3D8C", x"8110", x"0001"),
+        (x"3D8E", x"0381", x"0001"),
+        (x"3D90", x"1030", x"0001"),
+        (x"3D92", x"8446", x"0001"),
+        (x"3D94", x"8210", x"0001"),
+        (x"3D96", x"0CA4", x"0001"),
+        (x"3D98", x"4A85", x"0001"),
+        (x"3D9A", x"7B89", x"0001"),
+        (x"3D9C", x"4A80", x"0001"),
+        (x"3D9E", x"6783", x"0001"),
+        (x"3DA0", x"7393", x"0001"),
+        (x"3DA2", x"100C", x"0001"),
+        (x"3DA4", x"8146", x"0001"),
+        (x"3DA6", x"8110", x"0001"),
+        (x"3DA8", x"3081", x"0001"),
+        (x"3DAA", x"4311", x"0001"),
+        (x"3DAC", x"0341", x"0001"),
+        (x"3DAE", x"8100", x"0001"),
+        (x"3DB0", x"0A86", x"0001"),
+        (x"3DB2", x"1133", x"0001"),
+        (x"3DB4", x"8046", x"0001"),
+        (x"3DB6", x"8210", x"0001"),
+        (x"3DB8", x"0CAE", x"0001"),
+        (x"3DBA", x"4A88", x"0001"),
+        (x"3DBC", x"7373", x"0001"),
+        (x"3DBE", x"8273", x"0001"),
+        (x"3DC0", x"834A", x"0001"),
+        (x"3DC2", x"9010", x"0001"),
+        (x"3DC4", x"0C46", x"0001"),
+        (x"3DC6", x"1133", x"0001"),
+        (x"3DC8", x"8100", x"0001"),
+        (x"3DCA", x"1800", x"0001"),
+        (x"3DCC", x"0681", x"0001"),
+        (x"3DCE", x"5581", x"0001"),
+        (x"3DD0", x"2CE0", x"0001"),
+        (x"3DD2", x"6E80", x"0001"),
+        (x"3DD4", x"3645", x"0001"),
+        (x"3DD6", x"7000", x"0001"),
+        (x"3DD8", x"8000", x"0001"),
+        (x"3DDA", x"0382", x"0001"),
+        (x"3DDC", x"4BC3", x"0001"),
+        (x"3DDE", x"4B82", x"0001"),
+        (x"3DE0", x"0003", x"0001"),
+        (x"3DE2", x"8070", x"0001"),
+        (x"3DE4", x"FFFF", x"0001"),
+        (x"3DE6", x"937B", x"0001"),
+        (x"3DE8", x"0000", x"0001"),
+        (x"3DEA", x"0000", x"0001"),
+        (x"3DEC", x"0000", x"0001"),
+        (x"3DEE", x"0000", x"0001"),
+        (x"3DF0", x"0000", x"0001"),
+        (x"3DF2", x"0000", x"0001"),
+        (x"3DF4", x"0000", x"0001"),
+        (x"3DF6", x"0000", x"0001"),
+        (x"3DF8", x"0000", x"0001"),
+        (x"3DFA", x"0000", x"0001"),
+        (x"3DFC", x"0000", x"0001"),
+        (x"3DFE", x"0000", x"0001"),
+        (x"3E00", x"0000", x"0001"),
+        (x"3E02", x"0000", x"0001"),
+        (x"3E04", x"0000", x"0001"),
+        (x"3E06", x"0000", x"0001"),
+        (x"3E08", x"0000", x"0001"),
+        (x"3E0A", x"0000", x"0001"),
+        (x"3E0C", x"0000", x"0001"),
+        (x"3E0E", x"0000", x"0001"),
+        (x"3E10", x"0000", x"0001"),
+        (x"3E12", x"0000", x"0001"),
+        (x"3E14", x"0000", x"0001"),
+        (x"3E16", x"0000", x"0001"),
+        (x"3E18", x"0000", x"0001"),
+        (x"3E1A", x"0000", x"0001"),
+        (x"3E1C", x"0000", x"0001"),
+        (x"3E1E", x"0000", x"0001"),
+        (x"3E20", x"0000", x"0001"),
+        (x"3E22", x"0000", x"0001"),
+        (x"3E24", x"0000", x"0001"),
+        (x"3E26", x"0000", x"0001"),
+        (x"3E28", x"0000", x"0001"),
+        (x"3E2A", x"0000", x"0001"),
+        (x"3E2C", x"0000", x"0001"),
+        (x"3E2E", x"0000", x"0001"),
+        (x"3E30", x"0000", x"0001"),
+        (x"3E32", x"0000", x"0001"),
+        (x"3E34", x"0000", x"0001"),
+        (x"3E36", x"0000", x"0001"),
+        (x"3E38", x"0000", x"0001"),
+        (x"3E3A", x"0000", x"0001"),
+        (x"3E3C", x"0000", x"0001"),
+        (x"3E3E", x"0000", x"0001"),
+        (x"3E40", x"0000", x"0001"),
+        (x"3E42", x"0000", x"0001"),
+        (x"3E44", x"0000", x"0001"),
+        (x"3E46", x"0000", x"0001"),
+        (x"3E48", x"0000", x"0001"),
+        (x"3E4A", x"0000", x"0001"),
+        (x"3E4C", x"0000", x"0001"),
+        (x"3E4E", x"0000", x"0001"),
+        (x"3E50", x"0000", x"0001"),
+        (x"3E52", x"0000", x"0001"),
+        (x"3E54", x"0000", x"0001"),
+        (x"3E56", x"0000", x"0001"),
+        (x"3E58", x"0000", x"0001"),
+        (x"3E5A", x"0000", x"0001"),
+        (x"3E5C", x"0000", x"0001"),
+        (x"3E5E", x"0000", x"0001"),
+        (x"3E60", x"0000", x"0001"),
+        (x"3E62", x"0000", x"0001"),
+        (x"3E64", x"0000", x"0001"),
+        (x"3E66", x"0000", x"0001"),
+        (x"3E68", x"0000", x"0001"),
+        (x"3E6A", x"0000", x"0001"),
+        (x"3E6C", x"0000", x"0001"),
+        (x"3E6E", x"0000", x"0001"),
+        (x"3E70", x"0000", x"0001"),
+        (x"3E72", x"0000", x"0001"),
+        (x"3E74", x"0000", x"0001"),
+        (x"3E76", x"0000", x"0001"),
+        (x"3E78", x"0000", x"0001"),
+        (x"3E7A", x"0000", x"0001"),
+        (x"3E7C", x"0000", x"0001"),
+        (x"3E7E", x"0000", x"0001"),
+        (x"3E80", x"0000", x"0001"),
+        (x"3E82", x"0000", x"0001"),
+        (x"3E84", x"0000", x"0001"),
+        (x"3E86", x"0000", x"0001"),
+        (x"3E88", x"0000", x"0001"),
+        (x"3E8A", x"0000", x"0001"),
+        (x"3E8C", x"0000", x"0001"),
+        (x"3E8E", x"0000", x"0001"),
+        (x"3E90", x"0000", x"0001"),
+        (x"3E92", x"0000", x"0001"),
+        (x"3E94", x"0000", x"0001"),
+        (x"3E96", x"0000", x"0001"),
+        (x"3E98", x"0000", x"0001"),
+        (x"3E9A", x"0000", x"0001"),
+        (x"3E9C", x"0000", x"0001"),
+        (x"3E9E", x"0000", x"0001"),
+        (x"3EA0", x"0000", x"0001"),
+        (x"3EA2", x"0000", x"0001"),
+        (x"3EA4", x"0000", x"0001"),
+        (x"3EA6", x"0000", x"0001"),
+        (x"3EA8", x"0000", x"0001"),
+        (x"3EAA", x"0000", x"0001"),
+        (x"3EAC", x"0000", x"0001"),
+        (x"3042", x"0004", x"0001"),
+        (x"3220", x"0000", x"0001"),
+        (x"3222", x"6060", x"0001"),
+        (x"3C50", x"0001", x"0001"),
+        (x"3C66", x"0FFF", x"0001"),
+        (x"3C68", x"000A", x"0001"),
+        (x"3C6A", x"0028", x"0001"),
+        (x"3C6C", x"0500", x"0001"),
+        (x"3C6E", x"ECA0", x"0001"),
+        (x"3C70", x"003C", x"0001"),
+        (x"3C72", x"00A8", x"0001"),
+        (x"3C74", x"000A", x"0001"),
+        (x"3C76", x"0002", x"0001"),
+        (x"3C78", x"0003", x"0001"),
+        (x"3C7A", x"0004", x"0001"),
+        (x"3C7C", x"0007", x"0001"),
+        (x"3C7E", x"4020", x"0001"),
+        (x"3C80", x"007B", x"0001"),
+        (x"3C82", x"0000", x"0001"),
+        (x"3C84", x"0210", x"0001"),
+        (x"3C86", x"000A", x"0001"),
+        (x"3C88", x"0A0A", x"0001"),
+        (x"3C8A", x"0A0A", x"0001"),
+        (x"3C8C", x"1E1E", x"0001"),
+        (x"3C8E", x"1E1E", x"0001"),
+        (x"3C90", x"4444", x"0001"),
+        (x"3C92", x"0000", x"0001"),
+        (x"3C94", x"0000", x"0001"),
+        (x"3C96", x"0010", x"0001"),
+        (x"3C98", x"0FD7", x"0001"),
+        (x"3C9A", x"0810", x"0001"),
+        (x"3C9E", x"0000", x"0001"),
+        (x"3C9C", x"0000", x"0001"),
+        (x"3CC2", x"0000", x"0001"),
+        (x"3CC4", x"0000", x"0001"),
+        (x"3CC6", x"0000", x"0001"),
+        (x"3CA0", x"0000", x"0001"),
+        (x"3172", x"0601", x"0001"),
+        (x"301A", x"001C", x"0001"),
+        (x"301A", x"001C", x"0001")
+    );
+}
