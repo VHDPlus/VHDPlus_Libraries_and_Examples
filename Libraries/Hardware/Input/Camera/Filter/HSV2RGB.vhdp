@@ -1,8 +1,8 @@
 /*
-    Name: RGB 2 HSV
+    Name: HSV 2 RGB
     Rev: 1.0
     Creator: Leon Beier
-    Date: 23.02.2020
+    Date: 25.11.2021
     Copyright (c) 2020 Protop Solutions UG. All right reserved.
     
     Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -22,7 +22,7 @@
     AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
     WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
 
-    Description: -This component converts a RGB Stream to HSV.
+    Description: -This component converts a HSV Stream to RGB.
                   R => Hue (0 red => 30 yellow => 60 green => 90 turquoise => 120 Blue => 150 pink => 180 red)
                   G => Saturation (0-255)
                   B => Brightness (0-255)
@@ -35,7 +35,7 @@
     Example:     Camera_CSI_Example
  */
 
-Component RGB2HSV_Filter
+Component HSV2RGB_Filter
 (
     Include
     (
@@ -72,121 +72,98 @@ Component RGB2HSV_Filter
             oStream_buf.Column <= iStream_buf.Column;
             oStream_buf.Row    <= iStream_buf.Row;
             
-            variable r_int, g_int, b_int : integer range 0 to 255;
-            variable max_value, min_value, delta : integer range 0 to 255;
-            variable h_value : integer range 0 to 255;
-            variable s_value : integer range 0 to 255;
+            variable h_int, s_int, v_int : integer range 0 to 255;
+            variable r_value : integer range 0 to 255;
+            variable g_value : integer range 0 to 255;
+            variable b_value : integer range 0 to 255;
             
             -- rgb conversion from ycc
-            r_int := to_integer(unsigned(iStream_buf.R));
-            g_int := to_integer(unsigned(iStream_buf.G));
-            b_int := to_integer(unsigned(iStream_buf.B));
-
-            --get max value
-            If(r_int >= g_int and r_int >= b_int)
-            {
-                max_value := r_int;
-            }
-            Elsif(g_int > r_int and g_int > b_int)
-            {
-                max_value := g_int;
-            }
-            Else
-            {
-                max_value := b_int;
-            }
-            --get min value
-            If(r_int <= g_int and r_int <= b_int)
-            {
-                min_value := r_int;
-            }
-            Elsif(g_int < r_int and g_int < b_int)
-            {
-                min_value := g_int;
-            }
-            Else
-            {
-                min_value := b_int;
-            }
-            --get difference (delta)
-            delta := max_value-min_value;
+            h_int := to_integer(unsigned(iStream_buf.R));
+            s_int := to_integer(unsigned(iStream_buf.G));
+            v_int := to_integer(unsigned(iStream_buf.B));
             
-            If(delta = 0)
+            If(s_int = 0)
             {
-                h_value := 0;
+                r_value := v_int;
+                g_value := v_int;
+                b_value := v_int;
             }
             Else
             {
-                --Get hue degree offset depending on max value
-                VARIABLE degree_offset : NATURAL range 0 to 180 := 0;
-                If(max_value = r_int AND g_int >= b_int)
+                VARIABLE i : INTEGER range 0 to 6 := 0;
+                VARIABLE f : INTEGER range 0 to 30 := 0;
+                VARIABLE p : INTEGER range 0 to 255 := 0;
+                VARIABLE q : INTEGER range 0 to 255 := 0;
+                VARIABLE t : INTEGER range 0 to 255 := 0;
+                i := h_int/30;
+                f := h_int mod 30;
+                p := (v_int * (255-s_int))/255;
+                q := (v_int * (255-((s_int*f)/29)))/255;
+                t := (v_int * (255-((s_int*(29-f))/29)))/255;
+                Case(i)
                 {
-                    degree_offset := 0;
+                    When(0)
+                    {
+                        r_value := v_int;
+                        g_value := t;
+                        b_value := p;
+                    }
+                    When(1)
+                    {
+                        r_value := q;
+                        g_value := v_int;
+                        b_value := p;
+                    }
+                    When(2)
+                    {
+                        r_value := p;
+                        g_value := v_int;
+                        b_value := t;
+                    }
+                    When(3)
+                    {
+                        r_value := p;
+                        g_value := q;
+                        b_value := v_int;
+                    }
+                    When(4)
+                    {
+                        r_value := t;
+                        g_value := p;
+                        b_value := v_int;
+                    }
+                    When(others)
+                    {
+                        r_value := v_int;
+                        g_value := p;
+                        b_value := q;
+                    }
                 }
-                Elsif(max_value = r_int AND g_int < b_int)
-                {
-                    degree_offset := 180;
-                }
-                Elsif(max_value = g_int)
-                {
-                    degree_offset := 60;
-                }
-                Else
-                {
-                    degree_offset := 120;
-                }
-                --Get difference of remaining color fur hue
-                VARIABLE remainder_diff : INTEGER range -255 to 255 := 0;
-                If(max_value = r_int)
-                {
-                    remainder_diff := g_int - b_int;
-                }
-                Elsif(max_value = g_int)
-                {
-                    remainder_diff := b_int - r_int;
-                }
-                Else
-                {
-                    remainder_diff := r_int - g_int;
-                }
-                
-                -- converion signals
-                
-                h_value := ((30 * remainder_diff)/delta) + degree_offset;
-            }
-            
-            If(max_value = 0)
-            {
-                s_value := 0;
-            }
-            Else
-            {
-                s_value := (delta*255)/max_value;
             }
             
             -- perform limiting
             
-            If(h_value <= 180)
+            If(r_value <= 255)
             {
-                oStream_buf.R <= std_logic_vector(TO_UNSIGNED(h_value,8));
+                oStream_buf.R <= std_logic_vector(TO_UNSIGNED(r_value,8));
             }
             Else
             {
-                oStream_buf.R <= std_logic_vector(to_unsigned(180, 8));
+                oStream_buf.R <= std_logic_vector(to_unsigned(255, 8));
             }
 
-            If(s_value <= 255)
+            If(g_value <= 255)
             {
-                oStream_buf.G <= std_logic_vector(TO_UNSIGNED(s_value,8));
+                oStream_buf.G <= std_logic_vector(TO_UNSIGNED(g_value,8));
             }
             Else
             {
                 oStream_buf.G <= std_logic_vector(to_unsigned(255, 8));
             }
             
-            If(max_value <= 255)
+            If(b_value <= 255)
             {
-                oStream_buf.B <= std_logic_vector(TO_UNSIGNED(max_value,8));
+                oStream_buf.B <= std_logic_vector(TO_UNSIGNED(b_value,8));
             }
             Else
             {
