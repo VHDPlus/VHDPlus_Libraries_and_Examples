@@ -14,14 +14,67 @@ Component OnSemi_Cam_Config
     
     SCL         : INOUT STD_LOGIC;
     SDA         : INOUT STD_LOGIC;
+    
+    iStream     : IN  rgb_stream; --Brighness Adjust
+    oStream     : OUT rgb_stream;
 )
 {
+    oStream <= iStream;
+    
+    
+    SIGNAL Gain_D : NATURAL range 0 to 511 := 511;
+    SIGNAL Gain_A : NATURAL range 0 to 47 := 47;
+    
+    Process ()
+    {
+        VARIABLE Bright_Cnt : NATURAL range 0 to 100000 := 0;
+        VARIABLE Dark_Cnt : NATURAL range 0 to 100000 := 100;
+        SIGNAL Correct_B : NATURAL range 0 to 2 := 0;
+        If(iStream.Row = 0 AND iStream.Column = 0)
+        {
+            If(Bright_Cnt = 100000)
+            {
+                Correct_B <= 2;
+            }
+            Elsif(Dark_Cnt < 100)
+            {
+                Correct_B <= 1;
+            }
+            Else
+            {
+                Correct_B <= 0;
+            }
+        }
+        Elsif(iStream.Column < Image_Width-1)
+        {
+            If(iStream.Row = 0 AND iStream.Column = 1)
+            {
+                Bright_Cnt := 0;
+                Dark_Cnt   := 0;
+            }
+            if (UNSIGNED(iStream.R) > 240 OR UNSIGNED(iStream.G) > 240 OR UNSIGNED(iStream.B) > 240)
+            {
+                If(Bright_Cnt < 100000)
+                {
+                    Bright_Cnt := Bright_Cnt + 1;
+                }
+            }
+            if (UNSIGNED(iStream.R) > 200 OR UNSIGNED(iStream.G) > 200 OR UNSIGNED(iStream.B) > 200)
+            {
+                If(Dark_Cnt < 100000)
+                {
+                    Dark_Cnt := Dark_Cnt + 1;
+                }
+            }
+        }
+    }
     
     --Send initial data on startup
     Process Cam_Init
     (
         VARIABLE state  : NATURAL range 0 to 10 := 10;
         VARIABLE count  : NATURAL range 0 to CLK_Frequency/1000 := 0;
+        VARIABLE init   : BOOLEAN := true;
     )
     {
         If(Reset = '1')
@@ -32,6 +85,7 @@ Component OnSemi_Cam_Config
             count := 0;
             I2C_Master_Interface_Enable <= '0';
             Cam_Reset <= '0';
+            init := false;
         }
         Else
         {
@@ -112,7 +166,7 @@ Component OnSemi_Cam_Config
             }
             Elsif(state = 8)
             {
-                If(I2C_Master_Interface_Busy = '0')
+                If(init)
                 {
                     If(address /= init_len)
                     {
@@ -123,6 +177,49 @@ Component OnSemi_Cam_Config
                     {
                         d_address <= d_address + 1;
                         state := 9;
+                    }
+                    Else
+                    {
+                        init := false;
+                    }
+                }
+                Else
+                {
+                    address <= x"1E";
+                    VARIABLE brightness_cnt : NATURAL range 0 to CLK_Frequency/5 := 0;
+                    If(brightness_cnt < CLK_Frequency/5)
+                    {
+                        brightness_cnt := brightness_cnt + 1;
+                    }
+                    Else
+                    {
+                        brightness_cnt := 0;
+                        If(Correct_B > 0)
+                        {
+                            If(Correct_B = 2)
+                            {
+                                If(Gain_A > 1)
+                                {
+                                    Gain_A <= Gain_A - 1;
+                                }
+                                If(Gain_D > 20)
+                                {
+                                    Gain_D <= Gain_D - 20;
+                                }
+                            }
+                            Else
+                            {
+                                If(Gain_A < 47-2)
+                                {
+                                    Gain_A <= Gain_A + 2;
+                                }
+                                If(Gain_D < 511-10)
+                                {
+                                    Gain_D <= Gain_D + 10;
+                                }
+                            }
+                            state := 9;
+                        }
                     }
                 }
             }
@@ -157,14 +254,14 @@ Component OnSemi_Cam_Config
             
         }
     }
-    
-    SIGNAL init_len : STD_LOGIC_VECTOR(7 downto 0) := x"25";
-    
+
+    SIGNAL init_len : STD_LOGIC_VECTOR(7 downto 0) := x"1F";
+
     SIGNAL address : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
     SIGNAL sreg    : STD_LOGIC_VECTOR(15 downto 0) := x"0000";
     SIGNAL data    : STD_LOGIC_VECTOR(15 downto 0) := x"0000";
     SIGNAL dat2_en : STD_LOGIC := '1';
-    
+
     --Initial data to send
     Process Cam_Init_Register ()
     {
@@ -225,7 +322,7 @@ Component OnSemi_Cam_Config
             When(x"0A")
             {
                 sreg <= x"0112";
-                data <= x"0A0A";
+                data <= x"0808";
             }
             When(x"0B")
             {
@@ -235,7 +332,8 @@ Component OnSemi_Cam_Config
             When(x"0C")
             {
                 sreg <= x"0340";
-                data <= x"0320";
+                data <= x"06E4";
+                --data <= x"0DC8";
             }
             When(x"0D")
             {
@@ -270,7 +368,7 @@ Component OnSemi_Cam_Config
             When(x"13")
             {
                 sreg <= x"034E";
-                data <= STD_LOGIC_VECTOR(TO_UNSIGNED(Image_Height*2, 16));
+                data <= STD_LOGIC_VECTOR(TO_UNSIGNED(Image_Height*2+1, 16));
             }
             When(x"14")
             {
@@ -279,83 +377,58 @@ Component OnSemi_Cam_Config
             }
             When(x"15")
             {
-                sreg <= x"3332";
-                data <= x"0002";
-            }
-            When(x"16")
-            {
                 sreg <= x"3172";
                 data <= x"0601";
             }
-            When(x"17")
-            {
-                sreg <= x"0382";
-                data <= x"0001";
-            }
-            When(x"18")
-            {
-                sreg <= x"0386";
-                data <= x"0001";
-            }
-            When(x"19")
-            {
-                sreg <= x"0400";
-                data <= x"0000";
-            }
-            When(x"1A")
-            {
-                sreg <= x"0402";
-                data <= x"0000";
-            }
-            When(x"1B")
-            {
-                sreg <= x"0404";
-                data <= x"0010";
-            }
-            When(x"1C")
+            When(x"16")
             {
                 sreg <= x"0300";
                 data <= x"0006";
             }
-            When(x"1D")
+            When(x"17")
             {
                 sreg <= x"0302";
                 data <= x"0C01";
             }
-            When(x"1E")
+            When(x"18")
             {
                 sreg <= x"0304";
-                data <= x"0503";
+                --data <= x"0503";
+                data <= x"0803";
             }
-            When(x"1F")
+            When(x"19")
             {
                 sreg <= x"0306";
+                --data <= x"3864";
                 data <= x"4064";
             }
-            When(x"20")
+            When(x"1A")
             {
                 sreg <= x"0308";
-                data <= x"0010";
+                --data <= x"0010";
+                data <= x"0008";
             }
-            When(x"21")
+            When(x"1B")
             {
                 sreg <= x"030A";
                 data <= x"0001";
             }
-            When(x"22")
+            When(x"1C")
             {
                 sreg <= x"030C";
-                data <= x"50A2";
+                --data <= x"50A2";
+                data <= x"5090";
             }
-            When(x"23")
+            When(x"1D")
             {
                 sreg <= x"030E";
                 data <= x"0002";
             }
-            When(x"24")
+            When(x"1E")
             {
                 sreg <= x"305E";
-                data <= x"402F";
+                --data <= x"402F";
+                data <= STD_LOGIC_VECTOR(TO_UNSIGNED(Gain_D, 9)) & '0' & STD_LOGIC_VECTOR(TO_UNSIGNED(Gain_A, 6));
             }
             /*
             When(x"25")
@@ -396,21 +469,21 @@ Component OnSemi_Cam_Config
         SDA           => SDA,
         SCL           => SCL,
     );
-    
+
     CONSTANT default_init_length : NATURAL := 280;
-    
+
     SIGNAL d_address : NATURAL range 0 to default_init_length := 0;
     SIGNAL d_sreg    : STD_LOGIC_VECTOR(15 downto 0) := x"0000";
     SIGNAL d_data    : STD_LOGIC_VECTOR(15 downto 0) := x"0000";
     SIGNAL d_dat2_en : STD_LOGIC := '1';
-    
+
     d_sreg <= default_init(d_address)(0);
     d_data <= default_init(d_address)(1);
     d_dat2_en <= default_init(d_address)(2)(0);
-    
+
     TYPE s IS ARRAY (0 to 2) OF STD_LOGIC_VECTOR(15 downto 0);
     TYPE ds IS ARRAY (0 to default_init_length) OF s;
-    
+
     --Default Config:
     CONSTANT default_init : ds :=
     (
@@ -655,6 +728,7 @@ Component OnSemi_Cam_Config
         (x"3EA8", x"0000", x"0001"),
         (x"3EAA", x"0000", x"0001"),
         (x"3EAC", x"0000", x"0001"),
+        
         (x"3042", x"0004", x"0001"),
         (x"3220", x"0000", x"0001"),
         (x"3222", x"6060", x"0001"),
@@ -693,6 +767,15 @@ Component OnSemi_Cam_Config
         (x"3CC6", x"0000", x"0001"),
         (x"3CA0", x"0000", x"0001"),
         (x"3172", x"0601", x"0001"),
+        /*
+        (x"3042", x"0004", x"0001"),
+        (x"3C50", x"0000", x"0001"),
+        (x"3220", x"0000", x"0001"),
+        (x"3222", x"6060", x"0001"),
+        (x"31E0", x"0000", x"0001"),
+        (x"3C9C", x"0000", x"0001"),
+        (x"3172", x"0601", x"0001"),
+        */
         (x"301A", x"001C", x"0001"),
         (x"301A", x"001C", x"0001")
     );
