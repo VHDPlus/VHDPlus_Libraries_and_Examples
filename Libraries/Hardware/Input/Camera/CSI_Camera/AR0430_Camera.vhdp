@@ -46,8 +46,9 @@ Component AR0430_Camera
     );
     Generic
     (
-        CLK_Frequency : NATURAL := 12000000;
-        CLK_as_PCLK   : BOOLEAN := false;
+        CLK_Frequency   : NATURAL := 12000000;
+        CLK_as_PCLK     : BOOLEAN := false;
+        Auto_Brightness : BOOLEAN := false;
     );
     Reset       : IN STD_LOGIC := '0';
     
@@ -75,17 +76,15 @@ Component AR0430_Camera
         return i;
     }
     
-    CONSTANT Bit_Width   : NATURAL := 10;  --8, 10 or 12 = RAW8, RAW10 or RAW12
+    CONSTANT Bit_Width   : NATURAL := 8;  --8, 10 or 12 = RAW8, RAW10 or RAW12
     
-    CONSTANT Words     : NATURAL := (Image_Width*10*2)/(8*4);
+    CONSTANT Words     : NATURAL := Image_Width/2;
     --CONSTANT Word_Bits : NATURAL := 9; --log2(400)
     CONSTANT Word_Bits : NATURAL := f_log2(Words); --log2(400)
     
     CONSTANT Width_Bits : NATURAL := f_log2(Image_Width);
     
     CONSTANT Mipi_width : NATURAL := 4;
-    
-    CONSTANT Edge1 : BOOLEAN := false;
     
     Connections
     {
@@ -105,27 +104,37 @@ Component AR0430_Camera
         Cam_Reset       => HS_HSR,
     }
     
+    SIGNAL oStream_Reg : rgb_stream;
+    SIGNAL Brighness_Stream_In  : rgb_stream;
+    SIGNAL Brighness_Stream_Out : rgb_stream;
     
-    oStream <= Stream_Out_Reg when CLK_as_PCLK else Stream_Out;
+    oStream_Reg <= Stream_Out_Reg when CLK_as_PCLK else Stream_Out;
+    
+    Brighness_Stream_In <= oStream_Reg when Auto_Brightness else (Column => 0, Row => 0, New_Pixel => '0', others => (others => '0'));
+    
+    oStream <= Brighness_Stream_Out when Auto_Brightness else oStream_Reg;
     
     SIGNAL Stream_Out_Reg  : rgb_stream;
     
     SIGNAL Cur_Pixel_Reg_I : STD_LOGIC_VECTOR(23 downto 0);
     SIGNAL Cur_Pixel_Reg : STD_LOGIC_VECTOR(23 downto 0);
-    Stream_Out_Reg.R <= Cur_Pixel_Reg(23 downto 16) when Stream_Out_Reg.Column mod 2 = 1 XOR Stream_Out_Reg.Row mod 2 = 1 else Stream_Out_Reg.R;
-    Stream_Out_Reg.G <= Cur_Pixel_Reg(15 downto 8) when Stream_Out_Reg.Column mod 2 = 1 XOR Stream_Out_Reg.Row mod 2 = 1 else Stream_Out_Reg.G;
-    Stream_Out_Reg.B <= Cur_Pixel_Reg(7 downto 0) when Stream_Out_Reg.Column mod 2 = 1 XOR Stream_Out_Reg.Row mod 2 = 1 else Stream_Out_Reg.B;
+    
+    Stream_Out_Reg.R <= Cur_Pixel_Reg(23 downto 16);
+    Stream_Out_Reg.G <= Cur_Pixel_Reg(15 downto 8);
+    Stream_Out_Reg.B <= Cur_Pixel_Reg(7 downto 0);
     
     SIGNAL RAM_Addr_A : STD_LOGIC_VECTOR(Width_Bits-1 downto 0);
     SIGNAL RAM_Addr_B : STD_LOGIC_VECTOR(Width_Bits-1 downto 0);
-    RAM_Addr_A <= STD_LOGIC_VECTOR(TO_UNSIGNED(Stream_Out.Column,Width_Bits));
+    RAM_Addr_A <= STD_LOGIC_VECTOR(TO_UNSIGNED(Stream_Out.Column, Width_Bits));
     RAM_Addr_B <= STD_LOGIC_VECTOR(TO_UNSIGNED(Stream_Out_Reg.Column+1,Width_Bits)) when Stream_Out_Reg.Column < Image_Width-1 else (others => '0');
-    
-    debug(4) <= Stream_Out_Reg.New_Pixel;
-    
+
     SIGNAL Row_Reset : STD_LOGIC := '0';
     Row_Reset <= '1' when Frame_Sync_reg = '1' else '0' when Stream_Out_Reg.Row = 0 else Row_Reset;
 
+    debug(4) <= Row_Reset;
+    debug(5) <= '1' when Pixel_Clk_Start else '0';
+    debug(6) <= Stream_Out_Reg.New_Pixel;
+    
     Process ()
     {
         VARIABLE Row_Delay : BOOLEAN := true;
@@ -145,7 +154,10 @@ Component AR0430_Camera
                 }
                 Else
                 {
-                    Stream_Out_Reg.Row <= Stream_Out_Reg.Row + 1;
+                    If(Stream_Out_Reg.Row < Image_Height-1)
+                    {
+                        Stream_Out_Reg.Row <= Stream_Out_Reg.Row + 1;
+                    }
                 }
             }
             Else
@@ -250,6 +262,10 @@ Component AR0430_Camera
         wren_a                             => RAM_WREN,
     );
     
+    RAM_ADDR_OUT <= STD_LOGIC_VECTOR(UNSIGNED(RAM_ADDR_IN)-1);
+    RAM_WREN <= Received_Byte AND Enable_Receive;
+    D_RAM_IN <= Byte_Reg_1(7 downto 0) & Byte_Reg_2(7 downto 0) & Byte_Reg_3(7 downto 0) & Byte_Reg_4(7 downto 0);
+    
     SIGNAL Stream_Out  : rgb_stream;
     
     Stream_Out.New_Pixel <= Pixel_Clock_reg;
@@ -262,11 +278,20 @@ Component AR0430_Camera
             {
                 Stream_Out.Row    <= 0;
                 Stream_Out.Column <= 0;
+                Row_Start         := '1';
             }
             Elsif(Column_Sync_reg = '1')
             {
                 Stream_Out.Column <= 0;
-                Stream_Out.Row    <= Stream_Out.Row + 1;
+                VARIABLE Row_Start : STD_LOGIC := '0';
+                If(Row_Start = '1')
+                {
+                    Row_Start := '0';
+                }
+                Else
+                {
+                    Stream_Out.Row    <= Stream_Out.Row + 1;
+                }
             }
             Else
             {
@@ -375,24 +400,14 @@ Component AR0430_Camera
             }
             
             Pixel_Clock_reg   <= Pixel_Clock_Shift(2);
-            If(Edge1)
+            /*
+            If(Pixel_Clock_Shift(2) = '1')
             {
-                If(Pixel_Clock_Shift(2) = '1')
-                {
-                    Stream_Out.R <= Pixel_reg.R;
-                    Stream_Out.G <= Pixel_reg.G;
-                    Stream_Out.B <= Pixel_reg.B;
-                }
+                Stream_Out.R <= Pixel_reg.R;
+                Stream_Out.G <= Pixel_reg.G;
+                Stream_Out.B <= Pixel_reg.B;
             }
-            Else
-            {
-                If(Pixel_Clock_Shift(1) = '1')
-                {
-                    Stream_Out.R <= Pixel_reg.R;
-                    Stream_Out.G <= Pixel_reg.G;
-                    Stream_Out.B <= Pixel_reg.B;
-                }
-            }
+            */
             Pixel_Clock_Shift <= Pixel_Clock_Shift(1 downto 0) & '0';
             
             Byte_Data_1 := Byte_Reg_1(7 downto 0);
@@ -400,8 +415,6 @@ Component AR0430_Camera
             Byte_Data_3 := Byte_Reg_3(7 downto 0);
             Byte_Data_4 := Byte_Reg_4(7 downto 0);
             
-            RAM_WREN <= '0';
-
             SIGNAL Pixel_Count : UNSIGNED(15 downto 0) := (others => '0');
             If(Received_Byte = '1')
             {
@@ -423,136 +436,84 @@ Component AR0430_Camera
                     {
                         Frame_Sync_reg <= '1';
                         Bayer_Pol_reg  <= '0';
+                        SIGNAL Row_Switch : STD_LOGIC := '0';
+                        Row_Switch <= '0';
+                        SIGNAL Skip_Row : STD_LOGIC := '0';
+                        Skip_Row <= '1';
                     }
                     --0x2A = new RAW8 data
                     Elsif((Byte_Data_1 = x"2A" AND Bit_Width = 8) OR (Byte_Data_1 = x"2B" AND Bit_Width = 10) OR (Byte_Data_1 = x"2C" AND Bit_Width = 12)) --RAW8 = 0x2A, RAW10 = 0x2B, RAW12 = 0x2C
                     {
-                        Column_Sync_reg <= '1';
+                        If(Bayer_Pol_reg = '0' AND Skip_Row = '0')
+                        {
+                            Column_Sync_reg <= '1';
+                        }
                         Enable_Receive  <= '1';
                         Pixel_Count(15 downto 8) <= UNSIGNED(Byte_Data_3);
                         Pixel_Count(7 downto 0)  <= UNSIGNED(Byte_Data_2);
                         RAM_ADDR_IN  <= STD_LOGIC_VECTOR(TO_UNSIGNED(Words, Word_Bits));
-                        RAM_ADDR_OUT <= STD_LOGIC_VECTOR(TO_UNSIGNED(Words-1, Word_Bits));
-                        remainder_pos := 0;
                     }
                     Byte_Count <= 0;
                 }
                 Elsif(Enable_Receive = '1')
                 {
-                    D_RAM_IN <= Byte_Data_1 & Byte_Data_2 & Byte_Data_3 & Byte_Data_4;
                     If(RAM_ADDR_IN /= "000000000")
                     {
                         RAM_ADDR_IN <= STD_LOGIC_VECTOR(UNSIGNED(RAM_ADDR_IN)-1);
                     }
-                    If(RAM_ADDR_OUT /= "000000000")
-                    {
-                        RAM_ADDR_OUT <= STD_LOGIC_VECTOR(UNSIGNED(RAM_ADDR_OUT)-1);
-                    }
-                    RAM_WREN <= '1';
                     
-                    --1. G00 R10 | G20 R30 <- RAM
-                    --2. B01 G11 | B21 G31 <- byte 1-4
+                    --Withour Odd Row Increase:
+                    --Row = 0 Pol = 0: G G R R
+                    --Row = 0 Pol = 1: G G R R
+                    --Row = 1 Pol = 0: B B G G <- Combine
+                    --Row = 1 Pol = 1: B B G G
+                    --Row = 0 Pol = 0: G G R R <- Combine
                     
-                    --Second row -> combine 4 pixels
-                    If(Bayer_Pol_reg = '1')
+                    If(Skip_Row = '0')
                     {
-                        If(Bit_Width = 8)
+                        --Second row -> combine 4 pixels
+                        If(Bayer_Pol_reg = '0')
                         {
-                            Stream_Out.R <= D_RAM_OUT(23 downto 16);
-                            Stream_Out.G <= STD_LOGIC_VECTOR(resize(shift_right(UNSIGNED('0' & D_RAM_OUT(31 downto 24)) + UNSIGNED('0' & Byte_Data_2), 1), 8));
-                            Stream_Out.B <= Byte_Data_1;
-                            
-                            Pixel_reg.R <= D_RAM_OUT(7 downto 0);
-                            Pixel_reg.G <= STD_LOGIC_VECTOR(resize(shift_right(UNSIGNED('0' & D_RAM_OUT(15 downto 8)) + UNSIGNED('0' & Byte_Data_4), 1), 8));
-                            Pixel_reg.B <= Byte_Data_3;
-                            
-                            Pixel_Clock_Shift <= "101";
-                        }
-                        Else
-                        {
-                            --10Bit filtern:
-                            --G00 R10 | G20 R30 || XXX | G40 R50 | G60 || R70 | XXX | G80 R90 || G00 R10 | XXX | G20 || R30 | G40 R50 | XXX ||
-                            --B01 G11 | B21 G31 || XXX | B41 G51 | B61 || G71 | XXX | B81 G91 || B01 G11 | XXX | B21 || G31 | B41 G51 | XXX ||
-                            
-                            --1 + 2 | 3 + 4            <- r=0
-                            --        2 + 3 | 4 -> S   <- r=1
-                            --S + 1 | 3 + 4            <- r=2
-                            --1 + 2         | 4 -> S   <- r=3
-                            --S + 1 | 2 + 3            <- r=4
-                            
-                            VARIABLE remainder_pos : NATURAL range 0 to 4 := 0;
-                            SIGNAL Pixel_Reg1 : STD_LOGIC_VECTOR (7 downto 0) := (others => '0');
-                            SIGNAL Pixel_Reg2 : STD_LOGIC_VECTOR (7 downto 0) := (others => '0');
-                            
-                            If(remainder_pos = 0 OR remainder_pos = 3)
+                            /*
+                            If(Row_Switch = '1')
                             {
-                                Stream_Out.R <= D_RAM_OUT(31 downto 24);
-                                Stream_Out.G <= STD_LOGIC_VECTOR(resize(shift_right(UNSIGNED('0' & D_RAM_OUT(23 downto 16)) + UNSIGNED('0' & Byte_Data_1), 1), 8));
-                                Stream_Out.B <= Byte_Data_2;
+                                Stream_Out.R <= STD_LOGIC_VECTOR(resize(shift_right(UNSIGNED('0' & D_RAM_OUT(15 downto 8)) + UNSIGNED('0' & D_RAM_OUT(7 downto 0)), 1), 8));
+                                Stream_Out.G <= STD_LOGIC_VECTOR(resize(shift_right(UNSIGNED("00" & D_RAM_OUT(31 downto 24)) + UNSIGNED("00" & Byte_Data_3) + UNSIGNED("00" & D_RAM_OUT(23 downto 16)) + UNSIGNED("00" & Byte_Data_4), 2), 8));
+                                Stream_Out.B <= STD_LOGIC_VECTOR(resize(shift_right(UNSIGNED('0' & Byte_Data_1) + UNSIGNED('0' & Byte_Data_2), 1), 8));
                             }
-                            ElsIf(remainder_pos = 2 OR remainder_pos = 4)
+                            Else
                             {
-                                Stream_Out.R <= Pixel_Reg1;
-                                Stream_Out.G <= STD_LOGIC_VECTOR(resize(shift_right(UNSIGNED('0' & D_RAM_OUT(31 downto 24)) + UNSIGNED('0' & Pixel_Reg2), 1), 8));
-                                Stream_Out.B <= Byte_Data_1;
+                                Stream_Out.R <= STD_LOGIC_VECTOR(resize(shift_right(UNSIGNED('0' & Byte_Data_3) + UNSIGNED('0' & Byte_Data_4), 1), 8));
+                                Stream_Out.G <= STD_LOGIC_VECTOR(resize(shift_right(UNSIGNED("00" & D_RAM_OUT(15 downto 8)) + UNSIGNED("00" & Byte_Data_1) + UNSIGNED("00" & D_RAM_OUT(7 downto 0)) + UNSIGNED("00" & Byte_Data_2), 2), 8));
+                                Stream_Out.B <= STD_LOGIC_VECTOR(resize(shift_right(UNSIGNED('0' & D_RAM_OUT(31 downto 24)) + UNSIGNED('0' & D_RAM_OUT(23 downto 16)), 1), 8));
                             }
+                            */
                             
-                            If(remainder_pos = 0 OR remainder_pos = 2)
+                            
+                            If(Row_Switch = '1')
                             {
                                 Pixel_reg.R <= D_RAM_OUT(15 downto 8);
-                                Pixel_reg.G <= STD_LOGIC_VECTOR(resize(shift_right(UNSIGNED('0' & D_RAM_OUT(7 downto 0)) + UNSIGNED('0' & Byte_Data_3), 1), 8));
-                                Pixel_reg.B <= Byte_Data_4;
-                            }
-                            Elsif(remainder_pos = 1 OR remainder_pos = 4)
-                            {
-                                Pixel_reg.R <= D_RAM_OUT(23 downto 16);
-                                Pixel_reg.G <= STD_LOGIC_VECTOR(resize(shift_right(UNSIGNED('0' & D_RAM_OUT(15 downto 8)) + UNSIGNED('0' & Byte_Data_2), 1), 8));
-                                Pixel_reg.B <= Byte_Data_3;
-                            }
-                            
-                            If(Edge1)
-                            {
-                                If(remainder_pos = 1)
-                                {
-                                    Pixel_Clock_Shift <= "001";
-                                }
-                                Elsif(remainder_pos = 3)
-                                {
-                                    Pixel_Clock_Shift <= "100";
-                                }
-                                Else
-                                {
-                                    Pixel_Clock_Shift <= "101";
-                                }
-                            }
-                            Else
-                            {
-                                If(remainder_pos = 3)
-                                {
-                                    Pixel_Clock_Shift <= "000";
-                                }
-                                Else
-                                {
-                                    Pixel_Clock_Shift <= "010";
-                                }
+                                Pixel_reg.G <= STD_LOGIC_VECTOR(resize(shift_right(UNSIGNED('0' & D_RAM_OUT(31 downto 24)) + UNSIGNED('0' & Byte_Data_3), 1), 8));
+                                Pixel_reg.B <= Byte_Data_1;
                                 
-                                If(remainder_pos /= 1)
-                                {
-                                    Pixel_Clock_reg   <= '1';
-                                }
-                            }
-                            
-                            Pixel_Reg1 <= D_RAM_OUT(7 downto 0);
-                            Pixel_Reg2 <= Byte_Data_4;
-                            
-                            If(remainder_pos = 4)
-                            {
-                                remainder_pos := 0;
+                                Stream_Out.R <= D_RAM_OUT(7 downto 0);
+                                Stream_Out.G <= STD_LOGIC_VECTOR(resize(shift_right(UNSIGNED('0' & D_RAM_OUT(23 downto 16)) + UNSIGNED('0' & Byte_Data_4), 1), 8));
+                                Stream_Out.B <= Byte_Data_2;
                             }
                             Else
                             {
-                                remainder_pos := remainder_pos + 1;
+                                Pixel_reg.R <= Byte_Data_3;
+                                Pixel_reg.G <= STD_LOGIC_VECTOR(resize(shift_right(UNSIGNED('0' & D_RAM_OUT(15 downto 8)) + UNSIGNED('0' & Byte_Data_1), 1), 8));
+                                Pixel_reg.B <= D_RAM_OUT(31 downto 24);
+                                
+                                Stream_Out.R <= Byte_Data_4;
+                                Stream_Out.G <= STD_LOGIC_VECTOR(resize(shift_right(UNSIGNED('0' & D_RAM_OUT(7 downto 0)) + UNSIGNED('0' & Byte_Data_2), 1), 8));
+                                Stream_Out.B <= D_RAM_OUT(23 downto 16);
                             }
+                            
+                            
+                            Pixel_Clock_Shift <= "010";
+                            Pixel_Clock_reg <= '1';
                         }
                     }
                     
@@ -560,6 +521,11 @@ Component AR0430_Camera
                     {
                         Enable_Receive <= '0';
                         Bayer_Pol_reg  <= NOT Bayer_Pol_reg;
+                        If(Bayer_Pol_reg = '1')
+                        {
+                            Row_Switch <= not Row_Switch;
+                        }
+                        Skip_Row <= '0';
                         Pixel_Count    <= (others => '0');
                     }
                     Else
@@ -579,5 +545,8 @@ Component AR0430_Camera
         Cam_Reset     => Cam_Reset,
         SCL           => SCL,
         SDA           => SDA,
+        
+        iStream       => Brighness_Stream_In,
+        oStream       => Brighness_Stream_Out,
     );
 }
