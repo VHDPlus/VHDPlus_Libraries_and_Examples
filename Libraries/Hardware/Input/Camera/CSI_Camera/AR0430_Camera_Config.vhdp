@@ -16,12 +16,8 @@ Component OnSemi_Cam_Config
     SDA         : INOUT STD_LOGIC;
     
     iStream     : IN  rgb_stream; --Brighness Adjust
-    oStream     : OUT rgb_stream;
 )
 {
-    oStream <= iStream;
-    
-    
     SIGNAL Gain_D : NATURAL range 0 to 511 := 511;
     SIGNAL Gain_A : NATURAL range 0 to 47 := 47;
     
@@ -327,47 +323,47 @@ Component OnSemi_Cam_Config
             When(x"0B")
             {
                 sreg <= x"0202";
-                data <= x"0500";
+                data <= x"0700";
             }
-            When(x"0C")  --fps
+            When(x"0C")
             {
                 sreg <= x"0340";
-                data <= x"087A";
+                data <= x"0650";
             }
-            When(x"0D") --fps
+            When(x"0D")
             {
                 sreg <= x"0342";
-                data <= x"1500";
+                data <= x"4000";
             }
             When(x"0E")
             {
                 sreg <= x"0344";
-                data <= x"0418";
+                data <= x"0008";
             }
             When(x"0F")
             {
                 sreg <= x"0346";
-                data <= x"0408";
+                data <= x"0008";
             }
             When(x"10")
             {
                 sreg <= x"0348";
-                data <= x"0E16";
+                data <= x"1226";
             }
             When(x"11")
             {
                 sreg <= x"034A";
-                data <= x"09A6";
+                data <= x"0DAA";
             }
             When(x"12")
             {
                 sreg <= x"034C";
-                data <= x"0500";
+                data <= STD_LOGIC_VECTOR(TO_UNSIGNED(Image_Width*2, 16));
             }
             When(x"13")
             {
                 sreg <= x"034E";
-                data <= x"02D0";
+                data <= STD_LOGIC_VECTOR(TO_UNSIGNED(Image_Height*2, 16));
             }
             When(x"14")
             {

@@ -106,13 +106,12 @@ Component AR0430_Camera
     
     SIGNAL oStream_Reg : rgb_stream;
     SIGNAL Brighness_Stream_In  : rgb_stream;
-    SIGNAL Brighness_Stream_Out : rgb_stream;
     
     oStream_Reg <= Stream_Out_Reg when CLK_as_PCLK else Stream_Out;
     
     Brighness_Stream_In <= oStream_Reg when Auto_Brightness else (Column => 0, Row => 0, New_Pixel => '0', others => (others => '0'));
     
-    oStream <= Brighness_Stream_Out when Auto_Brightness else oStream_Reg;
+    oStream <= oStream_Reg;
     
     SIGNAL Stream_Out_Reg  : rgb_stream;
     
@@ -498,6 +497,5 @@ Component AR0430_Camera
         SDA           => SDA,
         
         iStream       => Brighness_Stream_In,
-        oStream       => Brighness_Stream_Out,
     );
 }
