@@ -327,15 +327,14 @@ Component OnSemi_Cam_Config
             When(x"0B")
             {
                 sreg <= x"0202";
-                data <= x"1000";
+                data <= x"0500";
             }
-            When(x"0C")
+            When(x"0C")  --fps
             {
                 sreg <= x"0340";
-                data <= x"06E4";
-                --data <= x"0DC8";
+                data <= x"087A";
             }
-            When(x"0D")
+            When(x"0D") --fps
             {
                 sreg <= x"0342";
                 data <= x"1500";
@@ -343,37 +342,37 @@ Component OnSemi_Cam_Config
             When(x"0E")
             {
                 sreg <= x"0344";
-                data <= x"0008";
+                data <= x"0418";
             }
             When(x"0F")
             {
                 sreg <= x"0346";
-                data <= x"0008";
+                data <= x"0408";
             }
             When(x"10")
             {
                 sreg <= x"0348";
-                data <= x"1226";
+                data <= x"0E16";
             }
             When(x"11")
             {
                 sreg <= x"034A";
-                data <= x"0DAA";
+                data <= x"09A6";
             }
             When(x"12")
             {
                 sreg <= x"034C";
-                data <= STD_LOGIC_VECTOR(TO_UNSIGNED(Image_Width*2, 16));
+                data <= x"0500";
             }
             When(x"13")
             {
                 sreg <= x"034E";
-                data <= STD_LOGIC_VECTOR(TO_UNSIGNED(Image_Height*2+1, 16));
+                data <= x"02D0";
             }
             When(x"14")
             {
                 sreg <= x"3040";
-                data <= x"0041";
+                data <= x"00C3";
             }
             When(x"15")
             {
@@ -393,19 +392,16 @@ Component OnSemi_Cam_Config
             When(x"18")
             {
                 sreg <= x"0304";
-                --data <= x"0503";
                 data <= x"0803";
             }
             When(x"19")
             {
                 sreg <= x"0306";
-                --data <= x"3864";
                 data <= x"4064";
             }
             When(x"1A")
             {
                 sreg <= x"0308";
-                --data <= x"0010";
                 data <= x"0008";
             }
             When(x"1B")
@@ -416,8 +412,7 @@ Component OnSemi_Cam_Config
             When(x"1C")
             {
                 sreg <= x"030C";
-                --data <= x"50A2";
-                data <= x"5090";
+                data <= x"50A2";
             }
             When(x"1D")
             {
@@ -427,7 +422,6 @@ Component OnSemi_Cam_Config
             When(x"1E")
             {
                 sreg <= x"305E";
-                --data <= x"402F";
                 data <= STD_LOGIC_VECTOR(TO_UNSIGNED(Gain_D, 9)) & '0' & STD_LOGIC_VECTOR(TO_UNSIGNED(Gain_A, 6));
             }
             /*
