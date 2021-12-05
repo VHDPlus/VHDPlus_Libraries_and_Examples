@@ -1,0 +1,82 @@
+/*
+    Name: Image Data
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 23.02.2020
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Description: -This component has to be included in every project that uses a camera
+                 -Here the camera data stream datatype is defined and the image size and FPS
+                  for the entire project
+ */
+
+Package Image_Data_Package
+{
+    Include();
+    --Tested combinations:
+    
+    --VS_Converter (only works with some HDMI Displays):
+    --Tested on Raspberry Pi 1024*600 HDMI Touchdisplay with TFP401
+    --1280x960 20fps
+    --1280x720 20fps
+    --640x480 40fps
+    
+    --Camera_Capture with VS_RAM_Interface:
+    --640x480 50fps
+
+    --SDRAM Capture:
+    --640x480 40fps
+    --1280x720 25fps (with Raspberry Pi display)
+    
+    CONSTANT Image_Width  : NATURAL := 640; --1280, 1280, 640 or 320
+    CONSTANT Image_Height : NATURAL := 480;  --960,  720, 480 or 240
+    CONSTANT Image_FPS    : NATURAL := 30;
+    
+    --HDMI Timing
+    --https://www.digi.com/resources/documentation/digidocs/90001945-13/reference/yocto/r_an_adding_custom_display.htm
+    --https://tomverbeure.github.io/video_timings_calculator
+
+    CONSTANT HDMI_Width  : NATURAL := 640; --1280, 1280, 1024, 640 or 320
+    CONSTANT HDMI_Height : NATURAL := 480; -- 960,  720,  600, 480 or 240
+    
+    CONSTANT HBP_Len : NATURAL := 47;      --Horizontal Back Porch    (40 for 1280*720, 47 for 640*480,   0 for 1024*600)
+    CONSTANT HFP_Len : NATURAL := 16;      --Horizontal Front porch   ( 8 for 1280*720, 16 for 640*480,   0 for 1024*600)
+    CONSTANT HSLEN_Len : NATURAL := 96;    --HSYNC length             (32 for 1280*720, 96 for 640*480, 176 for 1024*600)
+    
+    CONSTANT VBP_Len : NATURAL := 33;      --Vertical Back Porch      (6 for 1280*720, 33 for 640*480,  0 for 1024*600)
+    CONSTANT VFP_Len : NATURAL := 10;      --Vertical Front Porch     (1 for 1280*720, 10 for 640*480,  0 for 1024*600)
+    CONSTANT VSLEN_Len : NATURAL := 2;     --VSYNC length             (8 for 1280*720,  2 for 640*480, 25 for 1024*600)
+    
+    
+    TYPE rgb_data IS RECORD
+    R : STD_LOGIC_VECTOR(7 downto 0);
+    G : STD_LOGIC_VECTOR(7 downto 0);
+    B : STD_LOGIC_VECTOR(7 downto 0);
+    END RECORD rgb_data;
+    
+    TYPE rgb_stream IS RECORD
+    R         : STD_LOGIC_VECTOR(7 downto 0);
+    G         : STD_LOGIC_VECTOR(7 downto 0);
+    B         : STD_LOGIC_VECTOR(7 downto 0);
+    Column    : NATURAL range 0 to Image_Width-1;
+    Row       : NATURAL range 0 to Image_Height-1;
+    New_Pixel : STD_LOGIC;
+    END RECORD rgb_stream;
+}

@@ -323,17 +323,17 @@ Component OnSemi_Cam_Config
             When(x"0B")
             {
                 sreg <= x"0202";
-                data <= x"0700";
+                data <= STD_LOGIC_VECTOR(TO_UNSIGNED(1616*20*Image_Width/(Image_FPS*1280), 16));
             }
             When(x"0C")
             {
                 sreg <= x"0340";
-                data <= x"0650";
+                data <= STD_LOGIC_VECTOR(TO_UNSIGNED(1616*20*Image_Width/(Image_FPS*1280), 16));
             }
             When(x"0D")
             {
                 sreg <= x"0342";
-                data <= x"4000";
+                data <= STD_LOGIC_VECTOR(TO_UNSIGNED(16384*Image_Width/1280, 16));
             }
             When(x"0E")
             {
