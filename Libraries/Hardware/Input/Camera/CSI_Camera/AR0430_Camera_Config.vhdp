@@ -32,7 +32,7 @@ Component OnSemi_Cam_Config
             {
                 Correct_B <= 2;
             }
-            Elsif(Dark_Cnt < 100)
+            Elsif(Dark_Cnt < 1000)
             {
                 Correct_B <= 1;
             }
@@ -198,9 +198,17 @@ Component OnSemi_Cam_Config
                                 {
                                     Gain_A <= Gain_A - 1;
                                 }
+                                Else
+                                {
+                                    Gain_A <= 0;
+                                }
                                 If(Gain_D > 20)
                                 {
                                     Gain_D <= Gain_D - 20;
+                                }
+                                Else
+                                {
+                                    Gain_D <= 0;
                                 }
                             }
                             Else
@@ -209,9 +217,17 @@ Component OnSemi_Cam_Config
                                 {
                                     Gain_A <= Gain_A + 2;
                                 }
+                                Else
+                                {
+                                    Gain_A <= 47;
+                                }
                                 If(Gain_D < 511-10)
                                 {
                                     Gain_D <= Gain_D + 10;
+                                }
+                                Else
+                                {
+                                    Gain_D <= 511;
                                 }
                             }
                             state := 9;
@@ -323,7 +339,7 @@ Component OnSemi_Cam_Config
             When(x"0B")
             {
                 sreg <= x"0202";
-                data <= STD_LOGIC_VECTOR(TO_UNSIGNED(1616*20*Image_Width/(Image_FPS*1280), 16));
+                data <= STD_LOGIC_VECTOR(TO_UNSIGNED(1616*20*Image_Width*Image_Exposure/(Image_FPS*1280*100), 16));
             }
             When(x"0C")
             {

@@ -42,8 +42,8 @@ Package Image_Data_Package
     --640x480 50fps
 
     --SDRAM Capture:
-    --640x480 40fps
-    --1280x720 25fps (with Raspberry Pi display)
+    --640x480 40fps  (with most displays)
+    --1280x720 25fps (with some displays that also support slower frame rate)
     
     CONSTANT Image_Width  : NATURAL := 640; --1280, 1280, 640 or 320
     CONSTANT Image_Height : NATURAL := 480;  --960,  720, 480 or 240
