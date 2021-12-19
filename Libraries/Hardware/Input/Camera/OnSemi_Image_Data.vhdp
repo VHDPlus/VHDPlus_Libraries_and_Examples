@@ -34,27 +34,28 @@ Package Image_Data_Package
 
     --SDRAM Capture:
     --640x480 40fps  (with most displays)
-    --1280x720 20fps (with some displays that also support slower frame rate)
+    --up to 1152x864 20fps (with some displays that also support slower frame rate)
+    --A 640x480 image is created from 1280x960 pixels
     
-    CONSTANT Image_Width    : NATURAL := 1280; --1280 or 640
-    CONSTANT Image_Height   : NATURAL := 720;  -- 720 or 480
-    CONSTANT Image_FPS      : NATURAL := 20;
-    CONSTANT Image_Exposure : NATURAL := 20;   -- 1-100 (in percent of maximum exposure)
+    CONSTANT Image_Width    : NATURAL := 640;
+    CONSTANT Image_Height   : NATURAL := 480;
+    CONSTANT Image_FPS      : NATURAL := 30;
+    CONSTANT Image_Exposure : NATURAL := 100;   -- 1-100 (in percent of maximum exposure)
     
     --HDMI Timing
     --https://www.digi.com/resources/documentation/digidocs/90001945-13/reference/yocto/r_an_adding_custom_display.htm
     --https://tomverbeure.github.io/video_timings_calculator
 
-    CONSTANT HDMI_Width  : NATURAL := 1280; --1280, 1024 or 640
-    CONSTANT HDMI_Height : NATURAL := 720;  -- 720,  600 or 480
+    CONSTANT HDMI_Width  : NATURAL := 640; --1280, 1024 or 640
+    CONSTANT HDMI_Height : NATURAL := 480; -- 720,  600 or 480
     
-    CONSTANT HBP_Len : NATURAL := 40;      --Horizontal Back Porch    (40 for 1280*720, 47 for 640*480,   0 for 1024*600)
-    CONSTANT HFP_Len : NATURAL := 8;      --Horizontal Front porch   ( 8 for 1280*720, 16 for 640*480,   0 for 1024*600)
-    CONSTANT HSLEN_Len : NATURAL := 32;    --HSYNC length             (32 for 1280*720, 96 for 640*480, 176 for 1024*600)
+    CONSTANT HBP_Len : NATURAL := 47;      --Horizontal Back Porch    (40 for 1280*720, 47 for 640*480,   0 for 1024*600)
+    CONSTANT HFP_Len : NATURAL := 16;      --Horizontal Front porch   ( 8 for 1280*720, 16 for 640*480,   0 for 1024*600)
+    CONSTANT HSLEN_Len : NATURAL := 96;    --HSYNC length             (32 for 1280*720, 96 for 640*480, 176 for 1024*600)
     
-    CONSTANT VBP_Len : NATURAL := 6;      --Vertical Back Porch      (6 for 1280*720, 33 for 640*480,  0 for 1024*600)
-    CONSTANT VFP_Len : NATURAL := 1;      --Vertical Front Porch     (1 for 1280*720, 10 for 640*480,  0 for 1024*600)
-    CONSTANT VSLEN_Len : NATURAL := 8;     --VSYNC length             (8 for 1280*720,  2 for 640*480, 25 for 1024*600)
+    CONSTANT VBP_Len : NATURAL := 33;      --Vertical Back Porch      (6 for 1280*720, 33 for 640*480,  0 for 1024*600)
+    CONSTANT VFP_Len : NATURAL := 10;      --Vertical Front Porch     (1 for 1280*720, 10 for 640*480,  0 for 1024*600)
+    CONSTANT VSLEN_Len : NATURAL := 2;     --VSYNC length             (8 for 1280*720,  2 for 640*480, 25 for 1024*600)
     
     
     TYPE rgb_data IS RECORD
