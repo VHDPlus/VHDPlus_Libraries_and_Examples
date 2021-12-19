@@ -15,6 +15,7 @@ Component USB_SDRAM_Interface
     Pixel_CLK   : OUT    STD_LOGIC;
     
     TX          : OUT    STD_LOGIC;
+    RX          : IN     STD_LOGIC;
 )
 {
     HS_CLK    <= PLL_c0;
@@ -38,11 +39,11 @@ Component USB_SDRAM_Interface
             data <= Read_Data;
             
             SIGNAL Increase : STD_LOGIC := '0';
-            SIGNAL HS : STD_LOGIC := '0';
-            SIGNAL VS : STD_LOGIC := '0';
+            SIGNAL HS : STD_LOGIC := '1';
+            SIGNAL VS : STD_LOGIC := '1';
             If(Increase = '1')
             {
-                If(Column < HDMI_Width)
+                If(Column < HDMI_Width-1)
                 {
                     Column := Column + 1;
                     HS     <= '0';
@@ -51,7 +52,7 @@ Component USB_SDRAM_Interface
                 {
                     Column := 0;
                     HS     <= '1';
-                    If(Row < HDMI_Height)
+                    If(Row < HDMI_Height-1)
                     {
                         Row := Row + 1;
                         VS  <= '0';
@@ -64,8 +65,8 @@ Component USB_SDRAM_Interface
                 }
             }
             
-            VARIABLE Column : NATURAL range 0 to Image_Width-1  := 0;
-            VARIABLE Row    : NATURAL range 0 to Image_Height-1 := 0;
+            VARIABLE Column : NATURAL range 0 to Image_Width-1  := Image_Width-1;
+            VARIABLE Row    : NATURAL range 0 to Image_Height-1 := Image_Height-1;
             
             Read_Column <= Column;
             Read_Row    <= Row;
@@ -87,7 +88,13 @@ Component USB_SDRAM_Interface
                 {
                     If(VS = '1')
                     {
-                        Wait(28000000);
+                        SIGNAL rx_data : STD_LOGIC_VECTOR(7 downto 0) := x"00";
+                        While(rx_data /= s"r")
+                        {
+                            NewFunction read (rx_data, UART_Interface_RX_Data, UART_Interface_RX_Busy);
+                        }
+                        rx_data <= x"00";
+                        
                         NewFunction write (s"f", UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
                     }
                     NewFunction write (s"\n", UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
@@ -102,6 +109,8 @@ Component USB_SDRAM_Interface
     SIGNAL UART_Interface_TX_Enable     : STD_LOGIC := '0';
     SIGNAL UART_Interface_TX_Busy       : STD_LOGIC := '0';
     SIGNAL UART_Interface_TX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
+    SIGNAL UART_Interface_RX_Busy       : STD_LOGIC := '0';
+    SIGNAL UART_Interface_RX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
     NewComponent UART_Interface
     (
         CLK_Frequency => 168000000,
@@ -113,8 +122,11 @@ Component USB_SDRAM_Interface
         
         CLK           => PLL_c0,
         TX            => TX,
+        RX            => RX,
         TX_Enable     => UART_Interface_TX_Enable,
         TX_Busy       => UART_Interface_TX_Busy,
         TX_Data       => UART_Interface_TX_Data,
+        RX_Busy       => UART_Interface_RX_Busy,
+        RX_Data       => UART_Interface_RX_Data,
     );
 }
