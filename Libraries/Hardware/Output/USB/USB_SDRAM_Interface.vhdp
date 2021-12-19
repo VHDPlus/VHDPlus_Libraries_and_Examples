@@ -1,0 +1,120 @@
+Component USB_SDRAM_Interface
+(
+    Generic
+    (
+        Baud_Rate  : INTEGER := 12000000; --data link baud rate in bits/second
+    );
+    
+    --RAM interface (VGA 24bit)
+    Read_Column : OUT    NATURAL range 0 to Image_Width-1 := 0;
+    Read_Row    : OUT    NATURAL range 0 to Image_Height-1 := 0;
+    Read_Data   : IN     STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
+    
+    HS_CLK      : OUT    STD_LOGIC;
+    SDRAM_CLK   : OUT    STD_LOGIC;
+    Pixel_CLK   : OUT    STD_LOGIC;
+    
+    TX          : OUT    STD_LOGIC;
+)
+{
+    HS_CLK    <= PLL_c0;
+    Pixel_CLK <= PLL_c2;
+    
+    SIGNAL PLL_c0     : STD_LOGIC;
+    SIGNAL PLL_c2     : STD_LOGIC;
+    NewComponent USB_SDRAM_PLL
+    (
+        inclk0 => CLK,
+        c0     => PLL_c0,    --168MHz
+        c1     => SDRAM_CLK, --168MHz -90°
+        c2     => PLL_c2,    --28MHz
+    );
+    
+    Process ()
+    {
+        If(rising_edge(PLL_c2))
+        {
+            SIGNAL data : STD_LOGIC_VECTOR(23 downto 0);
+            data <= Read_Data;
+            
+            SIGNAL Increase : STD_LOGIC := '0';
+            SIGNAL HS : STD_LOGIC := '0';
+            SIGNAL VS : STD_LOGIC := '0';
+            If(Increase = '1')
+            {
+                If(Column < HDMI_Width)
+                {
+                    Column := Column + 1;
+                    HS     <= '0';
+                }
+                Else
+                {
+                    Column := 0;
+                    HS     <= '1';
+                    If(Row < HDMI_Height)
+                    {
+                        Row := Row + 1;
+                        VS  <= '0';
+                    }
+                    Else
+                    {
+                        Row := 0;
+                        VS  <= '1';
+                    }
+                }
+            }
+            
+            VARIABLE Column : NATURAL range 0 to Image_Width-1  := 0;
+            VARIABLE Row    : NATURAL range 0 to Image_Height-1 := 0;
+            
+            Read_Column <= Column;
+            Read_Row    <= Row;
+        }
+    }
+    
+    Process ()
+    {
+        If(rising_edge(PLL_c2))
+        {
+            Thread
+            {
+                Step
+                {
+                    Increase <= '1';
+                }
+                Increase <= '0';
+                If(HS = '1')
+                {
+                    If(VS = '1')
+                    {
+                        Wait(28000000);
+                        NewFunction write (s"f", UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+                    }
+                    NewFunction write (s"\n", UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+                }
+                NewFunction write (data(23 downto 16), UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+                NewFunction write (data(15 downto 8),  UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+                NewFunction write (data(7  downto 0),  UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+            }
+        }
+    }
+    
+    SIGNAL UART_Interface_TX_Enable     : STD_LOGIC := '0';
+    SIGNAL UART_Interface_TX_Busy       : STD_LOGIC := '0';
+    SIGNAL UART_Interface_TX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
+    NewComponent UART_Interface
+    (
+        CLK_Frequency => 168000000,
+        Baud_Rate     => Baud_Rate,
+        OS_Rate       => 14,
+        D_Width       => 8,
+        Parity        => 0,
+        Parity_EO     => '0',
+        
+        CLK           => PLL_c0,
+        TX            => TX,
+        TX_Enable     => UART_Interface_TX_Enable,
+        TX_Busy       => UART_Interface_TX_Busy,
+        TX_Data       => UART_Interface_TX_Data,
+    );
+}
