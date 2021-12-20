@@ -40,6 +40,8 @@ Component Camera_Capture_SDRAM
         CLK_Edge    : BOOLEAN := true; --true = rising edge
     );
 
+    Enable      : IN    STD_LOGIC := '1';
+    
     --Camera data
     iStream     : IN     rgb_stream;
     
@@ -193,39 +195,36 @@ Component Camera_Capture_SDRAM
                     
                     If(RAM_Out_Row_reg /= RAM_Out_Row)
                     {
-                        states := read;
-                        
-                        If(Read_Row < Image_Height-1)
+                        If(SDRAM_Busy = '1')
                         {
-                            Full_Out_Row_reg := Read_Row+1;
+                            states := read;
                         }
-                        Else
-                        {
-                            Full_Out_Row_reg := 0;
-                        }
-                        
+                        Full_Out_Row_reg   := Read_Row;
                         SDRAM_Read_Enable <= '1';
                         SDRAM_Address <= STD_LOGIC_VECTOR(TO_UNSIGNED(Full_Out_Row_reg*Image_Width + col, SDRAM_Address'LENGTH));
                     }
                     Elsif(RAM_In_Row_reg /= RAM_In_Row)
                     {
-                        states := write_load;
-                        
-                        Full_In_Row_reg := Full_In_Row;
-                        Full_In_Row     := iStream.Row;
-                        
-                        RAM_In_Col_o    <= col;
-                        RAM_In_Row_o    <= RAM_In_Row_reg;
+                        If (Enable = '1' OR Full_In_Row_reg > 0)
+                        {
+                            states := write_load;
+                            
+                            Full_In_Row_reg := Full_In_Row;
+                            Full_In_Row     := iStream.Row;
+                            
+                            RAM_In_Col_o    <= col;
+                            RAM_In_Row_o    <= RAM_In_Row_reg;
+                        }
                     }
                 }
                 When(read)
                 {
-                    If(SDRAM_Busy = '0')
+                    If(SDRAM_Read_Valid = '1')
                     {
-                        RAM_Out_Row_i  <= RAM_Out_Row_reg;
+                        RAM_Out_Row_i  <= (RAM_Out_Row_reg+1) mod 2;
                         RAM_Out_Col_i  <= col;
                         RAM_Data_Out_i <= SDRAM_Read_Data;
-                            
+                        
                         SDRAM_Read_Enable <= '0';
                         
                         If(col < Image_Width-1)
