@@ -1,0 +1,134 @@
+/*
+    Name: Color Correction
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 23.02.2020
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Description: -This component corrects the R, G and B output of the camera
+                 -The values can be multiplied, divided or added by individual values to correct the colors
+
+    Insertion:   -Right click on the file -> Add to active project
+                 -Add NewComponent of this component into your code
+                 -Set the parameters according to your application
+                 -Connect the camera stream
+                    
+    Example:     Camera_CSI_Example
+ */
+
+Component Color_Correction_Filter
+(
+    Include
+    (
+        Image_Data_Package.all,
+    );
+    Generic
+    (
+        CLK_Edge    : BOOLEAN := true; --true = rising edge
+    );
+    
+    R_Multiplier : IN NATURAL range 0 to 15 := 1;
+    R_Divider    : IN NATURAL range 0 to 15 := 1;
+    R_Add        : IN INTEGER range -64 to 63 := 0;
+    
+    G_Multiplier : IN NATURAL range 0 to 15 := 1;
+    G_Divider    : IN NATURAL range 0 to 15 := 1;
+    G_Add        : IN INTEGER range -64 to 63 := 0;
+    
+    B_Multiplier : IN NATURAL range 0 to 15 := 1;
+    B_Divider    : IN NATURAL range 0 to 15 := 1;
+    B_Add        : IN INTEGER range -64 to 63 := 0;
+    
+    iStream      : in   rgb_stream;
+    oStream      : out  rgb_stream;
+)
+{
+    oStream.New_Pixel <= iStream.New_Pixel;
+    
+    SIGNAL iStream_buf    : rgb_stream;
+    SIGNAL oStream_buf    : rgb_stream;
+    
+    SIGNAL New_Pixel_Buf : STD_LOGIC;
+    New_Pixel_Buf <= iStream.New_Pixel when CLK_Edge else NOT iStream.New_Pixel;
+    
+    --Synchron machen
+    Process ()
+    {
+        If(rising_edge(New_Pixel_Buf))
+        {
+            iStream_buf <= iStream;
+            
+            oStream.R <= oStream_buf.R;
+            oStream.G <= oStream_buf.G;
+            oStream.B <= oStream_buf.B;
+            oStream.Column <= oStream_buf.Column;
+            oStream.Row <= oStream_buf.Row;
+            
+            VARIABLE pixel_buf_r : INTEGER range -100 to 355;
+            VARIABLE pixel_buf_g : INTEGER range -100 to 355;
+            VARIABLE pixel_buf_b : INTEGER range -100 to 355;
+            pixel_buf_r := (TO_INTEGER(UNSIGNED(iStream_buf.R))*R_Multiplier)/R_Divider + R_Add;
+            pixel_buf_g := (TO_INTEGER(UNSIGNED(iStream_buf.G))*G_Multiplier)/G_Divider + G_Add;
+            pixel_buf_b := (TO_INTEGER(UNSIGNED(iStream_buf.B))*B_Multiplier)/B_Divider + B_Add;
+            
+            oStream_buf.Column <= iStream_buf.Column;
+            oStream_buf.Row    <= iStream_buf.Row;
+            If(pixel_buf_r <= 255 AND pixel_buf_r >= 0)
+            {
+                oStream_buf.R <= STD_LOGIC_VECTOR(TO_UNSIGNED(pixel_buf_r,8));
+            }
+            Elsif(pixel_buf_r > 255)
+            {
+                oStream_buf.R <= (others => '1');
+            }
+            Else
+            {
+                oStream_buf.R <= (others => '0');
+            }
+            
+            If(pixel_buf_g <= 255 AND pixel_buf_g >= 0)
+            {
+                oStream_buf.G <= STD_LOGIC_VECTOR(TO_UNSIGNED(pixel_buf_g,8));
+            }
+            Elsif(pixel_buf_g > 255)
+            {
+                oStream_buf.G <= (others => '1');
+            }
+            Else
+            {
+                oStream_buf.G <= (others => '0');
+            }
+            
+            If(pixel_buf_b <= 255 AND pixel_buf_b >= 0)
+            {
+                oStream_buf.B <= STD_LOGIC_VECTOR(TO_UNSIGNED(pixel_buf_b,8));
+            }
+            Elsif(pixel_buf_b > 255)
+            {
+                oStream_buf.B <= (others => '1');
+            }
+            Else
+            {
+                oStream_buf.B <= (others => '0');
+            }
+        }
+    }
+    
+}

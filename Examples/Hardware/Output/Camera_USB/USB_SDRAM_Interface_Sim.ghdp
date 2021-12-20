@@ -1,0 +1,92 @@
+Component USB_SDRAM_Interface_tb()
+{
+    SIGNAL finished : STD_LOGIC:= '0';
+    CONSTANT period_time : TIME := 83333 ps;
+
+    Process Sim_finished()
+    {
+        wait for 10000 us;
+        finished <= '1';
+        wait;
+    }
+
+    NewComponent USB_SDRAM_Interface
+    (
+        Baud_Rate => Baud_Rate,
+        Read_Column => Read_Column,
+        Read_Row => Read_Row,
+        Read_Data => Read_Data,
+        HS_CLK => HS_CLK,
+        SDRAM_CLK => SDRAM_CLK,
+        Pixel_CLK => Pixel_CLK,
+        TX => TX,
+        RX => UART_Interface_TX,
+        CLK => CLK,
+    );
+
+    SIGNAL Baud_Rate : INTEGER  := 12000000;
+    SIGNAL Read_Column : NATURAL range 0 to Image_Width-1 := 0;
+    SIGNAL Read_Row : NATURAL range 0 to Image_Height-1 := 0;
+    SIGNAL Read_Data : STD_LOGIC_VECTOR (23 downto 0) := (others => '0');
+    SIGNAL HS_CLK : STD_LOGIC ;
+    SIGNAL SDRAM_CLK : STD_LOGIC ;
+    SIGNAL Pixel_CLK : STD_LOGIC ;
+    SIGNAL TX : STD_LOGIC ;
+    SIGNAL CLK : STD_LOGIC := '0';
+
+
+    Process Sim_Read_Data()
+    {
+        While(finished /= '1')
+        {
+            Read_Data <= x"013456";
+            wait for 1 us;
+            Read_Data <= x"654321";
+            wait for 1 us;
+            
+        }
+        wait;
+    }
+
+    Process Sim_CLK()
+    {
+        While(finished /= '1')
+        {
+            CLK <= '0';
+            wait for period_time/2;
+            CLK <= '1';
+            wait for period_time/2;
+        }
+        wait;
+    }
+    
+    Process ()
+    {
+        Thread
+        {
+            Wait(10us);
+            NewFunction write (s"r", UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+            Wait(1000ms);
+        }
+    }
+    
+    SIGNAL UART_Interface_TX            : STD_LOGIC := '1';
+    SIGNAL UART_Interface_TX_Enable     : STD_LOGIC := '0';
+    SIGNAL UART_Interface_TX_Busy       : STD_LOGIC := '0';
+    SIGNAL UART_Interface_TX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
+    NewComponent UART_Interface
+    (
+        CLK_Frequency => 168000000,
+        Baud_Rate     => Baud_Rate,
+        OS_Rate       => 14,
+        D_Width       => 8,
+        Parity        => 0,
+        Parity_EO     => '0',
+
+        CLK => HS_CLK,
+        TX            =>UART_Interface_TX,
+        TX_Enable     =>UART_Interface_TX_Enable,
+        TX_Busy       =>UART_Interface_TX_Busy,
+        TX_Data       =>UART_Interface_TX_Data,
+    );
+}

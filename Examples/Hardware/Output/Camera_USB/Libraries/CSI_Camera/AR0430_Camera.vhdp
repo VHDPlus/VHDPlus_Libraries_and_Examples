@@ -1,0 +1,502 @@
+/*
+    Name: AR0430 Camera
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 26.11.2021
+    Copyright (c) 2021 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important:   -The Enable pin (A4_N) has to be set to '1' manually
+                 -CLK_Lane and Data_Lane are differential I/Os. Connect positive pins with the signals.
+                 -To add the negative pins, use "Connections" in this file and connect [signal name](n).
+    
+    Description: -This component initializies an OnSemi AR0430 camera with an I2C interface and
+                  outputs the received camera data.
+    
+    Insertion:   -Right click on the CSI_Camera folder and the I2C library -> Add to active project
+                 -Add NewComponent of AR0430_Camera into your code
+                 -Set CLK_Frequency to the frequency of the clock you connect with CLK of this component (>50MHz)
+                 -Right click AR0430_Camera next to NewComponent and create the required signals
+    
+    Function:    1. Wait until Column changes
+                 2. Read the pixel value at the current Row and Column (The image is 640x480)
+ */
+
+Component AR0430_Camera
+(
+    Include
+    (
+        Image_Data_Package.all,
+    );
+    Generic
+    (
+        CLK_Frequency   : NATURAL := 12000000;
+        CLK_as_PCLK     : BOOLEAN := false;
+        Auto_Brightness : BOOLEAN := false;
+    );
+    Reset       : IN STD_LOGIC := '0';
+    
+    CLK_Lane    : IN  STD_LOGIC;
+    Data_Lane   : IN  STD_LOGIC_VECTOR (3 downto 0);
+    
+    Cam_Reset   : OUT STD_LOGIC := '1';
+    
+    SCL         : INOUT STD_LOGIC;
+    SDA         : INOUT STD_LOGIC;
+    
+    oStream     : OUT rgb_stream;
+    
+    debug       : BUFFER STD_LOGIC_VECTOR(7 downto 0);
+)
+{
+    Function f_log2 (return natural; x : positive )
+    {
+        variable i : natural;
+        i := 0;
+        While((2**i < x) and i < 31)
+        {
+            i := i + 1;
+        }
+        return i;
+    }
+    
+    CONSTANT Bit_Width   : NATURAL := 8;  --8, 10 or 12 = RAW8, RAW10 or RAW12
+    
+    CONSTANT Words     : NATURAL := (Image_Width*Bit_Width)/(8*2);
+    --CONSTANT Word_Bits : NATURAL := 9; --log2(400)
+    CONSTANT Word_Bits : NATURAL := f_log2(Words); --log2(400)
+    
+    CONSTANT Width_Bits : NATURAL := f_log2(Image_Width);
+    
+    CONSTANT Mipi_width : NATURAL := 4;
+    
+    Connections
+    {
+        CLK_Lane        => HS_Dif_5,  --B2_P
+        CLK_Lane(n)     => HS_Dif_6,  --B2_N
+        Data_Lane[0]    => HS_Dif_7,  --B3_P
+        Data_Lane[0](n) => HS_Dif_8,  --B3_N
+        Data_Lane[1]    => HS_Dif_9,  --B4_P
+        Data_Lane[1](n) => HS_Dif_10, --B4_N
+        Data_Lane[2]    => HS_Dif_23,  --B3_P
+        Data_Lane[2](n) => HS_Dif_24,  --B3_N
+        Data_Lane[3]    => HS_Dif_11,  --B4_P
+        Data_Lane[3](n) => HS_Dif_12, --B4_N
+        SCL             => HS_Dif_1,  --B0_P
+        SDA             => HS_Dif_2,  --B0_N
+        Enable          => HS_Dif_22, --A4_N
+        Cam_Reset       => HS_HSR,
+    }
+    
+    SIGNAL oStream_Reg : rgb_stream;
+    SIGNAL Brighness_Stream_In  : rgb_stream;
+    
+    oStream_Reg <= Stream_Out_Reg when CLK_as_PCLK else Stream_Out;
+    
+    Brighness_Stream_In <= oStream_Reg when Auto_Brightness else (Column => 0, Row => 0, New_Pixel => '0', others => (others => '0'));
+    
+    oStream <= oStream_Reg;
+    
+    SIGNAL Stream_Out_Reg  : rgb_stream;
+    
+    SIGNAL Cur_Pixel_Reg_I : STD_LOGIC_VECTOR(23 downto 0);
+    SIGNAL Cur_Pixel_Reg : STD_LOGIC_VECTOR(23 downto 0);
+    Stream_Out_Reg.R <= Cur_Pixel_Reg(23 downto 16);
+    Stream_Out_Reg.G <= Cur_Pixel_Reg(15 downto 8);
+    Stream_Out_Reg.B <= Cur_Pixel_Reg(7 downto 0);
+    
+    SIGNAL RAM_Addr_A : STD_LOGIC_VECTOR(Width_Bits-1 downto 0);
+    SIGNAL RAM_Addr_B : STD_LOGIC_VECTOR(Width_Bits-1 downto 0);
+    RAM_Addr_A <= STD_LOGIC_VECTOR(TO_UNSIGNED(Stream_Out.Column, Width_Bits));
+    RAM_Addr_B <= STD_LOGIC_VECTOR(TO_UNSIGNED(Stream_Out_Reg.Column+1,Width_Bits)) when Stream_Out_Reg.Column < Image_Width-1 else (others => '0');
+
+    SIGNAL Row_Reset : STD_LOGIC := '0';
+    Row_Reset <= '1' when Frame_Sync_reg = '1' else '0' when Stream_Out_Reg.Row = 0 else Row_Reset;
+
+    debug(4) <= Row_Reset;
+    debug(5) <= '1' when Pixel_Clk_Start else '0';
+    debug(6) <= Stream_Out_Reg.New_Pixel;
+    
+    Process ()
+    {
+        VARIABLE Row_Delay : BOOLEAN := true;
+        If(Row_Reset = '1')
+        {
+            Stream_Out_Reg.Row    <= 0;
+            Row_Delay             := true;
+        }
+        If(Pixel_Clk_Enable_Reg)
+        {
+            If(Pixel_Clk_Start)
+            {
+                Stream_Out_Reg.Column <= 0;
+                If(Row_Delay)
+                {
+                    Row_Delay := false;
+                }
+                Else
+                {
+                    If(Stream_Out_Reg.Row < Image_Height-1)
+                    {
+                        Stream_Out_Reg.Row <= Stream_Out_Reg.Row + 1;
+                    }
+                }
+            }
+            Else
+            {
+                If(Stream_Out_Reg.Column < Image_Width-1)
+                {
+                    Stream_Out_Reg.Column <= Stream_Out_Reg.Column + 1;
+                }
+            }
+        }
+    }
+    
+    SIGNAL Pixel_Clk_Start : BOOLEAN := false;
+    Pixel_Clk_Start <= true when Stream_Out.Column = 1 else false when Stream_Out_Reg.Column = 0 else Pixel_Clk_Start;
+    
+    SIGNAL Pixel_Clk_Enable     : BOOLEAN := false;
+    SIGNAL Pixel_Clk_Enable_Reg : BOOLEAN := false;
+    Process ()
+    {
+        If(falling_edge(CLK))
+        {
+            Pixel_Clk_Enable_Reg <= Pixel_Clk_Enable;
+            Pixel_Clk_Enable     <= Stream_Out_Reg.Column < Image_Width-1 OR Pixel_Clk_Start;
+        }
+    }
+    
+    SIGNAL New_Pixel_CLK_Reg : STD_LOGIC;
+    
+    New_Pixel_CLK_Reg        <= CLK when Pixel_Clk_Enable     else '0';
+    --Stream_Out_Reg.New_Pixel <= CLK when Pixel_Clk_Enable_Reg else '0';
+    Stream_Out_Reg.New_Pixel <= CLK;
+    
+    Cur_Pixel_Reg_I <= Stream_Out.R & Stream_Out.G & Stream_Out.B;
+    
+    --Row Buffer
+    NewComponent ALTSYNCRAM
+    (
+        address_reg_b => "CLOCK1",
+        clock_enable_input_a => "BYPASS",
+        clock_enable_input_b => "BYPASS",
+        clock_enable_output_b => "BYPASS",
+        intended_device_family => "unused",
+        lpm_type => "altsyncram",
+        numwords_a => Image_Width,
+        numwords_b => Image_Width,
+        operation_mode => "DUAL_PORT",
+        outdata_reg_b => "CLOCK1",
+        widthad_a => Width_Bits,
+        widthad_b => Width_Bits,
+        width_a => 24,
+        width_b => 24,
+        
+        address_a => RAM_Addr_A,
+        address_b => RAM_Addr_B,
+        clock0 => Stream_Out.New_Pixel,
+        clock1 => New_Pixel_CLK_Reg,
+        data_a => Cur_Pixel_Reg_I,
+        wren_a => '1',
+        q_b => Cur_Pixel_Reg,
+    );
+
+    SIGNAL Data_H          : STD_LOGIC_VECTOR(Mipi_width-1 downto 0) := (others => '0');
+    SIGNAL Data_L          : STD_LOGIC_VECTOR(Mipi_width-1 downto 0) := (others => '0');
+    NewComponent ALTDDIO_IN
+    (
+        intended_device_family => "unused",
+        width                  => Mipi_width,
+        
+        datain                 => Data_Lane(Mipi_width-1 downto 0),
+        inclock                => CLK_Lane,
+        dataout_h              => Data_H,
+        dataout_l              => Data_L,
+    );
+    
+    SIGNAL RAM_WREN     : STD_LOGIC := '0';
+    SIGNAL RAM_ADDR_IN  : STD_LOGIC_VECTOR (Word_Bits-1 downto 0) := (others => '0');
+    SIGNAL D_RAM_IN     : STD_LOGIC_VECTOR (31 downto 0) := (others => '0');
+    SIGNAL RAM_ADDR_OUT : STD_LOGIC_VECTOR (Word_Bits-1 downto 0) := (others => '0');
+    SIGNAL D_RAM_OUT    : STD_LOGIC_VECTOR (31 downto 0) := (others => '0');
+    
+    --Image_Width/4 /8*10 -> 400
+    NewComponent ALTSYNCRAM
+    (
+        address_reg_b                      => "CLOCK0",
+        clock_enable_input_a               => "BYPASS",
+        clock_enable_input_b               => "BYPASS",
+        clock_enable_output_b              => "BYPASS",
+        intended_device_family             => "unused",
+        numwords_a                         => 2**Word_Bits,
+        numwords_b                         => 2**Word_Bits,
+        operation_mode                     => "DUAL_PORT",
+        width_a                            => 32,
+        width_b                            => 32,
+        width_byteena_a                    => 1,
+        widthad_a                          => Word_Bits,
+        widthad_b                          => Word_Bits,
+
+        address_a                          => RAM_ADDR_IN,
+        address_b                          => RAM_ADDR_OUT,
+        clock0                             => CLK_Lane,
+        data_a                             => D_RAM_IN,
+        q_b                                => D_RAM_OUT,
+        wren_a                             => RAM_WREN,
+    );
+    
+    RAM_ADDR_OUT <= STD_LOGIC_VECTOR(UNSIGNED(RAM_ADDR_IN)-1);
+    RAM_WREN <= Received_Byte AND Enable_Receive;
+    D_RAM_IN <= Byte_Reg_1(7 downto 0) & Byte_Reg_2(7 downto 0) & Byte_Reg_3(7 downto 0) & Byte_Reg_4(7 downto 0);
+    
+    SIGNAL Stream_Out  : rgb_stream;
+    
+    Stream_Out.New_Pixel <= Pixel_Clock_reg;
+    
+    Process ()
+    {
+        If(rising_edge(Pixel_Clock_reg))
+        {
+            If(Frame_Sync_reg = '1')
+            {
+                Stream_Out.Row    <= 0;
+                Row_Start         := '1';
+            }
+            Elsif(Column_Sync_reg = '1')
+            {
+                Stream_Out.Column <= 0;
+                VARIABLE Row_Start : STD_LOGIC := '0';
+                If(Row_Start = '1')
+                {
+                    Row_Start := '0';
+                }
+                Elsif(Stream_Out.Row < Image_Height-1)
+                {
+                    Stream_Out.Row    <= Stream_Out.Row + 1;
+                }
+            }
+            Elsif(Row_Start = '0' AND Stream_Out.Column < Image_Width-1)
+            {
+                Stream_Out.Column <= Stream_Out.Column + 1;
+            }
+        }
+    }
+    
+    SIGNAL Pixel_Clock_reg   : STD_LOGIC := '0';
+    SIGNAL Frame_Sync_reg    : STD_LOGIC := '0';
+    SIGNAL Column_Sync_reg   : STD_LOGIC := '0';
+    SIGNAL Bayer_Pol_reg     : STD_LOGIC := '0';
+    
+    debug(0) <= Pixel_Clock_reg;
+    debug(1) <= Frame_Sync_reg;
+    debug(2) <= Column_Sync_reg;
+    debug(3) <= Bayer_Pol_reg;
+    
+    TYPE Pixel_RGB_type IS RECORD
+    R : STD_LOGIC_VECTOR(7 downto 0);
+    G : STD_LOGIC_VECTOR(7 downto 0);
+    B : STD_LOGIC_VECTOR(7 downto 0);
+    END RECORD Pixel_RGB_type;
+    SIGNAL Pixel_reg : Pixel_RGB_type := (others => (others => '0'));
+    
+    SIGNAL Pixel_Clock_Shift : STD_LOGIC_VECTOR(2 downto 0) := "000";
+    
+    Process ()
+    {
+        If(rising_edge(CLK_Lane))
+        {
+            SIGNAL Byte_Start_Phase : BOOLEAN := false;
+            SIGNAL Byte_Reg_1, Byte_Reg_2, Byte_Reg_3, Byte_Reg_4 : STD_LOGIC_VECTOR(9 downto 0) := (others => '0');
+            VARIABLE Byte_Data_1, Byte_Data_2, Byte_Data_3, Byte_Data_4 : STD_LOGIC_VECTOR(7 downto 0);
+            If(Byte_Start_Phase)
+            {
+                Byte_Reg_1 <= "0" & Data_H(0) & Data_L(0) & Byte_Reg_1(8 downto 2);
+                Byte_Reg_2 <= "0" & Data_H(1) & Data_L(1) & Byte_Reg_2(8 downto 2);
+                Byte_Reg_3 <= "0" & Data_H(2) & Data_L(2) & Byte_Reg_3(8 downto 2);
+                Byte_Reg_4 <= "0" & Data_H(3) & Data_L(3) & Byte_Reg_4(8 downto 2);
+            }
+            Else
+            {
+                Byte_Reg_1 <= Data_H(0) & Data_L(0) & Byte_Reg_1(9 downto 2);
+                Byte_Reg_2 <= Data_H(1) & Data_L(1) & Byte_Reg_2(9 downto 2);
+                Byte_Reg_3 <= Data_H(2) & Data_L(2) & Byte_Reg_3(9 downto 2);
+                Byte_Reg_4 <= Data_H(3) & Data_L(3) & Byte_Reg_4(9 downto 2);
+            }
+            
+            SIGNAL Zero_Count          : NATURAL range 0 to 4 := 0;
+            If(Byte_Reg_1(1 downto 0) = "00" AND Byte_Reg_2(1 downto 0) = "00" AND Byte_Reg_3(1 downto 0) = "00" AND Byte_Reg_4(1 downto 0) = "00")
+            {
+                If(Zero_Count < 4)
+                {
+                    Zero_Count <= Zero_Count + 1;
+                }
+            }
+            Else
+            {
+                Zero_Count <= 0;
+            }
+            
+            SIGNAL Received_Byte     : STD_LOGIC := '0';
+            SIGNAL Enable_Receive    : STD_LOGIC := '0';
+            SIGNAL Bit_Count         : NATURAL range 0 to 3 := 0;
+            SIGNAL Byte_Count        : NATURAL range 0 to 2 := 0;
+            
+            Received_Byte <= '0';
+            -- find header -> first byte
+            If(Byte_Reg_1(7 downto 0) = "10111000" AND Byte_Reg_2(7 downto 0) = "10111000" AND Byte_Reg_3(7 downto 0) = "10111000" AND Byte_Reg_4(7 downto 0) = "10111000" AND Zero_Count = 4 AND Enable_Receive = '0')
+            {
+                Bit_Count  <= 1;
+                Byte_Count <= 1;
+            }
+            -- check for header at opposite phase
+            Elsif(Byte_Reg_1(8 downto 1) = "10111000" AND Byte_Reg_2(8 downto 1) = "10111000" AND Byte_Reg_3(8 downto 1) = "10111000" AND Byte_Reg_4(8 downto 1) = "10111000" AND Zero_Count = 4 AND Enable_Receive = '0')
+            {
+                Bit_Count  <= 1;
+                Byte_Count <= 1;
+
+                If(Byte_Start_Phase)
+                {
+                    Byte_Reg_1  <= Data_H(0) & Data_L(0) & Byte_Reg_1(8 downto 1);
+                    Byte_Reg_2 <= Data_H(1) & Data_L(1) & Byte_Reg_2(8 downto 1);
+                    Byte_Reg_3  <= Data_H(2) & Data_L(2) & Byte_Reg_3(8 downto 1);
+                    Byte_Reg_4 <= Data_H(3) & Data_L(3) & Byte_Reg_4(8 downto 1);
+                }
+                Else
+                {
+                    Byte_Reg_1  <= "0" & Data_H(0) & Data_L(0) & Byte_Reg_1(9 downto 3);
+                    Byte_Reg_2 <= "0" & Data_H(1) & Data_L(1) & Byte_Reg_2(9 downto 3);
+                    Byte_Reg_3  <= "0" & Data_H(2) & Data_L(2) & Byte_Reg_3(9 downto 3);
+                    Byte_Reg_4 <= "0" & Data_H(3) & Data_L(3) & Byte_Reg_4(9 downto 3);
+                }
+                Byte_Start_Phase <= NOT Byte_Start_Phase;
+            }
+            -- check for full byte
+            Elsif(Bit_Count = 3)
+            {
+                Received_Byte <= '1';
+                Bit_Count <= 0;
+            }
+            Else
+            {
+                Bit_Count <= Bit_Count + 1;
+            }
+            
+            Pixel_Clock_reg   <= Pixel_Clock_Shift(2);
+            
+            If(Pixel_Clock_Shift(2) = '1')
+            {
+                Stream_Out.R <= Pixel_reg.R;
+                Stream_Out.G <= Pixel_reg.G;
+                Stream_Out.B <= Pixel_reg.B;
+            }
+            
+            Pixel_Clock_Shift <= Pixel_Clock_Shift(1 downto 0) & '0';
+            
+            Byte_Data_1 := Byte_Reg_1(7 downto 0);
+            Byte_Data_2 := Byte_Reg_2(7 downto 0);
+            Byte_Data_3 := Byte_Reg_3(7 downto 0);
+            Byte_Data_4 := Byte_Reg_4(7 downto 0);
+            
+            SIGNAL Pixel_Count : UNSIGNED(15 downto 0) := (others => '0');
+            If(Received_Byte = '1')
+            {
+                If(Stream_Out.Row = 0)
+                {
+                    Frame_Sync_reg  <= '0';
+                }
+                
+                If(Stream_Out.Column = 0)
+                {
+                    Column_Sync_reg <= '0';
+                }
+                
+                If(Byte_Count = 1)
+                {
+                    --debug(4) <= '1';
+                    --0x00 is VSync
+                    If(Byte_Data_1 = x"00")
+                    {
+                        Frame_Sync_reg <= '1';
+                        Bayer_Pol_reg  <= '0';
+                    }
+                    --0x2A = new RAW8 data
+                    Elsif((Byte_Data_1 = x"2A" AND Bit_Width = 8) OR (Byte_Data_1 = x"2B" AND Bit_Width = 10) OR (Byte_Data_1 = x"2C" AND Bit_Width = 12)) --RAW8 = 0x2A, RAW10 = 0x2B, RAW12 = 0x2C
+                    {
+                        If(Bayer_Pol_reg = '1')
+                        {
+                            Column_Sync_reg <= '1';
+                        }
+                        Enable_Receive  <= '1';
+                        Pixel_Count(15 downto 8) <= UNSIGNED(Byte_Data_3);
+                        Pixel_Count(7 downto 0)  <= UNSIGNED(Byte_Data_2);
+                        RAM_ADDR_IN  <= STD_LOGIC_VECTOR(TO_UNSIGNED(Words, Word_Bits));
+                    }
+                    Byte_Count <= 0;
+                }
+                Elsif(Enable_Receive = '1')
+                {
+                    If(RAM_ADDR_IN /= "000000000")
+                    {
+                        RAM_ADDR_IN <= STD_LOGIC_VECTOR(UNSIGNED(RAM_ADDR_IN)-1);
+                    }
+                    
+                    --Second row -> combine 4 pixels
+                    If(Bayer_Pol_reg = '1')
+                    {
+                        
+                        Stream_Out.R <= D_RAM_OUT(23 downto 16);
+                        Stream_Out.G <= STD_LOGIC_VECTOR(resize(shift_right(UNSIGNED('0' & D_RAM_OUT(31 downto 24)) + UNSIGNED('0' & Byte_Data_2), 1), 8));
+                        Stream_Out.B <= Byte_Data_1;
+                        
+                        Pixel_reg.R <= D_RAM_OUT(7 downto 0);
+                        Pixel_reg.G <= STD_LOGIC_VECTOR(resize(shift_right(UNSIGNED('0' & D_RAM_OUT(15 downto 8)) + UNSIGNED('0' & Byte_Data_4), 1), 8));
+                        Pixel_reg.B <= Byte_Data_3;
+                        
+                        Pixel_Clock_Shift <= "010";
+                        Pixel_Clock_reg <= '1';
+                    }
+                    
+                    
+                    If(Pixel_Count < 5)
+                    {
+                        Enable_Receive <= '0';
+                        Bayer_Pol_reg  <= NOT Bayer_Pol_reg;
+                        Pixel_Count    <= (others => '0');
+                    }
+                    Else
+                    {
+                        Pixel_Count <= Pixel_Count - 4;
+                    }
+                }
+            }
+        }
+    }
+    
+    NewComponent OnSemi_Cam_Config
+    (
+        CLK_Frequency => CLK_Frequency,
+
+        Reset         => Reset,
+        Cam_Reset     => Cam_Reset,
+        SCL           => SCL,
+        SDA           => SDA,
+        
+        iStream       => Brighness_Stream_In,
+    );
+}

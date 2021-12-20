@@ -1,0 +1,25 @@
+Component ALTDDIO_IN
+(
+    Generic
+    (
+        intended_device_family   : String := "MAX 10";
+        implement_input_in_lcell : String := "ON";
+        invert_input_clocks      : String := "OFF";
+        lpm_hint                 : String := "UNUSED";
+        lpm_type                 : String := "altddio_in";
+        power_up_high            : String := "OFF";
+        width                    : NATURAL;
+    );
+    datain    : IN  STD_LOGIC_VECTOR (width-1 downto 0);
+    inclock   : IN  STD_LOGIC;
+    dataout_h : OUT STD_LOGIC_VECTOR (width-1 downto 0);
+    dataout_l : OUT STD_LOGIC_VECTOR (width-1 downto 0);
+    aclr      : IN STD_LOGIC := '0';
+    aset      : IN STD_LOGIC := '0';
+    inclocken : IN STD_LOGIC := '1';
+    sclr      : IN STD_LOGIC := '0';
+    sset      : IN STD_LOGIC := '0';
+)
+{
+    
+}

@@ -1,0 +1,140 @@
+Main
+(
+
+    Camera_CLK_Lane      : IN    STD_LOGIC;
+    Camera_Data_Lane     : IN    STD_LOGIC_VECTOR (3 downto 0);
+    Camera_Cam_Reset     : OUT   STD_LOGIC;
+    Camera_Enable        : OUT   STD_LOGIC;
+    Camera_SCL           : INOUT STD_LOGIC;
+    Camera_SDA           : INOUT STD_LOGIC;
+
+    TX                   : OUT   STD_LOGIC;
+    RX                   : IN    STD_LOGIC;
+
+    Capture_sdram_addr   : OUT   STD_LOGIC_VECTOR (11 downto 0);
+    Capture_sdram_ba     : OUT   STD_LOGIC_VECTOR (1 downto 0);
+    Capture_sdram_cas_n  : OUT   STD_LOGIC;
+    Capture_sdram_dq     : INOUT STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
+    Capture_sdram_dqm    : OUT   STD_LOGIC_VECTOR (1 downto 0);
+    Capture_sdram_ras_n  : OUT   STD_LOGIC;
+    Capture_sdram_we_n   : OUT   STD_LOGIC;
+    Capture_sdram_clk    : OUT   STD_LOGIC;
+
+)
+{
+
+--GENERATED SIGNALS---------------------------------------------------------------------------------------------
+
+    --OnSemi Camera and HDMI----------------------------------------------------------------------------------------
+
+    --More Settings in Libraries/Image_Data.vhdp
+
+    --Clock Settings in SDRAM_HDMI/VS_SDRAM_PLL
+    CONSTANT Pixel_Clock : NATURAL := 28000000;
+
+--GENERATED CODE------------------------------------------------------------------------------------------------
+
+    --OnSemi Camera and HDMI----------------------------------------------------------------------------------------
+
+    Output_Stream <= Camera_Stream;
+    --Color_Correction_Filter_iStream <= Camera_Stream;
+    --Output_Stream <= Color_Correction_Filter_oStream;
+
+--GENERATED COMPONENTS------------------------------------------------------------------------------------------
+
+    --OnSemi Camera and HDMI----------------------------------------------------------------------------------------
+
+--Camera Interface-------------------------------------------------------------------
+
+    Camera_Enable <= '1';
+
+    --Receive CSI Data
+    SIGNAL Camera_Stream         : rgb_stream;
+    NewComponent AR0430_Camera
+    (
+        CLK_Frequency   => Pixel_Clock,
+        CLK_as_PCLK     => true,
+        Auto_Brightness => true,
+
+        CLK           => USB_Pixel_Clock,
+
+        Reset         => '0',
+        CLK_Lane      => Camera_CLK_Lane,
+        Data_Lane     => Camera_Data_Lane,
+        Cam_Reset     => Camera_Cam_Reset,
+        SCL           => Camera_SCL,
+        SDA           => Camera_SDA,
+
+        oStream       => Camera_Stream,
+    );
+    
+    --Apply Filters-------------------------------------------------------------
+
+    SIGNAL Color_Correction_Filter_iStream      : rgb_stream;
+    SIGNAL Color_Correction_Filter_oStream      : rgb_stream;
+    NewComponent Color_Correction_Filter
+    (
+        CLK_Edge     => true,
+
+        R_Multiplier => 1,
+        R_Divider    => 1,
+        R_Add        => 0,
+        G_Multiplier => 2,
+        G_Divider    => 3,
+        G_Add        => 0,
+        B_Multiplier => 1,
+        B_Divider    => 1,
+        B_Add        => 0,
+        iStream      => Color_Correction_Filter_iStream,
+        oStream      => Color_Correction_Filter_oStream,
+    );
+
+    --Output image with HDMI-------------------------------------------------------------
+
+    SIGNAL Output_Stream : rgb_stream;
+
+    --First saves image and then outputs it with correct timing
+    SIGNAL Capture_CLK_140     : STD_LOGIC;
+    SIGNAL Capture_Read_Column : NATURAL          range 0 to Image_Width-1 := 0;
+    SIGNAL Capture_Read_Row    : NATURAL          range 0 to Image_Height-1 := 0;
+    SIGNAL Capture_Read_Data   : STD_LOGIC_VECTOR (23 downto 0) := (others => '0');
+    SIGNAL Capture_Enable      : STD_LOGIC := '1';
+    NewComponent Camera_Capture_SDRAM
+    (
+        CLK_Edge    => true,
+
+        Enable      => Capture_Enable,
+        
+        iStream     => Output_Stream,
+
+        CLK_140     => Capture_CLK_140,
+        Read_Column => Capture_Read_Column,
+        Read_Row    => Capture_Read_Row,
+        Read_Data   => Capture_Read_Data,
+
+        sdram_addr  => Capture_sdram_addr,
+        sdram_ba    => Capture_sdram_ba,
+        sdram_cas_n => Capture_sdram_cas_n,
+        sdram_dq    => Capture_sdram_dq,
+        sdram_dqm   => Capture_sdram_dqm,
+        sdram_ras_n => Capture_sdram_ras_n,
+        sdram_we_n  => Capture_sdram_we_n,
+    );
+    
+    SIGNAL USB_Pixel_Clock : STD_LOGIC;
+
+    NewComponent USB_SDRAM_Interface
+    (
+        Baud_Rate   => 12000000,
+
+        Read_Column => Capture_Read_Column,
+        Read_Row    => Capture_Read_Row,
+        Read_Data   => Capture_Read_Data,
+        Read_En     => Capture_Enable,
+        HS_CLK      => Capture_CLK_140,
+        SDRAM_CLK   => Capture_sdram_clk,
+        Pixel_CLK   => USB_Pixel_Clock,
+        TX          => TX,
+        RX          => RX,
+    );
+}

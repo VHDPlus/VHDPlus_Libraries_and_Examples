@@ -1,0 +1,165 @@
+/*
+    Name: USB SDRAM Interface
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 20.12.2021
+    Copyright (c) 2021 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important:   -Is created for Camera_Capture_SDRAM
+    
+    Description: -This component reads image data from SDRAM, creates PLL and has UART interface
+                 -In VHDPlus IDE Serial Monitor send "res width,height" (e.g. res 1152x864) and "cam" on HEX encoding and 12000000 baudrate
+ */
+
+Component USB_SDRAM_Interface
+(
+    Generic
+    (
+        Baud_Rate  : INTEGER := 12000000; --data link baud rate in bits/second
+    );
+    
+    --RAM interface (VGA 24bit)
+    Read_Column : OUT    NATURAL range 0 to Image_Width-1 := 0;
+    Read_Row    : OUT    NATURAL range 0 to Image_Height-1 := 0;
+    Read_Data   : IN     STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
+    Read_En     : OUT    STD_LOGIC := '1';
+    
+    HS_CLK      : OUT    STD_LOGIC;
+    SDRAM_CLK   : OUT    STD_LOGIC;
+    Pixel_CLK   : OUT    STD_LOGIC;
+    
+    TX          : OUT    STD_LOGIC;
+    RX          : IN     STD_LOGIC;
+)
+{
+    HS_CLK    <= PLL_c0;
+    Pixel_CLK <= PLL_c2;
+    
+    SIGNAL PLL_c0     : STD_LOGIC;
+    SIGNAL PLL_c2     : STD_LOGIC;
+    NewComponent USB_SDRAM_PLL
+    (
+        inclk0 => CLK,
+        c0     => PLL_c0,    --168MHz
+        c1     => SDRAM_CLK, --168MHz -90°
+        c2     => PLL_c2,    --28MHz
+    );
+    
+    Process ()
+    {
+        If(rising_edge(PLL_c2))
+        {
+            SIGNAL data : STD_LOGIC_VECTOR(23 downto 0);
+            data <= Read_Data;
+            
+            SIGNAL Increase : STD_LOGIC := '0';
+            SIGNAL HS : STD_LOGIC := '1';
+            SIGNAL VS : STD_LOGIC := '1';
+            If(Increase = '1')
+            {
+                If(Column < HDMI_Width-1)
+                {
+                    Column := Column + 1;
+                    HS     <= '0';
+                }
+                Else
+                {
+                    Column := 0;
+                    HS     <= '1';
+                    If(Row < HDMI_Height-1)
+                    {
+                        Row := Row + 1;
+                        VS  <= '0';
+                    }
+                    Else
+                    {
+                        Row := 0;
+                        VS  <= '1';
+                    }
+                }
+            }
+            
+            VARIABLE Column : NATURAL range 0 to Image_Width-1  := Image_Width-1;
+            VARIABLE Row    : NATURAL range 0 to Image_Height-1 := Image_Height-1;
+            
+            Read_Column <= Column;
+            Read_Row    <= Row;
+        }
+    }
+    
+    Process ()
+    {
+        If(rising_edge(PLL_c2))
+        {
+            Thread
+            {
+                Step
+                {
+                    Increase <= '1';
+                }
+                Increase <= '0';
+                If(HS = '1')
+                {
+                    If(VS = '1')
+                    {
+                        SIGNAL rx_data : STD_LOGIC_VECTOR(7 downto 0) := x"00";
+                        While(rx_data /= s"r")
+                        {
+                            Read_En  <= '1';
+                            NewFunction read (rx_data, UART_Interface_RX_Data, UART_Interface_RX_Busy);
+                        }
+                        Read_En <= '0';
+                        rx_data <= x"00";
+                        
+                        NewFunction write (s"f", UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+                    }
+                    NewFunction write (s"\n", UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+                }
+                NewFunction write ('0'&data(7 downto 1), UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+                NewFunction write ('0'&data(15 downto 9),  UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+                NewFunction write ('0'&data(23  downto 17),  UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+            }
+        }
+    }
+    
+    SIGNAL UART_Interface_TX_Enable     : STD_LOGIC := '0';
+    SIGNAL UART_Interface_TX_Busy       : STD_LOGIC := '0';
+    SIGNAL UART_Interface_TX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
+    SIGNAL UART_Interface_RX_Busy       : STD_LOGIC := '0';
+    SIGNAL UART_Interface_RX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
+    NewComponent UART_Interface
+    (
+        CLK_Frequency => 168000000,
+        Baud_Rate     => Baud_Rate,
+        OS_Rate       => 14,
+        D_Width       => 8,
+        Parity        => 0,
+        Parity_EO     => '0',
+        
+        CLK           => PLL_c0,
+        TX            => TX,
+        RX            => RX,
+        TX_Enable     => UART_Interface_TX_Enable,
+        TX_Busy       => UART_Interface_TX_Busy,
+        TX_Data       => UART_Interface_TX_Data,
+        RX_Busy       => UART_Interface_RX_Busy,
+        RX_Data       => UART_Interface_RX_Data,
+    );
+}

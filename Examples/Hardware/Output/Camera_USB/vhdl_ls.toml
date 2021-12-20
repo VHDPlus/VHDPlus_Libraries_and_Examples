@@ -1,0 +1,10 @@
+# auto-generated
+[Libraries]
+work.files = [
+	'Libraries/SDRAM_HDMI/VS_SDRAM_PLL.vhd'
+]
+[libraries.work]
+files = [
+	'Libraries/SDRAM_HDMI/VS_SDRAM_PLL.vhd'
+]
+# auto-generated-end
