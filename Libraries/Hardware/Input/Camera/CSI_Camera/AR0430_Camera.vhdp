@@ -185,7 +185,8 @@ Component AR0430_Camera
     SIGNAL New_Pixel_CLK_Reg : STD_LOGIC;
     
     New_Pixel_CLK_Reg        <= CLK when Pixel_Clk_Enable     else '0';
-    Stream_Out_Reg.New_Pixel <= CLK when Pixel_Clk_Enable_Reg else '0';
+    --Stream_Out_Reg.New_Pixel <= CLK when Pixel_Clk_Enable_Reg else '0';
+    Stream_Out_Reg.New_Pixel <= CLK;
     
     Cur_Pixel_Reg_I <= Stream_Out.R & Stream_Out.G & Stream_Out.B;
     
@@ -470,7 +471,7 @@ Component AR0430_Camera
                         Pixel_Clock_Shift <= "010";
                         Pixel_Clock_reg <= '1';
                     }
-                   
+                    
                     
                     If(Pixel_Count < 5)
                     {
