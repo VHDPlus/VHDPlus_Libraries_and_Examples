@@ -34,7 +34,7 @@ Package Image_Data_Package
 
     --SDRAM Capture:
     --640x480 40fps  (with most displays)
-    --up to 1152x864 20fps (with some displays that also support slower frame rate)
+    --up to 1152x864 15fps 40% (with USB Capture)
     --A 640x480 image is created from 1280x960 pixels
     
     CONSTANT Image_Width    : NATURAL := 640;
