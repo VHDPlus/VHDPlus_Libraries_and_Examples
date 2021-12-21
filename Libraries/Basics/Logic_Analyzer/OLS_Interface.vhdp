@@ -76,13 +76,15 @@ Component OLS_Interface
         source =>ISSP1_source,
         probe  =>ISSP1_probe,
     );
+    */
     
+    --ISSP1_probe(7 downto 0) <= command;
     --ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Divider, 32));
     --ISSP1_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Rate_Div, 32));
-    ISSP1_probe(8) <= Run;
-    ISSP1_probe(9) <= Run_OLS;
-    ISSP1_probe(10) <= Full;
-    */
+    --ISSP1_probe(8) <= Run;
+    --ISSP1_probe(9) <= Run_OLS;
+    --ISSP1_probe(10) <= Full;
+    
     
     Process ()
     {
@@ -214,10 +216,12 @@ Component OLS_Interface
             Else  --long command
             {
                 --ISSP_probe <= x"00000002";
+                Wait(1);
                 For(VARIABLE ctr : INTEGER range 0 to 4 := 0; ctr < 4; ctr := ctr + 1)
                 {
                     NewFunction read (data((ctr+1)*8-1 downto ctr*8), UART_RX_Data, UART_RX_Busy);
                 }
+                Wait(1);
                 --ISSP_probe <= x"00000003";
                 Case(command)
                 {
