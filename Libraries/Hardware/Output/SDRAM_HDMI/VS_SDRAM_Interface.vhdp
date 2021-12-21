@@ -35,7 +35,6 @@ Component VS_SDRAM_Interface
     (
         pixel_shift : NATURAL := 1;
         black_row   : NATURAL := 1;
-        black_col   : NATURAL := 2;
     );
     
     --RAM interface (VGA 24bit)
@@ -102,15 +101,7 @@ Component VS_SDRAM_Interface
     
     --Pixel CLK = Request next pixel
     Read_Ena <= PLL_c0 when xCountReg < porchHF AND yCountReg < porchVF else '0';
-    
-    SIGNAL VS_R_reg : STD_LOGIC_VECTOR (7 downto 0);
-    SIGNAL VS_G_reg : STD_LOGIC_VECTOR (7 downto 0);
-    SIGNAL VS_B_reg : STD_LOGIC_VECTOR (7 downto 0);
-    
-    VS_R <= VS_R_reg when xCountReg < porchHF-black_col AND yCountReg >= black_row else x"00";
-    VS_G <= VS_G_reg when xCountReg < porchHF-black_col AND yCountReg >= black_row else x"00";
-    VS_B <= VS_B_reg when xCountReg < porchHF-black_col AND yCountReg >= black_row else x"00";
-    
+
     Process ()
     {
         If(rising_edge(PLL_c0))
@@ -139,12 +130,12 @@ Component VS_SDRAM_Interface
             VARIABLE VS_reg : STD_LOGIC_VECTOR(pixel_shift downto 0);
             
             --Set pixel data
-            VS_R_reg <= Read_Data(23 downto 16);
-            VS_G_reg <= Read_Data(15 downto 8);
-            VS_B_reg <= Read_Data(7 downto 0);
+            VS_R <= Read_Data(23 downto 16);
+            VS_G <= Read_Data(15 downto 8);
+            VS_B <= Read_Data(7 downto 0);
             
             --Enable '1' while in display area
-            If(xCount < porchHF AND yCount < porchVF)
+            If(xCount < porchHF AND yCount < porchVF+black_row AND yCount >= black_row)
             {
                 --VS_DE <= '1';
                 DE_reg := '1' & DE_reg(pixel_shift downto 1);
