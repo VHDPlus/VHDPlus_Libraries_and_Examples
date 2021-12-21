@@ -83,6 +83,7 @@ Component Camera_Capture_SDRAM
         sdram_cas_n    => SDRAM_CAS,
         sdram_ras_n    => SDRAM_RAS,
         sdram_cke      => SDRAM_CKE,
+        sdram_clk      => SDRAM_CLK,
         sdram_cs_n     => SDRAM_CSE,
         sdram_we_n     => SDRAM_WEN,
         sdram_dqm[0]   => SDRAM_DQM_1,
