@@ -1,0 +1,291 @@
+Component OLS_Interface
+(
+    Generic
+    (
+        CLK_Frequency   :   INTEGER     := 12000000;    --frequency of system clock in Hertz
+        Baud_Rate       :   INTEGER     := 115200;       --data link baud rate in bits/second
+        Max_Samples    : NATURAL := 25000;    --25,000 samples
+    );
+    UART_RX      : IN  STD_LOGIC := '1';
+    UART_TX      : OUT STD_LOGIC := '1';
+    
+    Inputs       : IN  STD_LOGIC_VECTOR(31 downto 0) := (others => '0');  --Data inpits for trigger
+    
+    Rate_Div     : BUFFER NATURAL range 1 to CLK_Frequency := 12; --12 = CLK_Frequency/12 = 1Mio samples per second
+    Samples      : BUFFER NATURAL range 1 to Max_Samples   := Max_Samples;  --Samples to save with offset samples
+    Start_Offset : BUFFER NATURAL range 0 to Max_Samples   := 0;  --Number of samples that are saved before start changes to '1' to see the data before the trigger point
+    
+    Run          : BUFFER STD_LOGIC := '0'; --Saves data while Run is '1'. Read data when Full is '1'. Set Run to '0' after you read the data from the RAM
+    Full         : IN  STD_LOGIC := '0'; --changes from '0' to '1' when ram is full -> Set Run to '0' after you read the data
+    
+    Address      : BUFFER NATURAL range 0 to Max_Samples-1 := 0;   --Read the values
+    Outputs      : IN STD_LOGIC_VECTOR(31 downto 0);
+)
+{
+    Connections
+    {
+        UART_RX,
+        UART_TX,
+    }
+    
+    --TODO: Disable Groups when sending data
+    
+    CONSTANT ID : STD_LOGIC_VECTOR(31 downto 0) := x"31414c53";
+    
+    SIGNAL command : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    SIGNAL data    : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+    
+    SIGNAL Run_OLS  : STD_LOGIC := '0';  --Listen for trigger, fill buffer and send data
+    SIGNAL Send     : STD_LOGIC := '0';  --
+    SIGNAL Has_Data : STD_LOGIC := '0';  --Hasn't sent all samples yet
+    
+    SIGNAL Trigger_Mask   : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+    SIGNAL Trigger_Values : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+    
+    SIGNAL Delay : NATURAL range 0 to 65535 := 0; --If a match occures, the action of the stage is delayed by the given number of samples
+    
+    SIGNAL Level   : NATURAL range 0 to 3 := 0;  --Trigger level at which the stage becomes active
+    SIGNAL Channel : NATURAL range 0 to 31 := 0; --Channel to be used in serial mode. (0-31 in normal operation; 0-15 when demux flag is set)
+    SIGNAL Serial  : STD_LOGIC := '0';           --When set to 1 the stage operates as serial trigger, otherwise it used as parallel trigger
+    SIGNAL Start   : STD_LOGIC := '0';           --When set to 1 a match will start the capturing process. The trigger level will rise on match regardless of this flag. (Command available as of protocol version 1.)
+    
+    SIGNAL Divider : NATURAL range 0 to 16777215 := 0; --When x is written, the sampling frequency is set to f = clock / (x + 1)
+    
+    SIGNAL Read_Count  : NATURAL range 0 to 262140 := 0;
+    SIGNAL Delay_Count : NATURAL range 0 to 262140 := 0;
+    
+    SIGNAL Demux  : STD_LOGIC := '0';  --Enables the demux input module. (Filter must be off.)
+    SIGNAL Filter : STD_LOGIC := '0'; --Enables the filter input module. (Demux must be off.)
+    SIGNAL Channel_Groups : STD_LOGIC_VECTOR(3 downto 0) := "0000"; --Disable channel group
+    SIGNAL External : STD_LOGIC := '0'; --Selects the clock to be used for sampling. If set to 0, the internal clock divided by the configured divider is used, and if set to 1, the external clock will be used
+    SIGNAL Inverted : STD_LOGIC := '0'; --When set to 1, the external clock will be inverted before being used
+    
+    /*
+    SIGNAL ISSP_source : std_logic_vector (7 downto 0);
+    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0) := (others => '0');
+    NewComponent ISSP
+    (
+        source =>ISSP_source,
+        probe  =>ISSP_probe,
+    );
+    
+    SIGNAL ISSP1_source : std_logic_vector (7 downto 0);
+    SIGNAL ISSP1_probe  : std_logic_vector (31 downto 0) := (others => '0');
+    NewComponent ISSP
+    (
+        source =>ISSP1_source,
+        probe  =>ISSP1_probe,
+    );
+    
+    --ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Divider, 32));
+    --ISSP1_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Rate_Div, 32));
+    ISSP1_probe(8) <= Run;
+    ISSP1_probe(9) <= Run_OLS;
+    ISSP1_probe(10) <= Full;
+    */
+    
+    Process ()
+    {
+        If(Divider < CLK_Frequency)  --1Hz = min frequency
+        {
+            Rate_Div <= Divider + 1;
+        }
+        Else
+        {
+            Rate_Div <= CLK_Frequency;
+        }
+        
+        If(Read_Count < Max_Samples)
+        {
+            If(Read_Count > 1)
+            {
+                Samples <= Read_Count;
+            }
+            Else
+            {
+                Samples <= 2;
+            }
+        }
+        Else
+        {
+            Samples <= Max_Samples;
+        }
+        
+        If(Read_Count > Delay_Count)
+        {
+            If(Read_Count-Delay_Count < Max_Samples)
+            {
+                Start_Offset <= Read_Count-Delay_Count;
+            }
+            Else
+            {
+                Start_Offset <= Max_Samples;
+            }
+        }
+        Else
+        {
+            If(Read_Count > Max_Samples)
+            {
+                Start_Offset <= 10;
+            }
+            Else
+            {
+                Start_Offset <= 0;
+            }
+        }
+        
+        If(Run = '0')
+        {
+            If(Run_OLS = '1')
+            {
+                If(UNSIGNED((Inputs XOR Trigger_Values) AND Trigger_Mask) = 0)
+                {
+                    Run <= '1';
+                }
+            }
+        }
+        Else
+        {
+            If(Full = '1')
+            {
+                Thread
+                {
+                    SIGNAL addr : NATURAL range 0 to 262140 := 0;
+                    For(addr <= 0; addr < Samples; addr <= addr + 1)
+                    {
+                        Address <= Samples - 1 - addr;
+                        For(SIGNAL wr_ctr : NATURAL range 0 to 4 := 0; wr_ctr < 4; wr_ctr <= wr_ctr + 1)
+                        {
+                            If(Channel_Groups(wr_ctr) = '0')
+                            {
+                                NewFunction write (Outputs((wr_ctr+1)*8-1 downto wr_ctr*8), UART_TX_Data, UART_TX_Busy, UART_TX_Enable);
+                            }
+                        }
+                    }
+                    --Wait(CLK_Frequency/10);
+                    Run_OLS <= '0';
+                    Run <= '0';
+                }
+            }
+        }
+        
+        
+        Thread
+        {
+            NewFunction read (command, UART_RX_Data, UART_RX_Busy);
+            --ISSP_probe <= x"00000001";
+            If(command(7) = '0')  --short command
+            {
+                Case(command)
+                {
+                    When(x"00")
+                    {
+                        --Reset
+                        Run_OLS <= '0';
+                        Send <= '0';
+                        Has_Data <= '0';
+                    }
+                    When(x"01")
+                    {
+                        --Run
+                        Run_OLS <= '1';
+                    }
+                    When(x"02")
+                    {
+                        For(wr_ctr <= 4; wr_ctr > 0; wr_ctr <= wr_ctr - 1)
+                        {
+                            NewFunction write (ID(wr_ctr*8-1 downto (wr_ctr-1)*8), UART_TX_Data, UART_TX_Busy, UART_TX_Enable);
+                        }
+                    }
+                    When(x"11")
+                    {
+                        Send <= '1';
+                    }
+                    When(x"13")
+                    {
+                        Send <= '0';
+                    }
+                    When(others)
+                    {
+                        null;
+                    }
+                }
+            }
+            Else  --long command
+            {
+                --ISSP_probe <= x"00000002";
+                For(VARIABLE ctr : INTEGER range 0 to 4 := 0; ctr < 4; ctr := ctr + 1)
+                {
+                    NewFunction read (data((ctr+1)*8-1 downto ctr*8), UART_RX_Data, UART_RX_Busy);
+                }
+                --ISSP_probe <= x"00000003";
+                Case(command)
+                {
+                    When(x"c0")
+                    {
+                        Trigger_Mask   <= data;
+                    }
+                    When(x"c1")
+                    {
+                        Trigger_Values <= data;
+                    }
+                    When(x"c2")
+                    {
+                        Delay <= TO_INTEGER(UNSIGNED(data(15 downto 0)));
+                        Level <= TO_INTEGER(UNSIGNED(data(17 downto 16)));
+                        Channel <= TO_INTEGER(UNSIGNED(data(24 downto 20)));
+                        Serial  <= data(26);
+                        Start   <= data(27);
+                    }
+                    When(x"80")
+                    {
+                        Divider <= TO_INTEGER(UNSIGNED(data(23 downto 0)));
+                    }
+                    When(x"81")
+                    {
+                        Read_Count  <= TO_INTEGER(UNSIGNED(data(15 downto 0) & "00"));
+                        Delay_Count <= TO_INTEGER(UNSIGNED(data(31 downto 16) & "00"));
+                    }
+                    When(x"82")
+                    {
+                        Demux    <= data(0);
+                        Filter   <= data(1);
+                        Channel_Groups <= data(5 downto 2);
+                        External <= data(6);
+                        Inverted <= data(7);
+                    }
+                    When(others)
+                    {
+                        null;
+                    }
+                }
+            }
+        }
+    }
+    
+    SIGNAL UART_TX_Enable     : STD_LOGIC := '0';
+    SIGNAL UART_TX_Busy       : STD_LOGIC := '0';
+    SIGNAL UART_TX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
+    SIGNAL UART_RX_Busy       : STD_LOGIC := '0';
+    SIGNAL UART_RX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
+    SIGNAL UART_RX_Error      : STD_LOGIC := '0';
+    NewComponent UART_Interface
+    (
+        CLK_Frequency => CLK_Frequency,
+        Baud_Rate     => Baud_Rate,
+        OS_Rate       => 16,
+        D_Width       => 8,
+        Parity        => 0,
+        Parity_EO     => '0',
+
+        Reset         => '0',
+        RX            => UART_RX,
+        TX            => UART_TX,
+        TX_Enable     => UART_TX_Enable,
+        TX_Busy       => UART_TX_Busy,
+        TX_Data       => UART_TX_Data,
+        RX_Busy       => UART_RX_Busy,
+        RX_Data       => UART_RX_Data,
+        RX_Error      => UART_RX_Error,
+    );
+}

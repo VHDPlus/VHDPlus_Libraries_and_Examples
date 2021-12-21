@@ -1,0 +1,65 @@
+Component OLS_Logic_Analyzer
+(
+    Generic
+    (
+        Sample_CLK_Freq : INTEGER := 200000000;    --frequency of system clock in Hertz
+        Baud_Rate       : INTEGER := 115200;       --data link baud rate in bits/second
+        Max_Samples     : NATURAL := 25000;        --25,000 samples
+        Channels        : NATURAL := 32;           --1-32 inputs
+    );
+    Sample_CLK         : IN  STD_LOGIC;
+
+    Inputs             : IN  STD_LOGIC_VECTOR(Channels-1 downto 0);
+    
+    UART_RX            : IN  STD_LOGIC := '1';
+    UART_TX            : OUT STD_LOGIC := '1';
+)
+{
+    OLS_Interface_Inputs(Channels-1 downto 0) <= Inputs;
+    OLS_Interface_Outputs(Channels-1 downto 0) <= LA_Out;
+    
+    SIGNAL OLS_Interface_Rate_Div      : NATURAL          range 1 to Sample_CLK_Freq := 12;
+    SIGNAL OLS_Interface_Samples       : NATURAL          range 1 to Max_Samples := Max_Samples;
+    SIGNAL OLS_Interface_Start_Offset  : NATURAL          range 0 to Max_Samples := 0;
+    SIGNAL OLS_Interface_Run           : STD_LOGIC := '0';
+    SIGNAL OLS_Interface_Full          : STD_LOGIC := '0';
+    SIGNAL OLS_Interface_Address       : NATURAL          range 0 to Max_Samples-1 := 0;
+    SIGNAL OLS_Interface_Outputs       : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+    SIGNAL OLS_Interface_Inputs        : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+    NewComponent OLS_Interface
+    (
+        CLK_Frequency => Sample_CLK_Freq,
+        Baud_Rate     => Baud_Rate,
+        Max_Samples   => Max_Samples,
+
+        CLK           => Sample_CLK,
+        UART_RX       => UART_RX,
+        UART_TX       => UART_TX,
+        Inputs        => OLS_Interface_Inputs,
+        Rate_Div      => OLS_Interface_Rate_Div,
+        Samples       => OLS_Interface_Samples,
+        Start_Offset  => OLS_Interface_Start_Offset,
+        Run           => OLS_Interface_Run,
+        Full          => OLS_Interface_Full,
+        Address       => OLS_Interface_Address,
+        Outputs       => OLS_Interface_Outputs,
+    );
+
+    SIGNAL LA_Out : STD_LOGIC_VECTOR(Channels-1 downto 0);
+    NewComponent Logic_Analyzer
+    (
+        Max_Samples   => Max_Samples,
+        CLK_Frequency => Sample_CLK_Freq,
+        Channels      => Channels,
+        
+        CLK           => Sample_CLK,
+        Rate_Div      => OLS_Interface_Rate_Div,
+        Samples       => OLS_Interface_Samples,
+        Start_Offset  => OLS_Interface_Start_Offset,
+        Run           => OLS_Interface_Run,
+        Full          => OLS_Interface_Full,
+        Inputs        => Inputs,
+        Address       => OLS_Interface_Address,
+        Outputs       => LA_Out,
+    );
+}
