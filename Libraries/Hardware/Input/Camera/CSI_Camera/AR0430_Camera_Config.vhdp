@@ -32,7 +32,7 @@ Component OnSemi_Cam_Config
             {
                 Correct_B <= 2;
             }
-            Elsif(Dark_Cnt < 1000)
+            Elsif(Dark_Cnt < 10000)
             {
                 Correct_B <= 1;
             }
@@ -48,14 +48,14 @@ Component OnSemi_Cam_Config
                 Bright_Cnt := 0;
                 Dark_Cnt   := 0;
             }
-            if (UNSIGNED(iStream.R) > 240 OR UNSIGNED(iStream.G) > 240 OR UNSIGNED(iStream.B) > 240)
+            if (UNSIGNED(iStream.R) > 250 OR UNSIGNED(iStream.G) > 250 OR UNSIGNED(iStream.B) > 250)
             {
                 If(Bright_Cnt < 100000)
                 {
                     Bright_Cnt := Bright_Cnt + 1;
                 }
             }
-            if (UNSIGNED(iStream.R) > 200 OR UNSIGNED(iStream.G) > 200 OR UNSIGNED(iStream.B) > 200)
+            if (UNSIGNED(iStream.R) > 220 OR UNSIGNED(iStream.G) > 220 OR UNSIGNED(iStream.B) > 220)
             {
                 If(Dark_Cnt < 100000)
                 {
