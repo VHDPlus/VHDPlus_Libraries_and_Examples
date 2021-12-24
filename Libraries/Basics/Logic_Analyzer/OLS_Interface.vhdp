@@ -39,6 +39,8 @@ Component OLS_Interface
     SIGNAL Send     : STD_LOGIC := '0';  --
     SIGNAL Has_Data : STD_LOGIC := '0';  --Hasn't sent all samples yet
     
+    SIGNAL Trigger_Ch     : NATURAL range 0 to 32 := 0;
+    SIGNAL Trigger_Edge   : STD_LOGIC := '1';
     SIGNAL Trigger_Mask   : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
     SIGNAL Trigger_Values : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
     
@@ -85,6 +87,9 @@ Component OLS_Interface
     --ISSP1_probe(9) <= Run_OLS;
     --ISSP1_probe(10) <= Full;
     
+    --ISSP_probe(15 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(trigger_ch, 16));
+    --ISSP_probe(16) <= Trigger_Edge;
+    --ISSP1_probe <= Trigger_Mask;
     
     Process ()
     {
@@ -140,9 +145,14 @@ Component OLS_Interface
         {
             If(Run_OLS = '1')
             {
-                If(UNSIGNED((Inputs XOR Trigger_Values) AND Trigger_Mask) = 0)
+                If(UNSIGNED((Inputs XOR Trigger_Values) AND Trigger_Mask) = 0 AND (Trigger_Ch = 0 OR (Inputs(Trigger_Ch-1) = Trigger_Edge AND Trig_Reg /= Trigger_Edge)))
                 {
                     Run <= '1';
+                }
+                VARIABLE Trig_Reg : STD_LOGIC;
+                If(Trigger_Ch > 0)
+                {
+                    Trig_Reg := Inputs(Trigger_Ch-1);
                 }
             }
         }
@@ -191,6 +201,10 @@ Component OLS_Interface
                     {
                         --Run
                         Run_OLS <= '1';
+                        If(Trigger_Ch > 0)
+                        {
+                            Trig_Reg := Inputs(Trigger_Ch-1);
+                        }
                     }
                     When(x"02")
                     {
@@ -240,6 +254,11 @@ Component OLS_Interface
                         Channel <= TO_INTEGER(UNSIGNED(data(24 downto 20)));
                         Serial  <= data(26);
                         Start   <= data(27);
+                    }
+                    When(x"c3")
+                    {
+                        Trigger_Ch   <= TO_INTEGER(UNSIGNED(data(4 downto 0)));
+                        Trigger_Edge <= data(5);
                     }
                     When(x"80")
                     {
