@@ -29,6 +29,10 @@
 
 Component SDRAM_Interface
 (
+    Generic
+    (
+        Sim : BOOLEAN := false;
+    );
     Reset                 : IN    std_logic                     := '0';
     CLK_150_Out           : OUT   std_logic;                                        -- 50MHz Clock Output
     
@@ -146,6 +150,7 @@ Component SDRAM_Interface
     
     VHDL
     {
+        u187: if NOT sim generate
         u0 : component SDRAM_Controller
         port map (
             sdram_addr            => sdram_addr,            --   sdram.addr
@@ -171,6 +176,63 @@ Component SDRAM_Interface
             reset_reset_n         => reset_reset_n,
             clk_in_clk            => CLK_150
         );
+        end generate;
+    }
+    
+    TYPE sdram_type IS ARRAY (0 to 3999999) OF STD_LOGIC_VECTOR(15 downto 0);
+    SIGNAL sdram_ram : sdram_type;
+    Generate (if sim)
+    {
+        Process()
+        {
+            If(rising_edge(CLK_150))
+            {
+                VARIABLE wait_r : BOOLEAN := false;
+                If(sdram_s_read_n = '0')
+                {
+                    If(not wait_r)
+                    {
+                        If(sdram_s_waitrequest = '0')
+                        {
+                            sdram_s_waitrequest <= '1';
+                        }
+                        Else
+                        {
+                            sdram_s_waitrequest <= '0';
+                            sdram_s_readdatavalid <= '1';
+                            sdram_s_readdata <= sdram_ram(TO_INTEGER(UNSIGNED(sdram_s_address)));
+                            wait_r := true;
+                        }
+                    }
+                    Else
+                    {
+                        sdram_s_readdatavalid <= '0';
+                    }
+                }
+                ElsIf(sdram_s_write_n = '0')
+                {
+                    If(not wait_r)
+                    {
+                        If(sdram_s_waitrequest = '0')
+                        {
+                            sdram_s_waitrequest <= '1';
+                            sdram_ram(TO_INTEGER(UNSIGNED(sdram_s_address))) <= sdram_s_writedata;
+                        }
+                        Else
+                        {
+                            sdram_s_waitrequest <= '0';
+                            wait_r := true;
+                        }
+                    }
+                }
+                Else
+                {
+                    sdram_s_readdatavalid <= '0';
+                    sdram_s_waitrequest <= '0';
+                    wait_r := false;
+                }
+            }
+        }
     }
     
     SIGNAL CLK_150     : STD_LOGIC;

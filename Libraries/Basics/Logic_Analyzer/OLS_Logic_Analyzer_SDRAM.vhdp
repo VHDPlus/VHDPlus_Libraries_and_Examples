@@ -1,0 +1,103 @@
+Component OLS_Logic_Analyzer
+(
+    Generic
+    (
+        Baud_Rate       : INTEGER := 12000000;     --data link baud rate in bits/second
+        Max_Samples     : NATURAL := 1000000;      --1Mio samples
+        Buffer_Size     : NATURAL := 10000;        --Samples before trigger
+        Channels        : NATURAL := 4;            --1-32 inputs
+    );
+    Inputs             : IN  STD_LOGIC_VECTOR(Channels-1 downto 0);
+    
+    UART_RX            : IN  STD_LOGIC := '1';
+    UART_TX            : OUT STD_LOGIC := '1';
+    
+    sdram_addr  : OUT std_logic_vector (11 downto 0);
+    sdram_ba    : OUT std_logic_vector (1 downto 0);
+    sdram_cas_n : OUT std_logic;
+    sdram_dq    : INOUT std_logic_vector (15 downto 0) := (others => '0');
+    sdram_dqm   : OUT std_logic_vector (1 downto 0);
+    sdram_ras_n : OUT std_logic;
+    sdram_we_n  : OUT std_logic;
+    sdram_cke   : OUT std_logic := '1';
+    sdram_cs_n  : OUT std_logic := '0';
+    sdram_clk   : OUT std_logic;
+)
+{
+    
+    OLS_Interface_Inputs(Channels-1 downto 0) <= Inputs;
+    
+    CONSTANT sub_steps    : NATURAL := 16/Channels;
+    OLS_Interface_Outputs(Channels-1 downto 0) <= LA_Out(((OLS_Interface_Address mod sub_steps + 1)*Channels)-1 downto (OLS_Interface_Address mod sub_steps)*Channels);
+    LA_Address <= OLS_Interface_Address/sub_steps;
+    
+    Connections
+    {
+        sdram_addr,
+        sdram_ba,
+        sdram_cas_n,
+        sdram_clk,
+        sdram_ras_n,
+        sdram_we_n,
+        sdram_dqm,
+        sdram_dq,
+    }
+    
+    SIGNAL OLS_Interface_Rate_Div      : NATURAL          range 1 to Sample_CLK_Freq := 12;
+    SIGNAL OLS_Interface_Samples       : NATURAL          range 1 to Max_Samples := Max_Samples;
+    SIGNAL OLS_Interface_Start_Offset  : NATURAL          range 0 to Max_Samples := 0;
+    SIGNAL OLS_Interface_Run           : STD_LOGIC := '0';
+    SIGNAL OLS_Interface_Full          : STD_LOGIC := '0';
+    SIGNAL OLS_Interface_Address       : NATURAL          range 0 to Max_Samples-1 := 0;
+    SIGNAL OLS_Interface_Outputs       : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+    SIGNAL OLS_Interface_Inputs        : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+    NewComponent OLS_Interface
+    (
+        CLK_Frequency => 150000000,
+        Baud_Rate     => Baud_Rate,
+        Max_Samples   => Max_Samples,
+
+        CLK           => Fast_Logic_Analyzer_SDRAM_CLK_150,
+        UART_RX       => UART_RX,
+        UART_TX       => UART_TX,
+        Inputs        => OLS_Interface_Inputs,
+        Rate_Div      => OLS_Interface_Rate_Div,
+        Samples       => OLS_Interface_Samples,
+        Start_Offset  => OLS_Interface_Start_Offset,
+        Run           => OLS_Interface_Run,
+        Full          => OLS_Interface_Full,
+        Address       => OLS_Interface_Address,
+        Outputs       => OLS_Interface_Outputs,
+    );
+
+    SIGNAL LA_Out : STD_LOGIC_VECTOR(15 downto 0);
+
+    SIGNAL Fast_Logic_Analyzer_SDRAM_CLK_150      : STD_LOGIC;
+    SIGNAL LA_Address       : NATURAL          range 0 to Max_Samples-1 := 0;
+    NewComponent Fast_Logic_Analyzer_SDRAM
+    (
+        Max_Samples  => Max_Samples,
+        Buffer_Size  => Buffer_Size,
+        Channels     => Channels,
+
+        CLK_150      => Fast_Logic_Analyzer_SDRAM_CLK_150,
+        Rate_Div     => OLS_Interface_Rate_Div,
+        Samples      => OLS_Interface_Samples,
+        Start_Offset => OLS_Interface_Start_Offset,
+        Run          => OLS_Interface_Run,
+        Full         => OLS_Interface_Full,
+        Inputs       => Inputs,
+        Address      => LA_Address,
+        Outputs      => LA_Out,
+        sdram_addr   => sdram_addr,
+        sdram_ba     => sdram_ba,
+        sdram_cas_n  => sdram_cas_n,
+        sdram_dq     => sdram_dq,
+        sdram_dqm    => sdram_dqm,
+        sdram_ras_n  => sdram_ras_n,
+        sdram_we_n   => sdram_we_n,
+        sdram_cke    => sdram_cke,
+        sdram_cs_n   => sdram_cs_n,
+        sdram_clk    => sdram_clk,
+    );
+}
