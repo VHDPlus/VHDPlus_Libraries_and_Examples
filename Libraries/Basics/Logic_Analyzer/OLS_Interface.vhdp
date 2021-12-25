@@ -4,7 +4,7 @@ Component OLS_Interface
     (
         CLK_Frequency   :   INTEGER     := 12000000;    --frequency of system clock in Hertz
         Baud_Rate       :   INTEGER     := 115200;       --data link baud rate in bits/second
-        Max_Samples    : NATURAL := 25000;    --25,000 samples
+        Max_Samples     : NATURAL := 25000;    --25,000 samples
     );
     UART_RX      : IN  STD_LOGIC := '1';
     UART_TX      : OUT STD_LOGIC := '1';
@@ -61,35 +61,6 @@ Component OLS_Interface
     SIGNAL Channel_Groups : STD_LOGIC_VECTOR(3 downto 0) := "0000"; --Disable channel group
     SIGNAL External : STD_LOGIC := '0'; --Selects the clock to be used for sampling. If set to 0, the internal clock divided by the configured divider is used, and if set to 1, the external clock will be used
     SIGNAL Inverted : STD_LOGIC := '0'; --When set to 1, the external clock will be inverted before being used
-    
-    /*
-    SIGNAL ISSP_source : std_logic_vector (7 downto 0);
-    SIGNAL ISSP_probe  : std_logic_vector (31 downto 0) := (others => '0');
-    NewComponent ISSP
-    (
-        source =>ISSP_source,
-        probe  =>ISSP_probe,
-    );
-    
-    SIGNAL ISSP1_source : std_logic_vector (7 downto 0);
-    SIGNAL ISSP1_probe  : std_logic_vector (31 downto 0) := (others => '0');
-    NewComponent ISSP
-    (
-        source =>ISSP1_source,
-        probe  =>ISSP1_probe,
-    );
-    */
-    
-    --ISSP1_probe(7 downto 0) <= command;
-    --ISSP_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Divider, 32));
-    --ISSP1_probe <= STD_LOGIC_VECTOR(TO_UNSIGNED(Rate_Div, 32));
-    --ISSP1_probe(8) <= Run;
-    --ISSP1_probe(9) <= Run_OLS;
-    --ISSP1_probe(10) <= Full;
-    
-    --ISSP_probe(15 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(trigger_ch, 16));
-    --ISSP_probe(16) <= Trigger_Edge;
-    --ISSP1_probe <= Trigger_Mask;
     
     Process ()
     {
@@ -165,7 +136,8 @@ Component OLS_Interface
                     SIGNAL addr : NATURAL range 0 to 262140 := 0;
                     For(addr <= 0; addr < Samples; addr <= addr + 1)
                     {
-                        Address <= Samples - 1 - addr;
+                        Address <= addr;
+                        Wait(8);
                         For(SIGNAL wr_ctr : NATURAL range 0 to 4 := 0; wr_ctr < 4; wr_ctr <= wr_ctr + 1)
                         {
                             If(Channel_Groups(wr_ctr) = '0')
@@ -296,7 +268,7 @@ Component OLS_Interface
     (
         CLK_Frequency => CLK_Frequency,
         Baud_Rate     => Baud_Rate,
-        OS_Rate       => 16,
+        OS_Rate       => 12,
         D_Width       => 8,
         Parity        => 0,
         Parity_EO     => '0',
