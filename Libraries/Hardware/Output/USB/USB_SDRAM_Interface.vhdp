@@ -132,9 +132,9 @@ Component USB_SDRAM_Interface
                     }
                     NewFunction write (s"\n", UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
                 }
-                NewFunction write ('0'&data(7 downto 1), UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
-                NewFunction write ('0'&data(15 downto 9),  UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
-                NewFunction write ('0'&data(23  downto 17),  UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+                NewFunction write (data(7 downto 0), UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+                NewFunction write (data(15 downto 8),  UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
+                NewFunction write (data(23  downto 16),  UART_Interface_TX_Data, UART_Interface_TX_Busy, UART_Interface_TX_Enable);
             }
         }
     }
