@@ -134,7 +134,7 @@ Component OLS_Interface
             {
                 Thread
                 {
-                    SIGNAL addr : NATURAL range 0 to 262140 := 0;
+                    SIGNAL addr : NATURAL := 0;
                     For(addr <= 0; addr < Samples; addr <= addr + 1)
                     {
                         Address <= addr;
