@@ -54,8 +54,8 @@ Component OLS_Interface
     
     SIGNAL Divider : NATURAL range 0 to 16777215 := 0; --When x is written, the sampling frequency is set to f = clock / (x + 1)
     
-    SIGNAL Read_Count  : NATURAL range 0 to 262140 := 0;
-    SIGNAL Delay_Count : NATURAL range 0 to 262140 := 0;
+    SIGNAL Read_Count  : NATURAL := 0;
+    SIGNAL Delay_Count : NATURAL := 0;
     
     SIGNAL Demux  : STD_LOGIC := '0';  --Enables the demux input module. (Filter must be off.)
     SIGNAL Filter : STD_LOGIC := '0'; --Enables the filter input module. (Demux must be off.)
@@ -249,6 +249,14 @@ Component OLS_Interface
                         Channel_Groups <= data(5 downto 2);
                         External <= data(6);
                         Inverted <= data(7);
+                    }
+                    When(x"83")
+                    {
+                        Read_Count  <= TO_INTEGER(UNSIGNED(data));
+                    }
+                    When(x"84")
+                    {
+                        Delay_Count <= TO_INTEGER(UNSIGNED(data));
                     }
                     When(others)
                     {
