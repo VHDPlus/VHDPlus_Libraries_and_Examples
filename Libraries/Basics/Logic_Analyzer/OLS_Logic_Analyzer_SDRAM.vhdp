@@ -43,7 +43,7 @@ Component OLS_Logic_Analyzer
         sdram_dq,
     }
     
-    SIGNAL OLS_Interface_Rate_Div      : NATURAL          range 1 to Sample_CLK_Freq := 12;
+    SIGNAL OLS_Interface_Rate_Div      : NATURAL          range 1 to 150000000 := 12;
     SIGNAL OLS_Interface_Samples       : NATURAL          range 1 to Max_Samples := Max_Samples;
     SIGNAL OLS_Interface_Start_Offset  : NATURAL          range 0 to Max_Samples := 0;
     SIGNAL OLS_Interface_Run           : STD_LOGIC := '0';
