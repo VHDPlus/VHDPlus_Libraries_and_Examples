@@ -3,8 +3,9 @@ Component OLS_Interface
     Generic
     (
         CLK_Frequency   :   INTEGER     := 12000000;    --frequency of system clock in Hertz
-        Baud_Rate       :   INTEGER     := 115200;       --data link baud rate in bits/second
-        Max_Samples     : NATURAL := 25000;    --25,000 samples
+        Baud_Rate       :   INTEGER     := 115200;      --data link baud rate in bits/second
+        Max_Samples     :   NATURAL     := 25000;       --25,000 samples
+        OS_Rate         :   NATURAL     := 16;          --CLK_Frequency/Baud_Rate = max
     );
     UART_RX      : IN  STD_LOGIC := '1';
     UART_TX      : OUT STD_LOGIC := '1';
@@ -268,7 +269,7 @@ Component OLS_Interface
     (
         CLK_Frequency => CLK_Frequency,
         Baud_Rate     => Baud_Rate,
-        OS_Rate       => 12,
+        OS_Rate       => OS_Rate,
         D_Width       => 8,
         Parity        => 0,
         Parity_EO     => '0',

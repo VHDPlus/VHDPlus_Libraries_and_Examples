@@ -56,6 +56,7 @@ Component OLS_Logic_Analyzer
         CLK_Frequency => 150000000,
         Baud_Rate     => Baud_Rate,
         Max_Samples   => Max_Samples,
+        OS_Rate       => 12,
 
         CLK           => Fast_Logic_Analyzer_SDRAM_CLK_150,
         UART_RX       => UART_RX,
