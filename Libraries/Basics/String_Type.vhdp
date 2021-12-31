@@ -393,7 +393,7 @@ Package String_Type_Package
         FunctionContent
         {
             NewFunction indexOfString (iString1, iString2, 0, containsStringIndexCheck);
-            oBool <= containsIndexCheck /= -1;
+            oBool <= containsStringIndexCheck /= -1;
         }
     }
     
