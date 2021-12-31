@@ -106,57 +106,6 @@ Component UART_Interface
         oData <= rx_data;
     }
     
-    SeqFunction printString
-    (
-        iString  : String_Type;
-        
-        tx_data  : STD_LOGIC_VECTOR;
-        tx_busy  : STD_LOGIC;
-        tx_ena   : STD_LOGIC;
-    )
-    {
-        SeqFor(VARIABLE printString_i : NATURAL := 0; printString_i < iString.Length; printString_i := printString_i + 1)
-        {
-            iString.Address <= printString_i;
-            Step
-            {
-                tx_data <= iString.Data_OUT;
-                tx_ena <= '1';
-            }
-            While(tx_busy = '0'){}
-            tx_ena <= '0';
-            While(tx_busy = '1'){}
-        }
-    }
-    
-    SeqFunction readString
-    (
-        oString  : String_Type;
-
-        rx_data  : STD_LOGIC_VECTOR;
-        rx_busy  : STD_LOGIC;
-    )
-    {
-        While(rx_busy = '0'){}
-        VARIABLE timeout : NATURAL range 0 to 1200000 := 0;
-        timeout := 0;
-        oString.Length  <= 0;
-        While(timeout < 1200000)
-        {
-            timeout := 0;
-            While(rx_busy = '1'){}
-            oString.Write   <= '1';
-            oString.Address <= oString.Length;
-            oString.Data_IN <= rx_data;
-            oString.Length <= oString.Length + 1;
-            While(rx_busy = '0' AND timeout < 1200000)
-            {
-                oString.Write   <= '0';
-                timeout := timeout + 1;
-            }
-        }
-    }
-    
     --generate clock enable pulses at the baud rate and the oversampling rate
     Process CLK_GENERATOR
     (
