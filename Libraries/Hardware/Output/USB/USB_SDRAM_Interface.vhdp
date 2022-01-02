@@ -62,6 +62,9 @@ Component USB_SDRAM_Interface
         c2     => PLL_c2,    --28MHz
     );
     
+    SIGNAL Width : NATURAL range 0 to Image_Width := HDMI_Width;
+    SIGNAL Height : NATURAL range 0 to Image_Height := HDMI_Height;
+    
     Process ()
     {
         If(rising_edge(PLL_c2))
@@ -74,7 +77,7 @@ Component USB_SDRAM_Interface
             SIGNAL VS : STD_LOGIC := '1';
             If(Increase = '1')
             {
-                If(Column < HDMI_Width-1)
+                If(Column < Width-1)
                 {
                     Column := Column + 1;
                     HS     <= '0';
@@ -83,7 +86,7 @@ Component USB_SDRAM_Interface
                 {
                     Column := 0;
                     HS     <= '1';
-                    If(Row < HDMI_Height-1)
+                    If(Row < Height-1)
                     {
                         Row := Row + 1;
                         VS  <= '0';
@@ -124,6 +127,17 @@ Component USB_SDRAM_Interface
                         {
                             Read_En  <= '1';
                             NewFunction read (rx_data, UART_Interface_RX_Data, UART_Interface_RX_Busy);
+                            If(rx_data = s"e")
+                            {
+                                SIGNAL height_data : STD_LOGIC_VECTOR(15 downto 0) := x"0000";
+                                SIGNAL width_data : STD_LOGIC_VECTOR(15 downto 0) := x"0000";
+                                NewFunction read (height_data(7 downto 0), UART_Interface_RX_Data, UART_Interface_RX_Busy);
+                                NewFunction read (height_data(15 downto 8), UART_Interface_RX_Data, UART_Interface_RX_Busy);
+                                NewFunction read (width_data(7 downto 0), UART_Interface_RX_Data, UART_Interface_RX_Busy);
+                                NewFunction read (width_data(15 downto 8), UART_Interface_RX_Data, UART_Interface_RX_Busy);
+                                Height <= TO_INTEGER(UNSIGNED(height_data));
+                                Width  <= TO_INTEGER(UNSIGNED(width_data));
+                            }
                         }
                         Read_En <= '0';
                         rx_data <= x"00";
