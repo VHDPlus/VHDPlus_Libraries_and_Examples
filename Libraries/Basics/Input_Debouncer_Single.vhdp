@@ -1,0 +1,53 @@
+/*
+    Name: Input Debouncer Single
+    Rev: 1.0
+    Creator: Hendrik Mennen
+    Date: 21.01.2022
+
+    This file is a derivation of the implementation found at: https://www.digikey.com/eewiki/download/attachments/4980758/debounce.vhd?version=3&modificationDate=1332165966183&api=v2
+
+    Insertion: -Right click on Input_Debouncer.vhdp -> Add to project
+               -Add NewComponent of Input_Debouncer_Single in your code
+               -Remove Couter_Size or set your own size to wait a longer or shorter time for debouncing
+               -Connect your input with an instance IO
+               -Create signals as replacement for the inputs and connect them with Outputs
+    
+    Function:  -If the input changes the Component waits 1/(CLK frequency/2^Counter_Size) seconds before setting the output.
+                If the input changes in this time the time to wait begins again until the input stays stable.
+*/
+
+Component Input_Debouncer_Single
+(
+    Include();
+    Generic
+    (
+        Counter_Size    : INTEGER := 19;        --(19 bits = 1/(12MHz/2^19) = 45ms) determines the time to wait after an input change
+    );
+    Input       : IN  STD_LOGIC := '0';
+    Output        : OUT STD_LOGIC := '0';
+)
+{
+    AttributeDeclaration
+    {
+        SIGNAL InputBuffer : STD_LOGIC_VECTOR(1 DOWNTO 0);
+        SIGNAL Counter : UNSIGNED(Counter_Size-1 DOWNTO 0);
+    }
+    
+    Process Debounce_Process ()
+    {
+        If((InputBuffer(0) XOR InputBuffer(1))='1')        --reset counter because input is changing
+        {
+            Counter <= (others => '0');
+        }
+        Elsif(Counter < (2**Counter_Size)-1)                 --stable input time is not yet met
+        {
+            Counter <= Counter + 1;
+        }
+        Else                                                    --stable input time is met
+        {
+            Output <= InputBuffer(1);
+        }
+        InputBuffer(1) <= InputBuffer(0);
+        InputBuffer(0) <= Input;
+    }
+}
