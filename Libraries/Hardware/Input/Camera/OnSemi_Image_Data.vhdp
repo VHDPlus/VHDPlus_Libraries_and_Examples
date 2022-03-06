@@ -37,8 +37,8 @@ Package Image_Data_Package
     --up to 1152x864 15fps 50% (with USB Capture)
     --A 640x480 image is created from 1280x960 pixels
     
-    CONSTANT Image_Width    : NATURAL := 642;
-    CONSTANT Image_Height   : NATURAL := 481;
+    CONSTANT Image_Width    : NATURAL := 646;
+    CONSTANT Image_Height   : NATURAL := 483;
     CONSTANT Image_FPS      : NATURAL := 40;
     CONSTANT Image_Exposure : NATURAL := 90;   -- 1-100 (in percent of maximum exposure)
     

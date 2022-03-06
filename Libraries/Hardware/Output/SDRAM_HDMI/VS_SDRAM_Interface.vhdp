@@ -33,8 +33,8 @@ Component VS_SDRAM_Interface
     );
     Generic
     (
-        pixel_shift : NATURAL := 1;
-        black_row   : NATURAL := 1;
+        pixel_shift : NATURAL := 5;
+        black_row   : NATURAL := 2;
     );
     
     --RAM interface (VGA 24bit)
@@ -125,6 +125,13 @@ Component VS_SDRAM_Interface
                 }
             }
             
+            If(xCount < Image_Width AND yCount < Image_Height)
+            {
+                --Set RAM address for next pixel
+                Read_Row    <= yCount/Row_Div;
+                Read_Column <= xCount/Col_Div;
+            }
+            
             VARIABLE DE_reg : STD_LOGIC_VECTOR(pixel_shift downto 0);
             VARIABLE HS_reg : STD_LOGIC_VECTOR(pixel_shift downto 0);
             VARIABLE VS_reg : STD_LOGIC_VECTOR(pixel_shift downto 0);
@@ -140,9 +147,6 @@ Component VS_SDRAM_Interface
                 --VS_DE <= '1';
                 DE_reg := '1' & DE_reg(pixel_shift downto 1);
                 
-                --Set RAM address for next pixel
-                Read_Row    <= yCount/Row_Div;
-                Read_Column <= xCount/Col_Div;
                 /*
                 If(yCount < HDMI_Height-pixel_shift){ Read_Row <= yCount/Row_Div+pixel_shift; }
                 Else            { Read_Row <= (yCount + pixel_shift - HDMI_Height)/Col_Div; }
