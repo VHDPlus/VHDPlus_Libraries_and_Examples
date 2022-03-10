@@ -52,8 +52,8 @@ Component Blob_Detect
     );
     New_Pixel : IN STD_LOGIC;
     Pixel_In  : IN STD_LOGIC; --'1' for object and '0' for surrounding area
-    Column    : IN NATURAL range 0 to 639;
-    Row       : IN NATURAL range 0 to 479;
+    Column    : IN NATURAL range 0 to Image_Width-1;
+    Row       : IN NATURAL range 0 to Image_Height-1;
     
     Blob_Busy : OUT STD_LOGIC := '0';
     Blobs     : OUT NATURAL range 0 to Blob_Number;
