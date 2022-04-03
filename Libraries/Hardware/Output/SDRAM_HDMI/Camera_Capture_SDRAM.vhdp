@@ -222,7 +222,7 @@ Component Camera_Capture_SDRAM
                 {
                     If(SDRAM_Read_Valid = '1')
                     {
-                        RAM_Out_Row_i  <= (RAM_Out_Row_reg+1) mod 2;
+                        RAM_Out_Row_i  <= (RAM_Out_Row_reg) mod 2;
                         RAM_Out_Col_i  <= col;
                         RAM_Data_Out_i <= SDRAM_Read_Data;
                         
