@@ -1,0 +1,11 @@
+Component float_fast
+(
+
+			dataa  : in  std_logic_vector(31 downto 0) := (others => 'X'); -- dataa
+			datab  : in  std_logic_vector(31 downto 0) := (others => 'X'); -- datab
+			n      : in  std_logic_vector(3 downto 0)  := (others => 'X'); -- n
+			result : out std_logic_vector(31 downto 0)                     -- result
+		
+)
+{
+}

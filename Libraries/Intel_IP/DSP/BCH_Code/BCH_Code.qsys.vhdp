@@ -1,0 +1,19 @@
+Component BCH_Code
+(
+
+			clk        : in  std_logic                     := 'X';             -- clk
+			reset      : in  std_logic                     := 'X';             -- reset
+			load       : in  std_logic                     := 'X';             -- valid
+			ready      : out std_logic;                                        -- ready
+			sop_in     : in  std_logic                     := 'X';             -- startofpacket
+			eop_in     : in  std_logic                     := 'X';             -- endofpacket
+			data_in    : in  std_logic_vector(15 downto 0) := (others => 'X'); -- data_in
+			valid_out  : out std_logic;                                        -- valid
+			sink_ready : in  std_logic                     := 'X';             -- ready
+			sop_out    : out std_logic;                                        -- startofpacket
+			eop_out    : out std_logic;                                        -- endofpacket
+			data_out   : out std_logic_vector(15 downto 0)                     -- data_out
+		
+)
+{
+}

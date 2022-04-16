@@ -1,0 +1,9 @@
+Component Internal_CLK
+(
+
+			oscena : in  std_logic := 'X'; -- oscena
+			clkout : out std_logic         -- clk
+		
+)
+{
+}

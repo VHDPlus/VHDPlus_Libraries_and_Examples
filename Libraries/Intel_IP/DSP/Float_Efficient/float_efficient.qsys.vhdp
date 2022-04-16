@@ -1,0 +1,17 @@
+Component float_efficient
+(
+
+			clk       : in  std_logic                     := 'X';             -- clk
+			clk_en    : in  std_logic                     := 'X';             -- clk_en
+			dataa     : in  std_logic_vector(31 downto 0) := (others => 'X'); -- dataa
+			datab     : in  std_logic_vector(31 downto 0) := (others => 'X'); -- datab
+			n         : in  std_logic_vector(2 downto 0)  := (others => 'X'); -- n
+			reset     : in  std_logic                     := 'X';             -- reset
+			reset_req : in  std_logic                     := 'X';             -- reset_req
+			start     : in  std_logic                     := 'X';             -- start
+			done      : out std_logic;                                        -- done
+			result    : out std_logic_vector(31 downto 0)                     -- result
+		
+)
+{
+}

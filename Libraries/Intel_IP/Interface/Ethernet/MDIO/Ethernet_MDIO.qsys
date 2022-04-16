@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<system name="$${FILENAME}">
+ <component
+   name="$${FILENAME}"
+   displayName="$${FILENAME}"
+   version="1.0"
+   description=""
+   tags="INTERNAL_COMPONENT=true"
+   categories="" />
+ <parameter name="bonusData"><![CDATA[bonusData 
+{
+   element eth_mdio_0
+   {
+      datum _sortIndex
+      {
+         value = "0";
+         type = "int";
+      }
+   }
+}
+]]></parameter>
+ <parameter name="clockCrossingAdapter" value="HANDSHAKE" />
+ <parameter name="device" value="10M08SAU169C8G" />
+ <parameter name="deviceFamily" value="MAX 10" />
+ <parameter name="deviceSpeedGrade" value="8" />
+ <parameter name="fabricMode" value="QSYS" />
+ <parameter name="generateLegacySim" value="false" />
+ <parameter name="generationId" value="0" />
+ <parameter name="globalResetBus" value="false" />
+ <parameter name="hdlLanguage" value="VERILOG" />
+ <parameter name="hideFromIPCatalog" value="true" />
+ <parameter name="lockedInterfaceDefinition" value="" />
+ <parameter name="maxAdditionalLatency" value="1" />
+ <parameter name="projectName" value="" />
+ <parameter name="sopcBorderPoints" value="false" />
+ <parameter name="systemHash" value="0" />
+ <parameter name="testBenchDutName" value="" />
+ <parameter name="timeStamp" value="0" />
+ <parameter name="useTestBenchNamingPattern" value="false" />
+ <instanceScript></instanceScript>
+ <interface name="clock" internal="eth_mdio_0.clock" type="clock" dir="end">
+  <port name="clk" internal="clk" />
+ </interface>
+ <interface
+   name="clock_reset"
+   internal="eth_mdio_0.clock_reset"
+   type="reset"
+   dir="end">
+  <port name="reset" internal="reset" />
+ </interface>
+ <interface name="csr" internal="eth_mdio_0.csr" type="avalon" dir="end">
+  <port name="csr_write" internal="csr_write" />
+  <port name="csr_read" internal="csr_read" />
+  <port name="csr_address" internal="csr_address" />
+  <port name="csr_writedata" internal="csr_writedata" />
+  <port name="csr_readdata" internal="csr_readdata" />
+  <port name="csr_waitrequest" internal="csr_waitrequest" />
+ </interface>
+ <interface name="mdio" internal="eth_mdio_0.mdio" type="conduit" dir="end">
+  <port name="mdc" internal="mdc" />
+  <port name="mdio_in" internal="mdio_in" />
+  <port name="mdio_out" internal="mdio_out" />
+  <port name="mdio_oen" internal="mdio_oen" />
+ </interface>
+ <module
+   name="eth_mdio_0"
+   kind="altera_eth_mdio"
+   version="18.1"
+   enabled="1"
+   autoexport="1">
+  <parameter name="MDC_DIVISOR" value="32" />
+ </module>
+ <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
+ <interconnectRequirement for="$system" name="qsys_mm.enableEccProtection" value="FALSE" />
+ <interconnectRequirement for="$system" name="qsys_mm.insertDefaultSlave" value="FALSE" />
+ <interconnectRequirement for="$system" name="qsys_mm.maxAdditionalLatency" value="1" />
+</system>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<system name="$${FILENAME}">
+ <component
+   name="$${FILENAME}"
+   displayName="$${FILENAME}"
+   version="1.0"
+   description=""
+   tags="INTERNAL_COMPONENT=true"
+   categories="" />
+ <parameter name="bonusData"><![CDATA[bonusData 
+{
+   element bch_0
+   {
+      datum _sortIndex
+      {
+         value = "0";
+         type = "int";
+      }
+   }
+}
+]]></parameter>
+ <parameter name="clockCrossingAdapter" value="HANDSHAKE" />
+ <parameter name="device" value="10M08SAU169C8G" />
+ <parameter name="deviceFamily" value="MAX 10" />
+ <parameter name="deviceSpeedGrade" value="8" />
+ <parameter name="fabricMode" value="QSYS" />
+ <parameter name="generateLegacySim" value="false" />
+ <parameter name="generationId" value="0" />
+ <parameter name="globalResetBus" value="false" />
+ <parameter name="hdlLanguage" value="VERILOG" />
+ <parameter name="hideFromIPCatalog" value="true" />
+ <parameter name="lockedInterfaceDefinition" value="" />
+ <parameter name="maxAdditionalLatency" value="1" />
+ <parameter name="projectName" value="" />
+ <parameter name="sopcBorderPoints" value="false" />
+ <parameter name="systemHash" value="0" />
+ <parameter name="testBenchDutName" value="" />
+ <parameter name="timeStamp" value="0" />
+ <parameter name="useTestBenchNamingPattern" value="false" />
+ <instanceScript></instanceScript>
+ <interface name="clk" internal="bch_0.clk" type="clock" dir="end">
+  <port name="clk" internal="clk" />
+ </interface>
+ <interface name="in" internal="bch_0.in" type="conduit" dir="end">
+  <port name="load" internal="load" />
+  <port name="ready" internal="ready" />
+  <port name="sop_in" internal="sop_in" />
+  <port name="eop_in" internal="eop_in" />
+  <port name="data_in" internal="data_in" />
+ </interface>
+ <interface name="out" internal="bch_0.out" type="conduit" dir="end">
+  <port name="valid_out" internal="valid_out" />
+  <port name="sink_ready" internal="sink_ready" />
+  <port name="sop_out" internal="sop_out" />
+  <port name="eop_out" internal="eop_out" />
+  <port name="data_out" internal="data_out" />
+ </interface>
+ <interface name="rst" internal="bch_0.rst" type="reset" dir="end">
+  <port name="reset" internal="reset" />
+ </interface>
+ <module
+   name="bch_0"
+   kind="altera_bch"
+   version="18.1"
+   enabled="1"
+   autoexport="1">
+  <parameter name="BCH" value="Encoder" />
+  <parameter name="DATA_WIDTH" value="16" />
+  <parameter name="M_BITS" value="12" />
+  <parameter name="N_BITS" value="2240" />
+  <parameter name="T_BITS" value="16" />
+  <parameter name="design_env" value="NATIVE" />
+  <parameter name="selected_device_family" value="MAX 10" />
+ </module>
+ <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
+ <interconnectRequirement for="$system" name="qsys_mm.enableEccProtection" value="FALSE" />
+ <interconnectRequirement for="$system" name="qsys_mm.insertDefaultSlave" value="FALSE" />
+ <interconnectRequirement for="$system" name="qsys_mm.maxAdditionalLatency" value="1" />
+</system>

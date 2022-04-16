@@ -1,0 +1,41 @@
+Component Video_Filter
+(
+
+			clk_clk               : in  std_logic                     := 'X';             -- clk
+			reset_reset_n         : in  std_logic                     := 'X';             -- reset_n
+			in_vid_clk            : in  std_logic                     := 'X';             -- vid_clk
+			in_vid_data           : in  std_logic_vector(23 downto 0) := (others => 'X'); -- vid_data
+			in_vid_de             : in  std_logic                     := 'X';             -- vid_de
+			in_vid_datavalid      : in  std_logic                     := 'X';             -- vid_datavalid
+			in_vid_locked         : in  std_logic                     := 'X';             -- vid_locked
+			in_vid_f              : in  std_logic                     := 'X';             -- vid_f
+			in_vid_v_sync         : in  std_logic                     := 'X';             -- vid_v_sync
+			in_vid_h_sync         : in  std_logic                     := 'X';             -- vid_h_sync
+			in_vid_color_encoding : in  std_logic_vector(7 downto 0)  := (others => 'X'); -- vid_color_encoding
+			in_vid_bit_width      : in  std_logic_vector(7 downto 0)  := (others => 'X'); -- vid_bit_width
+			in_sof                : out std_logic;                                        -- sof
+			in_sof_locked         : out std_logic;                                        -- sof_locked
+			in_refclk_div         : out std_logic;                                        -- refclk_div
+			in_clipping           : out std_logic;                                        -- clipping
+			in_padding            : out std_logic;                                        -- padding
+			in_overflow           : out std_logic;                                        -- overflow
+			out_vid_data          : out std_logic_vector(23 downto 0);                    -- vid_data
+			out_underflow         : out std_logic;                                        -- underflow
+			out_vid_datavalid     : out std_logic;                                        -- vid_datavalid
+			out_vid_v_sync        : out std_logic;                                        -- vid_v_sync
+			out_vid_h_sync        : out std_logic;                                        -- vid_h_sync
+			out_vid_f             : out std_logic;                                        -- vid_f
+			out_vid_h             : out std_logic;                                        -- vid_h
+			out_vid_v             : out std_logic;                                        -- vid_v
+			gamma_address         : in  std_logic_vector(8 downto 0)  := (others => 'X'); -- address
+			gamma_byteenable      : in  std_logic_vector(3 downto 0)  := (others => 'X'); -- byteenable
+			gamma_write           : in  std_logic                     := 'X';             -- write
+			gamma_writedata       : in  std_logic_vector(31 downto 0) := (others => 'X'); -- writedata
+			gamma_read            : in  std_logic                     := 'X';             -- read
+			gamma_readdata        : out std_logic_vector(31 downto 0);                    -- readdata
+			gamma_readdatavalid   : out std_logic;                                        -- readdatavalid
+			gamma_waitrequest     : out std_logic                                         -- waitrequest
+		
+)
+{
+}

@@ -1,0 +1,45 @@
+Component Ethernet_Packet_Classifier
+(
+
+			clk                                                : in  std_logic                     := 'X';             -- clk
+			reset                                              : in  std_logic                     := 'X';             -- reset
+			data_sink_sop                                      : in  std_logic                     := 'X';             -- startofpacket
+			data_sink_eop                                      : in  std_logic                     := 'X';             -- endofpacket
+			data_sink_valid                                    : in  std_logic                     := 'X';             -- valid
+			data_sink_ready                                    : out std_logic;                                        -- ready
+			data_sink_data                                     : in  std_logic_vector(63 downto 0) := (others => 'X'); -- data
+			data_sink_error                                    : in  std_logic                     := 'X';             -- error
+			data_sink_empty                                    : in  std_logic_vector(2 downto 0)  := (others => 'X'); -- empty
+			data_src_sop                                       : out std_logic;                                        -- startofpacket
+			data_src_eop                                       : out std_logic;                                        -- endofpacket
+			data_src_valid                                     : out std_logic;                                        -- valid
+			data_src_ready                                     : in  std_logic                     := 'X';             -- ready
+			data_src_data                                      : out std_logic_vector(63 downto 0);                    -- data
+			data_src_error                                     : out std_logic;                                        -- error
+			data_src_empty                                     : out std_logic_vector(2 downto 0);                     -- empty
+			clock_mode                                         : in  std_logic_vector(1 downto 0)  := (others => 'X'); -- mode
+			pkt_with_crc                                       : in  std_logic                     := 'X';             -- mode
+			tx_egress_timestamp_request_in_valid               : in  std_logic                     := 'X';             -- valid
+			tx_egress_timestamp_request_in_fingerprint         : in  std_logic_vector(3 downto 0)  := (others => 'X'); -- fingerprint
+			tx_egress_timestamp_request_out_valid              : out std_logic;                                        -- valid
+			tx_egress_timestamp_request_out_fingerprint        : out std_logic_vector(3 downto 0);                     -- fingerprint
+			tx_etstamp_ins_ctrl_in_residence_time_update       : in  std_logic                     := 'X';             -- residence_time_update
+			tx_etstamp_ins_ctrl_in_ingress_timestamp_96b       : in  std_logic_vector(95 downto 0) := (others => 'X'); -- ingress_timestamp_96b
+			tx_etstamp_ins_ctrl_in_ingress_timestamp_64b       : in  std_logic_vector(63 downto 0) := (others => 'X'); -- ingress_timestamp_64b
+			tx_etstamp_ins_ctrl_in_residence_time_calc_format  : in  std_logic                     := 'X';             -- residence_time_calc_format
+			tx_etstamp_ins_ctrl_out_timestamp_insert           : out std_logic;                                        -- timestamp_insert
+			tx_etstamp_ins_ctrl_out_timestamp_format           : out std_logic;                                        -- timestamp_format
+			tx_etstamp_ins_ctrl_out_residence_time_update      : out std_logic;                                        -- residence_time_update
+			tx_etstamp_ins_ctrl_out_ingress_timestamp_96b      : out std_logic_vector(95 downto 0);                    -- ingress_timestamp_96b
+			tx_etstamp_ins_ctrl_out_ingress_timestamp_64b      : out std_logic_vector(63 downto 0);                    -- ingress_timestamp_64b
+			tx_etstamp_ins_ctrl_out_residence_time_calc_format : out std_logic;                                        -- residence_time_calc_format
+			tx_etstamp_ins_ctrl_out_checksum_zero              : out std_logic;                                        -- checksum_zero
+			tx_etstamp_ins_ctrl_out_checksum_correct           : out std_logic;                                        -- checksum_correct
+			tx_etstamp_ins_ctrl_out_offset_timestamp           : out std_logic_vector(15 downto 0);                    -- offset_timestamp
+			tx_etstamp_ins_ctrl_out_offset_correction_field    : out std_logic_vector(15 downto 0);                    -- offset_correction_field
+			tx_etstamp_ins_ctrl_out_offset_checksum_field      : out std_logic_vector(15 downto 0);                    -- offset_checksum_field
+			tx_etstamp_ins_ctrl_out_offset_checksum_correction : out std_logic_vector(15 downto 0)                     -- offset_checksum_correction
+		
+)
+{
+}

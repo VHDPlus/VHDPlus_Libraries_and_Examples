@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<system name="$${FILENAME}">
+ <component
+   name="$${FILENAME}"
+   displayName="$${FILENAME}"
+   version="1.0"
+   description=""
+   tags="INTERNAL_COMPONENT=true"
+   categories="" />
+ <parameter name="bonusData"><![CDATA[bonusData 
+{
+   element eth_packet_classifier_0
+   {
+      datum _sortIndex
+      {
+         value = "0";
+         type = "int";
+      }
+   }
+}
+]]></parameter>
+ <parameter name="clockCrossingAdapter" value="HANDSHAKE" />
+ <parameter name="device" value="10M08SAU169C8G" />
+ <parameter name="deviceFamily" value="MAX 10" />
+ <parameter name="deviceSpeedGrade" value="8" />
+ <parameter name="fabricMode" value="QSYS" />
+ <parameter name="generateLegacySim" value="false" />
+ <parameter name="generationId" value="0" />
+ <parameter name="globalResetBus" value="false" />
+ <parameter name="hdlLanguage" value="VERILOG" />
+ <parameter name="hideFromIPCatalog" value="true" />
+ <parameter name="lockedInterfaceDefinition" value="" />
+ <parameter name="maxAdditionalLatency" value="1" />
+ <parameter name="projectName" value="" />
+ <parameter name="sopcBorderPoints" value="false" />
+ <parameter name="systemHash" value="0" />
+ <parameter name="testBenchDutName" value="" />
+ <parameter name="timeStamp" value="0" />
+ <parameter name="useTestBenchNamingPattern" value="false" />
+ <instanceScript></instanceScript>
+ <interface
+   name="clock_operation_mode"
+   internal="eth_packet_classifier_0.clock_operation_mode"
+   type="conduit"
+   dir="end">
+  <port name="clock_mode" internal="clock_mode" />
+ </interface>
+ <interface
+   name="clock_reset"
+   internal="eth_packet_classifier_0.clock_reset"
+   type="clock"
+   dir="end">
+  <port name="clk" internal="clk" />
+ </interface>
+ <interface
+   name="clock_reset_reset"
+   internal="eth_packet_classifier_0.clock_reset_reset"
+   type="reset"
+   dir="end">
+  <port name="reset" internal="reset" />
+ </interface>
+ <interface
+   name="data_sink"
+   internal="eth_packet_classifier_0.data_sink"
+   type="avalon_streaming"
+   dir="end">
+  <port name="data_sink_sop" internal="data_sink_sop" />
+  <port name="data_sink_eop" internal="data_sink_eop" />
+  <port name="data_sink_valid" internal="data_sink_valid" />
+  <port name="data_sink_ready" internal="data_sink_ready" />
+  <port name="data_sink_data" internal="data_sink_data" />
+  <port name="data_sink_error" internal="data_sink_error" />
+  <port name="data_sink_empty" internal="data_sink_empty" />
+ </interface>
+ <interface
+   name="data_src"
+   internal="eth_packet_classifier_0.data_src"
+   type="avalon_streaming"
+   dir="start">
+  <port name="data_src_sop" internal="data_src_sop" />
+  <port name="data_src_eop" internal="data_src_eop" />
+  <port name="data_src_valid" internal="data_src_valid" />
+  <port name="data_src_ready" internal="data_src_ready" />
+  <port name="data_src_data" internal="data_src_data" />
+  <port name="data_src_error" internal="data_src_error" />
+  <port name="data_src_empty" internal="data_src_empty" />
+ </interface>
+ <interface
+   name="pkt_with_crc"
+   internal="eth_packet_classifier_0.pkt_with_crc"
+   type="conduit"
+   dir="end">
+  <port name="pkt_with_crc" internal="pkt_with_crc" />
+ </interface>
+ <interface
+   name="tx_egress_timestamp_request_in"
+   internal="eth_packet_classifier_0.tx_egress_timestamp_request_in"
+   type="conduit"
+   dir="end">
+  <port
+     name="tx_egress_timestamp_request_in_valid"
+     internal="tx_egress_timestamp_request_in_valid" />
+  <port
+     name="tx_egress_timestamp_request_in_fingerprint"
+     internal="tx_egress_timestamp_request_in_fingerprint" />
+ </interface>
+ <interface
+   name="tx_egress_timestamp_request_out"
+   internal="eth_packet_classifier_0.tx_egress_timestamp_request_out"
+   type="conduit"
+   dir="end">
+  <port
+     name="tx_egress_timestamp_request_out_valid"
+     internal="tx_egress_timestamp_request_out_valid" />
+  <port
+     name="tx_egress_timestamp_request_out_fingerprint"
+     internal="tx_egress_timestamp_request_out_fingerprint" />
+ </interface>
+ <interface
+   name="tx_etstamp_ins_ctrl_in"
+   internal="eth_packet_classifier_0.tx_etstamp_ins_ctrl_in"
+   type="conduit"
+   dir="end">
+  <port
+     name="tx_etstamp_ins_ctrl_in_residence_time_update"
+     internal="tx_etstamp_ins_ctrl_in_residence_time_update" />
+  <port
+     name="tx_etstamp_ins_ctrl_in_ingress_timestamp_96b"
+     internal="tx_etstamp_ins_ctrl_in_ingress_timestamp_96b" />
+  <port
+     name="tx_etstamp_ins_ctrl_in_ingress_timestamp_64b"
+     internal="tx_etstamp_ins_ctrl_in_ingress_timestamp_64b" />
+  <port
+     name="tx_etstamp_ins_ctrl_in_residence_time_calc_format"
+     internal="tx_etstamp_ins_ctrl_in_residence_time_calc_format" />
+ </interface>
+ <interface
+   name="tx_etstamp_ins_ctrl_out"
+   internal="eth_packet_classifier_0.tx_etstamp_ins_ctrl_out"
+   type="conduit"
+   dir="end">
+  <port
+     name="tx_etstamp_ins_ctrl_out_timestamp_insert"
+     internal="tx_etstamp_ins_ctrl_out_timestamp_insert" />
+  <port
+     name="tx_etstamp_ins_ctrl_out_timestamp_format"
+     internal="tx_etstamp_ins_ctrl_out_timestamp_format" />
+  <port
+     name="tx_etstamp_ins_ctrl_out_residence_time_update"
+     internal="tx_etstamp_ins_ctrl_out_residence_time_update" />
+  <port
+     name="tx_etstamp_ins_ctrl_out_ingress_timestamp_96b"
+     internal="tx_etstamp_ins_ctrl_out_ingress_timestamp_96b" />
+  <port
+     name="tx_etstamp_ins_ctrl_out_ingress_timestamp_64b"
+     internal="tx_etstamp_ins_ctrl_out_ingress_timestamp_64b" />
+  <port
+     name="tx_etstamp_ins_ctrl_out_residence_time_calc_format"
+     internal="tx_etstamp_ins_ctrl_out_residence_time_calc_format" />
+  <port
+     name="tx_etstamp_ins_ctrl_out_checksum_zero"
+     internal="tx_etstamp_ins_ctrl_out_checksum_zero" />
+  <port
+     name="tx_etstamp_ins_ctrl_out_checksum_correct"
+     internal="tx_etstamp_ins_ctrl_out_checksum_correct" />
+  <port
+     name="tx_etstamp_ins_ctrl_out_offset_timestamp"
+     internal="tx_etstamp_ins_ctrl_out_offset_timestamp" />
+  <port
+     name="tx_etstamp_ins_ctrl_out_offset_correction_field"
+     internal="tx_etstamp_ins_ctrl_out_offset_correction_field" />
+  <port
+     name="tx_etstamp_ins_ctrl_out_offset_checksum_field"
+     internal="tx_etstamp_ins_ctrl_out_offset_checksum_field" />
+  <port
+     name="tx_etstamp_ins_ctrl_out_offset_checksum_correction"
+     internal="tx_etstamp_ins_ctrl_out_offset_checksum_correction" />
+ </interface>
+ <module
+   name="eth_packet_classifier_0"
+   kind="altera_eth_packet_classifier"
+   version="18.1"
+   enabled="1"
+   autoexport="1">
+  <parameter name="BITSPERSYMBOL" value="8" />
+  <parameter name="SYMBOLSPERBEAT" value="8" />
+  <parameter name="TSTAMP_FP_WIDTH" value="4" />
+ </module>
+ <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
+ <interconnectRequirement for="$system" name="qsys_mm.enableEccProtection" value="FALSE" />
+ <interconnectRequirement for="$system" name="qsys_mm.insertDefaultSlave" value="FALSE" />
+ <interconnectRequirement for="$system" name="qsys_mm.maxAdditionalLatency" value="1" />
+</system>

@@ -1,0 +1,19 @@
+Component Ethernet_MDIO
+(
+
+			clk             : in  std_logic                     := 'X';             -- clk
+			reset           : in  std_logic                     := 'X';             -- reset
+			csr_write       : in  std_logic                     := 'X';             -- write
+			csr_read        : in  std_logic                     := 'X';             -- read
+			csr_address     : in  std_logic_vector(5 downto 0)  := (others => 'X'); -- address
+			csr_writedata   : in  std_logic_vector(31 downto 0) := (others => 'X'); -- writedata
+			csr_readdata    : out std_logic_vector(31 downto 0);                    -- readdata
+			csr_waitrequest : out std_logic;                                        -- waitrequest
+			mdc             : out std_logic;                                        -- mdc
+			mdio_in         : in  std_logic                     := 'X';             -- mdio_in
+			mdio_out        : out std_logic;                                        -- mdio_out
+			mdio_oen        : out std_logic                                         -- mdio_oen
+		
+)
+{
+}

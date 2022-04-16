@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<system name="$${FILENAME}">
+ <component
+   name="$${FILENAME}"
+   displayName="$${FILENAME}"
+   version="1.0"
+   description=""
+   tags=""
+   categories="" />
+ <parameter name="bonusData"><![CDATA[bonusData 
+{
+   element alt_vip_cl_cvi_0
+   {
+      datum _sortIndex
+      {
+         value = "1";
+         type = "int";
+      }
+   }
+   element alt_vip_cl_cvo_0
+   {
+      datum _sortIndex
+      {
+         value = "3";
+         type = "int";
+      }
+   }
+   element alt_vip_cl_gamma_corrector_0
+   {
+      datum _sortIndex
+      {
+         value = "2";
+         type = "int";
+      }
+   }
+   element clk_0
+   {
+      datum _sortIndex
+      {
+         value = "0";
+         type = "int";
+      }
+   }
+}
+]]></parameter>
+ <parameter name="clockCrossingAdapter" value="HANDSHAKE" />
+ <parameter name="device" value="10M08SAU169C8G" />
+ <parameter name="deviceFamily" value="MAX 10" />
+ <parameter name="deviceSpeedGrade" value="8" />
+ <parameter name="fabricMode" value="QSYS" />
+ <parameter name="generateLegacySim" value="false" />
+ <parameter name="generationId" value="0" />
+ <parameter name="globalResetBus" value="false" />
+ <parameter name="hdlLanguage" value="VERILOG" />
+ <parameter name="hideFromIPCatalog" value="false" />
+ <parameter name="lockedInterfaceDefinition" value="" />
+ <parameter name="maxAdditionalLatency" value="1" />
+ <parameter name="projectName" value="" />
+ <parameter name="sopcBorderPoints" value="false" />
+ <parameter name="systemHash" value="0" />
+ <parameter name="testBenchDutName" value="" />
+ <parameter name="timeStamp" value="0" />
+ <parameter name="useTestBenchNamingPattern" value="false" />
+ <instanceScript></instanceScript>
+ <interface name="clk" internal="clk_0.clk_in" type="clock" dir="end" />
+ <interface
+   name="gamma"
+   internal="alt_vip_cl_gamma_corrector_0.control"
+   type="avalon"
+   dir="end" />
+ <interface
+   name="in"
+   internal="alt_vip_cl_cvi_0.clocked_video"
+   type="conduit"
+   dir="end" />
+ <interface
+   name="out"
+   internal="alt_vip_cl_cvo_0.clocked_video"
+   type="conduit"
+   dir="end" />
+ <interface name="reset" internal="clk_0.clk_in_reset" type="reset" dir="end" />
+ <module
+   name="alt_vip_cl_cvi_0"
+   kind="alt_vip_cl_cvi"
+   version="18.1"
+   enabled="1">
+  <parameter name="ACCEPT_COLOURS_IN_SEQ" value="0" />
+  <parameter name="ANC_DEPTH" value="1" />
+  <parameter name="AUTO_DEVICE" value="10M08SAU169C8G" />
+  <parameter name="AUTO_DEVICE_FAMILY" value="MAX 10" />
+  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="8" />
+  <parameter name="BPS" value="8" />
+  <parameter name="CLOCKS_ARE_SAME" value="1" />
+  <parameter name="COLOUR_PLANES_ARE_IN_PARALLEL" value="1" />
+  <parameter name="EXTRACT_TOTAL_RESOLUTION" value="1" />
+  <parameter name="FIFO_DEPTH" value="256" />
+  <parameter name="GENERATE_ANC" value="0" />
+  <parameter name="GENERATE_VID_F" value="0" />
+  <parameter name="H_ACTIVE_PIXELS_F0" value="640" />
+  <parameter name="INTERLACED" value="0" />
+  <parameter name="MATCH_CTRLDATA_PKT_CLIP_BASIC" value="0" />
+  <parameter name="MATCH_CTRLDATA_PKT_PAD_ADV" value="0" />
+  <parameter name="NO_OF_CHANNELS" value="1" />
+  <parameter name="NUMBER_OF_COLOUR_PLANES" value="3" />
+  <parameter name="OVERFLOW_HANDLING" value="0" />
+  <parameter name="PIXELS_IN_PARALLEL" value="1" />
+  <parameter name="STD_WIDTH" value="1" />
+  <parameter name="SYNC_TO" value="0" />
+  <parameter name="USE_CONTROL" value="0" />
+  <parameter name="USE_EMBEDDED_SYNCS" value="0" />
+  <parameter name="USE_HDMI_DEPRICATION" value="0" />
+  <parameter name="USE_STD" value="0" />
+  <parameter name="V_ACTIVE_LINES_F0" value="480" />
+  <parameter name="V_ACTIVE_LINES_F1" value="480" />
+ </module>
+ <module
+   name="alt_vip_cl_cvo_0"
+   kind="alt_vip_cl_cvo"
+   version="18.1"
+   enabled="1">
+  <parameter name="ACCEPT_COLOURS_IN_SEQ" value="0" />
+  <parameter name="ACCEPT_SYNC" value="0" />
+  <parameter name="ANC_LINE" value="0" />
+  <parameter name="AP_LINE" value="0" />
+  <parameter name="AUTO_DEVICE" value="10M08SAU169C8G" />
+  <parameter name="AUTO_DEVICE_FAMILY" value="MAX 10" />
+  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="8" />
+  <parameter name="BPS" value="8" />
+  <parameter name="CLOCKS_ARE_SAME" value="1" />
+  <parameter name="COLOUR_PLANES_ARE_IN_PARALLEL" value="1" />
+  <parameter name="CONTEXT_WIDTH" value="8" />
+  <parameter name="COUNT_STEP_IS_PIP_VALUE" value="0" />
+  <parameter name="DST_WIDTH" value="8" />
+  <parameter name="FIELD0_ANC_LINE" value="0" />
+  <parameter name="FIELD0_V_BACK_PORCH" value="0" />
+  <parameter name="FIELD0_V_BLANK" value="0" />
+  <parameter name="FIELD0_V_FRONT_PORCH" value="0" />
+  <parameter name="FIELD0_V_RISING_EDGE" value="0" />
+  <parameter name="FIELD0_V_SYNC_LENGTH" value="0" />
+  <parameter name="FIFO_DEPTH" value="640" />
+  <parameter name="F_FALLING_EDGE" value="0" />
+  <parameter name="F_RISING_EDGE" value="0" />
+  <parameter name="GENERATE_SYNC" value="0" />
+  <parameter name="H_ACTIVE_PIXELS" value="640" />
+  <parameter name="H_BACK_PORCH" value="148" />
+  <parameter name="H_BLANK" value="0" />
+  <parameter name="H_FRONT_PORCH" value="88" />
+  <parameter name="H_SYNC_LENGTH" value="44" />
+  <parameter name="INTERLACED" value="0" />
+  <parameter name="LOW_LATENCY" value="0" />
+  <parameter name="NO_OF_CHANNELS" value="1" />
+  <parameter name="NO_OF_MODES" value="1" />
+  <parameter name="NUMBER_OF_COLOUR_PLANES" value="3" />
+  <parameter name="PIXELS_IN_PARALLEL" value="1" />
+  <parameter name="SRC_WIDTH" value="8" />
+  <parameter name="STD_WIDTH" value="1" />
+  <parameter name="TASK_WIDTH" value="8" />
+  <parameter name="THRESHOLD" value="639" />
+  <parameter name="USE_CONTROL" value="0" />
+  <parameter name="USE_EMBEDDED_SYNCS" value="0" />
+  <parameter name="V_ACTIVE_LINES" value="480" />
+  <parameter name="V_BACK_PORCH" value="36" />
+  <parameter name="V_BLANK" value="0" />
+  <parameter name="V_FRONT_PORCH" value="4" />
+  <parameter name="V_SYNC_LENGTH" value="5" />
+ </module>
+ <module
+   name="alt_vip_cl_gamma_corrector_0"
+   kind="alt_vip_cl_gamma_corrector"
+   version="18.1"
+   enabled="1">
+  <parameter name="AUTO_DEVICE" value="10M08SAU169C8G" />
+  <parameter name="AUTO_DEVICE_FAMILY" value="MAX 10" />
+  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="8" />
+  <parameter name="COLOR_PLANES_ARE_IN_PARALLEL" value="1" />
+  <parameter name="CONVERSION_MODE" value="LSB" />
+  <parameter name="ENABLE_TWO_BANKS" value="0" />
+  <parameter name="EXTRA_PIPELINING" value="0" />
+  <parameter name="INPUT_BITS_PER_SYMBOL" value="8" />
+  <parameter name="LIMITED_READBACK" value="0" />
+  <parameter name="NUMBER_OF_COLOR_PLANES" value="3" />
+  <parameter name="OUTPUT_BITS_PER_SYMBOL" value="8" />
+  <parameter name="PIXELS_IN_PARALLEL" value="1" />
+  <parameter name="RUNTIME_CONTROL" value="1" />
+  <parameter name="USER_PACKET_FIFO_DEPTH" value="0" />
+  <parameter name="USER_PACKET_SUPPORT" value="PASSTHROUGH" />
+ </module>
+ <module name="clk_0" kind="clock_source" version="18.1" enabled="1">
+  <parameter name="clockFrequency" value="50000000" />
+  <parameter name="clockFrequencyKnown" value="true" />
+  <parameter name="inputClockFrequency" value="0" />
+  <parameter name="resetSynchronousEdges" value="NONE" />
+ </module>
+ <connection
+   kind="avalon_streaming"
+   version="18.1"
+   start="alt_vip_cl_gamma_corrector_0.dout"
+   end="alt_vip_cl_cvo_0.din" />
+ <connection
+   kind="avalon_streaming"
+   version="18.1"
+   start="alt_vip_cl_cvi_0.dout_0"
+   end="alt_vip_cl_gamma_corrector_0.din" />
+ <connection
+   kind="clock"
+   version="18.1"
+   start="clk_0.clk"
+   end="alt_vip_cl_cvi_0.main_clock" />
+ <connection
+   kind="clock"
+   version="18.1"
+   start="clk_0.clk"
+   end="alt_vip_cl_gamma_corrector_0.main_clock" />
+ <connection
+   kind="clock"
+   version="18.1"
+   start="clk_0.clk"
+   end="alt_vip_cl_cvo_0.main_clock" />
+ <connection
+   kind="reset"
+   version="18.1"
+   start="clk_0.clk_reset"
+   end="alt_vip_cl_cvi_0.main_reset" />
+ <connection
+   kind="reset"
+   version="18.1"
+   start="clk_0.clk_reset"
+   end="alt_vip_cl_gamma_corrector_0.main_reset" />
+ <connection
+   kind="reset"
+   version="18.1"
+   start="clk_0.clk_reset"
+   end="alt_vip_cl_cvo_0.main_reset" />
+ <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
+ <interconnectRequirement for="$system" name="qsys_mm.enableEccProtection" value="FALSE" />
+ <interconnectRequirement for="$system" name="qsys_mm.insertDefaultSlave" value="FALSE" />
+ <interconnectRequirement for="$system" name="qsys_mm.maxAdditionalLatency" value="1" />
+</system>
