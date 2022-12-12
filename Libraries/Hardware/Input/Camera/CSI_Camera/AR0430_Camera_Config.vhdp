@@ -69,7 +69,7 @@ Component OnSemi_Cam_Config
     Process Cam_Init
     (
         VARIABLE state  : NATURAL range 0 to 10 := 10;
-        VARIABLE count  : NATURAL range 0 to CLK_Frequency/1000 := 0;
+        VARIABLE count  : NATURAL range 0 to CLK_Frequency/10 := 0;
         VARIABLE init   : BOOLEAN := true;
     )
     {
@@ -81,7 +81,7 @@ Component OnSemi_Cam_Config
             count := 0;
             I2C_Master_Interface_Enable <= '0';
             Cam_Reset <= '0';
-            init := false;
+            init := true;
         }
         Else
         {
@@ -246,7 +246,11 @@ Component OnSemi_Cam_Config
                     Cam_Reset <= '1';
                 }
                 
-                If(count < CLK_Frequency/1000)
+                If(address < x"02" AND count < CLK_Frequency/10)
+                {
+                    count := count + 1;
+                }
+                ElsIf(count < CLK_Frequency/10000)
                 {
                     count := count + 1;
                 }
@@ -462,7 +466,7 @@ Component OnSemi_Cam_Config
     NewComponent I2C_Master_Interface
     (
         CLK_Frequency => CLK_Frequency,
-        Bus_CLK       => 40000,
+        Bus_CLK       => 100000,
         
         Reset         => Reset,
         Enable        => I2C_Master_Interface_Enable,
