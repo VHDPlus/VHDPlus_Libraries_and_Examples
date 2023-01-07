@@ -30,7 +30,7 @@
                -Add NewComponent of ADC_MAX10 in your code
                -Right click the name ADC_MAX10 next to NewComponent and create the needed signal
     
-    Function:  Data(0) will give the value of A0 and Data(8) of AIN. Voltages from 0 to 3.3V are represented with a value from 0 to 4095.
+    Function:  Data will give the value of A0 if channel is 0 and of AIN if channel is 8. Voltages from 0 to 3.3V are represented with a value from 0 to 4095.
     
     Example:   ADC_MAX10_Example
 */
@@ -38,6 +38,11 @@
 Component ADC_MAX10_Single
 (
     Include();
+
+    Generic
+    (
+        MAX1000 : BOOLEAN := false;
+    );
     
     Channel : IN  NATURAL range 0 to 8 := 0;
     Data    : OUT NATURAL range 0 to 4095 := 0;
@@ -77,20 +82,42 @@ Component ADC_MAX10_Single
             adc_command_startofpacket <= '0';
             While(true)
             {
-                Case(Channel)
+                if(MAX1000)
                 {
-                    When(1) { chan := 8; }
-                    When(8) { chan := 0; }
-                    When(7) { chan := 1; }
-                    When(6) { chan := 2; }
-                    When(3) { chan := 3; }
-                    When(2) { chan := 4; }
-                    When(5) { chan := 5; }
-                    When(4) { chan := 6; }
-                    When(0) { chan := 7; }
-                    When(others)
+                    Case(Channel)
                     {
-                        chan := 0;
+                        When(0) { chan := 8; }
+                        When(8) { chan := 0; }
+                        When(3) { chan := 1; }
+                        When(1) { chan := 2; }
+                        When(4) { chan := 3; }
+                        When(6) { chan := 4; }
+                        When(2) { chan := 5; }
+                        When(7) { chan := 6; }
+                        When(5) { chan := 7; }
+                        When(others)
+                        {
+                            chan := 0;
+                        }
+                    }
+                }
+                else
+                {
+                    Case(Channel)
+                    {
+                        When(1) { chan := 8; }
+                        When(8) { chan := 0; }
+                        When(7) { chan := 1; }
+                        When(6) { chan := 2; }
+                        When(3) { chan := 3; }
+                        When(2) { chan := 4; }
+                        When(5) { chan := 5; }
+                        When(4) { chan := 6; }
+                        When(0) { chan := 7; }
+                        When(others)
+                        {
+                            chan := 0;
+                        }
                     }
                 }
                 adc_command_channel <= STD_LOGIC_VECTOR(TO_UNSIGNED(chan, adc_command_channel'LENGTH));
