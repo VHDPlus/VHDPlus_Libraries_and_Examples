@@ -96,12 +96,12 @@ Component Graphics_Render
     SeqFunction graphics_point
     (
         color        : STD_LOGIC_VECTOR(23 downto 0);
-        x            : NATURAL range 0 to (Image_Width-1)/Compression;
-        y            : NATURAL range 0 to (Image_Height-1)/Compression;
+        x            : NATURAL;
+        y            : NATURAL;
         
         Data_CLK     : STD_LOGIC;
-        Point_X      : NATURAL range 0 to (Image_Width-1)/Compression;
-        Point_Y      : NATURAL range 0 to (Image_Height-1)/Compression;
+        Point_X      : NATURAL;
+        Point_Y      : NATURAL;
         Data         : STD_LOGIC_VECTOR(23 downto 0);
         Function_Sel : render_functions := none;
         Busy         : STD_LOGIC;
@@ -119,15 +119,15 @@ Component Graphics_Render
     SeqFunction graphics_line
     (
         color        : STD_LOGIC_VECTOR(23 downto 0);
-        x1           : NATURAL range 0 to (Image_Width-1)/Compression;
-        y1           : NATURAL range 0 to (Image_Height-1)/Compression;
-        x2           : NATURAL range 0 to (Image_Width-1)/Compression;
-        y2           : NATURAL range 0 to (Image_Height-1)/Compression;
+        x1           : NATURAL;
+        y1           : NATURAL;
+        x2           : NATURAL;
+        y2           : NATURAL;
         width        : NATURAL range 0 to 255;
         
         Data_CLK     : STD_LOGIC;
-        Point_X      : NATURAL range 0 to (Image_Width-1)/Compression;
-        Point_Y      : NATURAL range 0 to (Image_Height-1)/Compression;
+        Point_X      : NATURAL;
+        Point_Y      : NATURAL;
         Data         : STD_LOGIC_VECTOR(23 downto 0);
         Function_Sel : render_functions := none;
         Busy         : STD_LOGIC;
@@ -150,16 +150,16 @@ Component Graphics_Render
     SeqFunction graphics_rectangle
     (
         color        : STD_LOGIC_VECTOR(23 downto 0);
-        x1           : NATURAL range 0 to (Image_Width-1)/Compression;
-        y1           : NATURAL range 0 to (Image_Height-1)/Compression;
-        x2           : NATURAL range 0 to (Image_Width-1)/Compression;
-        y2           : NATURAL range 0 to (Image_Height-1)/Compression;
+        x1           : NATURAL;
+        y1           : NATURAL;
+        x2           : NATURAL;
+        y2           : NATURAL;
         width        : NATURAL range 0 to 255;
         fill         : STD_LOGIC;
         
         Data_CLK     : STD_LOGIC;
-        Point_X      : NATURAL range 0 to (Image_Width-1)/Compression;
-        Point_Y      : NATURAL range 0 to (Image_Height-1)/Compression;
+        Point_X      : NATURAL;
+        Point_Y      : NATURAL;
         Data         : STD_LOGIC_VECTOR(23 downto 0);
         Function_Sel : render_functions := none;
         Busy         : STD_LOGIC;
@@ -182,15 +182,15 @@ Component Graphics_Render
     SeqFunction graphics_bitmap
     (
         color        : STD_LOGIC_VECTOR(23 downto 0);
-        x1           : NATURAL range 0 to (Image_Width-1)/Compression;
-        y1           : NATURAL range 0 to (Image_Height-1)/Compression;
-        x2           : NATURAL range 0 to (Image_Width-1)/Compression;
-        y2           : NATURAL range 0 to (Image_Height-1)/Compression;
+        x1           : NATURAL;
+        y1           : NATURAL;
+        x2           : NATURAL;
+        y2           : NATURAL;
         bitmap_data  : STD_LOGIC_VECTOR(23 downto 0);
         
         Data_CLK     : STD_LOGIC;
-        Point_X      : NATURAL range 0 to (Image_Width-1)/Compression;
-        Point_Y      : NATURAL range 0 to (Image_Height-1)/Compression;
+        Point_X      : NATURAL;
+        Point_Y      : NATURAL;
         Data         : STD_LOGIC_VECTOR(23 downto 0);
         Function_Sel : render_functions := none;
         Busy         : STD_LOGIC;
