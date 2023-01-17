@@ -33,7 +33,7 @@ Main
 {
     SIGNAL ADC_Data        : STD_LOGIC_VECTOR  (23 downto 0);
  
-    NewComponent Pressure_ADC 
+    NewComponent HX711_ADC
     (
         CLK_Frequency    => 12000000,
 

@@ -20,7 +20,7 @@ Main
     SIGNAL Audio_Codec_Component_ADC_R : SIGNED  (15 downto 0);
     SIGNAL Audio_Codec_Component_DAC_L : SIGNED  (15 downto 0);
     SIGNAL Audio_Codec_Component_DAC_R : SIGNED  (15 downto 0);
-    NewComponent Audio_Codec_Component
+    NewComponent MAX9867_Interface
     (
         Microphone_Ena   => true,
         Line_In_Ena      => false,

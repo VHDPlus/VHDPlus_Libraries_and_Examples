@@ -1,0 +1,370 @@
+/*
+    Name: Camera Capture
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 30.12.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Description: -This component takes video data (pixel + column/row) and saves it in the RAM. The data can be accessed parallely
+                 -With Compession you can set the resolution to save and with Width the color depth, so you can save RAM
+                 -If Full_Image is true, the resolution is decreased and if Full_Image is false, the resolution stays the same, but
+                  the area to output is reduced
+                 -If RGB is false, only the R value is saved
+ */
+
+Component Camera_Capture_SDRAM
+(
+    Include
+    (
+        Image_Data_Package.all,
+    );
+    Generic
+    (
+        CLK_Edge    : BOOLEAN := true; --true = rising edge
+    );
+
+    Enable      : IN    STD_LOGIC := '1';
+    
+    --Camera data
+    iStream     : IN     rgb_stream;
+    
+    CLK_140     : IN     STD_LOGIC;
+
+    --RAM Output interface
+    Read_Column : IN     NATURAL range 0 to Image_Width-1 := 0;
+    Read_Row    : IN     NATURAL range 0 to Image_Height-1 := 0;
+    Read_Data   : OUT    STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
+    
+    sdram_addr   : OUT std_logic_vector (11 downto 0);
+    sdram_ba     : OUT std_logic_vector (1 downto 0);
+    sdram_cas_n  : OUT std_logic;
+    sdram_cke    : OUT std_logic;
+    sdram_cs_n   : OUT std_logic;
+    sdram_dq     : INOUT std_logic_vector (15 downto 0) := (others => '0');
+    sdram_dqm    : OUT std_logic_vector (1 downto 0);
+    sdram_ras_n  : OUT std_logic;
+    sdram_we_n   : OUT std_logic;
+)
+{
+    Connections
+    {
+        sdram_addr[0]  => SDRAM_ADD_1,
+        sdram_addr[1]  => SDRAM_ADD_2,
+        sdram_addr[2]  => SDRAM_ADD_3,
+        sdram_addr[3]  => SDRAM_ADD_4,
+        sdram_addr[4]  => SDRAM_ADD_5,
+        sdram_addr[5]  => SDRAM_ADD_6,
+        sdram_addr[6]  => SDRAM_ADD_7,
+        sdram_addr[7]  => SDRAM_ADD_8,
+        sdram_addr[8]  => SDRAM_ADD_9,
+        sdram_addr[9]  => SDRAM_ADD_10,
+        sdram_addr[10] => SDRAM_ADD_11,
+        sdram_addr[11] => SDRAM_ADD_12,
+        sdram_addr[12] => SDRAM_ADD_13,
+        sdram_ba[0]    => SDRAM_BAN_1,
+        sdram_ba[1]    => SDRAM_BAN_2,
+        sdram_cas_n    => SDRAM_CAS,
+        sdram_ras_n    => SDRAM_RAS,
+        sdram_cke      => SDRAM_CKE,
+        sdram_clk      => SDRAM_CLK,
+        sdram_cs_n     => SDRAM_CSE,
+        sdram_we_n     => SDRAM_WEN,
+        sdram_dqm[0]   => SDRAM_DQM_1,
+        sdram_dqm[1]   => SDRAM_DQM_2,
+        sdram_dq[0]    => SDRAM_DAT_1,
+        sdram_dq[1]    => SDRAM_DAT_2,
+        sdram_dq[2]    => SDRAM_DAT_3,
+        sdram_dq[3]    => SDRAM_DAT_4,
+        sdram_dq[4]    => SDRAM_DAT_5,
+        sdram_dq[5]    => SDRAM_DAT_6,
+        sdram_dq[6]    => SDRAM_DAT_7,
+        sdram_dq[7]    => SDRAM_DAT_8,
+        sdram_dq[8]    => SDRAM_DAT_9,
+        sdram_dq[9]    => SDRAM_DAT_10,
+        sdram_dq[10]   => SDRAM_DAT_11,
+        sdram_dq[11]   => SDRAM_DAT_12,
+        sdram_dq[12]   => SDRAM_DAT_13,
+        sdram_dq[13]   => SDRAM_DAT_14,
+        sdram_dq[14]   => SDRAM_DAT_15,
+        sdram_dq[15]   => SDRAM_DAT_16,
+    }
+    
+    CONSTANT xWidth : NATURAL := Image_Width;
+    CONSTANT yWidth : NATURAL := 2;
+
+    --Output RAM
+    TYPE column_type IS ARRAY (xWidth-1 downto 0) OF STD_LOGIC_VECTOR(15 downto 0);
+    TYPE frame_type IS ARRAY (yWidth-1 downto 0) OF column_type;
+    SIGNAL o_image : frame_type;
+
+    SIGNAL RAM_Out_Col  : NATURAL range 0 to xWidth-1 := 0;
+    SIGNAL RAM_Out_Row  : NATURAL range 0 to 1 := 0;
+    SIGNAL RAM_Data_Out : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
+    
+    --OUTPUT:
+    --RAM_OUT_Row ändert sich:
+    --Gucken welche Row -> Row+1 in RAM schreiben
+    --Wird immer aus andererem Row RAM gelesen
+    
+    --INPUT:
+    --RAM_IN_Row ändert sich:
+    --In RAM Row schreiben
+    --Row-1 lesen und in RAM schreiben
+    
+    RAM_Out_Col <= Read_Column;
+    RAM_Out_Row <= Read_Row mod 2;
+    
+    RAM_Data_Out <= o_image(RAM_Out_Row)(RAM_Out_Col);
+
+    Read_Data <=  RAM_Data_Out(15 downto 11) & "000" & RAM_Data_Out(10 downto 5) & "00" & RAM_Data_Out(4 downto 0) & "000";
+    
+    SIGNAL New_Pixel_Buf : STD_LOGIC;
+    New_Pixel_Buf <= iStream.New_Pixel when CLK_Edge else NOT iStream.New_Pixel;
+    
+    --Input RAM
+    SIGNAL i_image : frame_type;
+    
+    SIGNAL RAM_In_Row  : NATURAL range 0 to 1 := 0;
+    
+    Process Pixel_Capture()
+    {
+        If(rising_edge(New_Pixel_Buf))
+        {
+            VARIABLE Row_buf       : NATURAL range 0 to 1 := 0;
+            Row_buf := iStream.Row mod 2;
+            
+            i_image(Row_buf)(iStream.Column) <= iStream.R(7 downto 3) & iStream.G(7 downto 2) & iStream.B(7 downto 3);
+            
+            RAM_In_Row <= Row_buf;
+        }
+    }
+    
+    Process ()
+    {
+        SIGNAL RAM_Out_Col_i  : NATURAL range 0 to xWidth-1 := 0;
+        SIGNAL RAM_Out_Row_i  : NATURAL range 0 to 1 := 0;
+        SIGNAL RAM_Data_Out_i : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
+        If(falling_edge(CLK_140))
+        {
+            o_image(RAM_Out_Row_i)(RAM_Out_Col_i) <= RAM_Data_Out_i;
+        }
+    }
+    
+    SIGNAL RAM_In_Col_o  : NATURAL range 0 to xWidth-1 := 0;
+    SIGNAL RAM_In_Row_o  : NATURAL range 0 to 1 := 0;
+    SIGNAL RAM_Data_In_o : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
+    
+    RAM_Data_In_o <= i_image(RAM_In_Row_o)(RAM_In_Col_o);
+    
+    Process RAM_Control()
+    {
+        If(rising_edge(CLK_140))
+        {
+            VARIABLE RAM_Out_Row_reg  : NATURAL range 0 to 1 := 0;
+            VARIABLE RAM_In_Row_reg   : NATURAL range 0 to 1 := 0;
+            VARIABLE Full_In_Row  : NATURAL range 0 to Image_Height-1 := 0;
+            VARIABLE Full_Out_Row_reg : NATURAL range 0 to Image_Height-1 := 0;
+            VARIABLE Full_In_Row_reg  : NATURAL range 0 to Image_Height-1 := 0;
+            
+            TYPE states_t IS (idle, read, write_load, read_save, write);
+            VARIABLE states : states_t := idle;
+            
+            VARIABLE col : NATURAL range 0 to Image_Width := 0;
+            
+            Case(states)
+            {
+                When(idle)
+                {
+                    col := 0;
+                    
+                    If(RAM_Out_Row_reg /= RAM_Out_Row)
+                    {
+                        If(SDRAM_Busy = '1')
+                        {
+                            states := read;
+                        }
+                        Full_Out_Row_reg   := Read_Row;
+                        SDRAM_Read_Enable <= '1';
+                        SDRAM_Address <= STD_LOGIC_VECTOR(TO_UNSIGNED(Full_Out_Row_reg*Image_Width + col, SDRAM_Address'LENGTH));
+                    }
+                    Elsif(RAM_In_Row_reg /= RAM_In_Row)
+                    {
+                        If (Enable = '1' OR Full_In_Row_reg > 0)
+                        {
+                            states := write_load;
+                            
+                            Full_In_Row_reg := Full_In_Row;
+                            Full_In_Row     := iStream.Row;
+                            
+                            RAM_In_Col_o    <= col;
+                            RAM_In_Row_o    <= RAM_In_Row_reg;
+                        }
+                    }
+                }
+                When(read)
+                {
+                    If(SDRAM_Read_Valid = '1')
+                    {
+                        RAM_Out_Row_i  <= (RAM_Out_Row_reg) mod 2;
+                        RAM_Out_Col_i  <= col;
+                        RAM_Data_Out_i <= SDRAM_Read_Data;
+                        
+                        SDRAM_Read_Enable <= '0';
+                        
+                        If(col < Image_Width-1)
+                        {
+                            col    := col + 1;
+                            states := read_save;
+                        }
+                        Else
+                        {
+                            states := idle;
+                            RAM_Out_Row_reg := RAM_Out_Row;
+                        }
+                    }
+                }
+                When(read_save)
+                {
+                    states := read;
+                    
+                    SDRAM_Read_Enable <= '1';
+                    SDRAM_Address <= STD_LOGIC_VECTOR(TO_UNSIGNED(Full_Out_Row_reg*Image_Width + col, SDRAM_Address'LENGTH));
+                }
+                When(write_load)
+                {
+                    states := write;
+                    
+                    SDRAM_Write_Enable <= '1';
+                    SDRAM_Write_Data   <= RAM_Data_In_o;
+                    SDRAM_Address      <= STD_LOGIC_VECTOR(TO_UNSIGNED(Full_In_Row_reg*Image_Width + col, SDRAM_Address'LENGTH));
+                }
+                When(write)
+                {
+                    If(SDRAM_Busy = '0')
+                    {
+                        SDRAM_Write_Enable <= '0';
+                        
+                        If(col < Image_Width-1)
+                        {
+                            col    := col + 1;
+                            states := write_load;
+                            
+                            RAM_In_Col_o    <= col;
+                            RAM_In_Row_o    <= RAM_In_Row_reg;
+                        }
+                        Else
+                        {
+                            states := idle;
+                            RAM_In_Row_reg := RAM_In_Row;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    SIGNAL SDRAM_Address      : std_logic_vector (21 downto 0) := (others => '0');
+    SIGNAL SDRAM_Write_Enable : std_logic := '0';
+    SIGNAL SDRAM_Write_Data   : std_logic_vector (15 downto 0) := (others => '0');
+    SIGNAL SDRAM_Read_Enable  : std_logic := '0';
+    SIGNAL SDRAM_Read_Data    : std_logic_vector (15 downto 0) := (others => '0');
+    SIGNAL SDRAM_Read_Valid   : std_logic := '0';
+    SIGNAL SDRAM_Busy         : std_logic := '0';
+    
+    sdram_s_address <= SDRAM_Address;
+    sdram_s_write_n <= NOT SDRAM_Write_Enable;
+    sdram_s_writedata <= SDRAM_Write_Data;
+    sdram_s_read_n <= NOT SDRAM_Read_Enable;
+    SDRAM_Read_Data <= sdram_s_readdata;
+    SDRAM_Read_Valid <= sdram_s_readdatavalid;
+    SDRAM_Busy <= sdram_s_waitrequest;
+    
+    AttributeDeclaration
+    {
+        VHDL
+        {
+            component SDRAM_Controller is
+            port (
+                sdram_addr            : out   std_logic_vector(11 downto 0);                    -- addr
+                sdram_ba              : out   std_logic_vector(1 downto 0);                     -- ba
+                sdram_cas_n           : out   std_logic;                                        -- cas_n
+                sdram_cke             : out   std_logic;                                        -- cke
+                sdram_cs_n            : out   std_logic;                                        -- cs_n
+                sdram_dq              : inout std_logic_vector(15 downto 0) := (others => 'X'); -- dq
+                sdram_dqm             : out   std_logic_vector(1 downto 0);                     -- dqm
+                sdram_ras_n           : out   std_logic;                                        -- ras_n
+                sdram_we_n            : out   std_logic;                                        -- we_n
+                
+                sdram_s_address       : in    std_logic_vector(21 downto 0) := (others => 'X'); -- address
+                sdram_s_byteenable_n  : in    std_logic_vector(1 downto 0)  := (others => 'X'); -- byteenable_n
+                sdram_s_chipselect    : in    std_logic                     := 'X';             -- chipselect
+                sdram_s_writedata     : in    std_logic_vector(15 downto 0) := (others => 'X'); -- writedata
+                sdram_s_read_n        : in    std_logic                     := 'X';             -- read_n
+                sdram_s_write_n       : in    std_logic                     := 'X';             -- write_n
+                sdram_s_readdata      : out   std_logic_vector(15 downto 0);                    -- readdata
+                sdram_s_readdatavalid : out   std_logic;                                        -- readdatavalid
+                sdram_s_waitrequest   : out   std_logic;                                        -- waitrequest
+                
+                reset_reset_n         : in    std_logic                     := 'X';             -- reset_n
+                clk_in_clk            : in    std_logic                     := 'X'              -- clk
+            );
+            end component SDRAM_Controller;
+        }
+    }
+    
+    SIGNAL sdram_s_address       : std_logic_vector(21 downto 0) := (others => '0'); -- address
+    SIGNAL sdram_s_byteenable_n  : std_logic_vector(1 downto 0)  := (others => '0'); -- byteenable_n
+    SIGNAL sdram_s_chipselect    : std_logic                     := '1';             -- chipselect
+    SIGNAL sdram_s_writedata     : std_logic_vector(15 downto 0) := (others => '0'); -- writedata
+    SIGNAL sdram_s_read_n        : std_logic                     := '1';             -- read_n
+    SIGNAL sdram_s_write_n       : std_logic                     := '1';             -- write_n
+    SIGNAL sdram_s_readdata      : std_logic_vector(15 downto 0);                    -- readdata
+    SIGNAL sdram_s_readdatavalid : std_logic;                                        -- readdatavalid
+    SIGNAL sdram_s_waitrequest   : std_logic;                                        -- waitrequest
+    
+    VHDL
+    {
+        u0 : component SDRAM_Controller
+        port map (
+            sdram_addr            => sdram_addr,            --   sdram.addr
+            sdram_ba              => sdram_ba,              --        .ba
+            sdram_cas_n           => sdram_cas_n,           --        .cas_n
+            sdram_cke             => sdram_cke,             --        .cke
+            sdram_cs_n            => sdram_cs_n,            --        .cs_n
+            sdram_dq              => sdram_dq,              --        .dq
+            sdram_dqm             => sdram_dqm,             --        .dqm
+            sdram_ras_n           => sdram_ras_n,           --        .ras_n
+            sdram_we_n            => sdram_we_n,            --        .we_n
+            
+            sdram_s_address       => sdram_s_address,       -- sdram_s.address
+            sdram_s_byteenable_n  => sdram_s_byteenable_n,  --        .byteenable_n
+            sdram_s_chipselect    => sdram_s_chipselect,    --        .chipselect
+            sdram_s_writedata     => sdram_s_writedata,     --        .writedata
+            sdram_s_read_n        => sdram_s_read_n,        --        .read_n
+            sdram_s_write_n       => sdram_s_write_n,       --        .write_n
+            sdram_s_readdata      => sdram_s_readdata,      --        .readdata
+            sdram_s_readdatavalid => sdram_s_readdatavalid, --        .readdatavalid
+            sdram_s_waitrequest   => sdram_s_waitrequest,   --        .waitrequest
+            
+            reset_reset_n         => '1',
+            clk_in_clk            => CLK_140
+        );
+    }
+}

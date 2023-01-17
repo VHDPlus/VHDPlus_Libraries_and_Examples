@@ -60,7 +60,7 @@ Main
     SIGNAL Reset_Reg    : STD_LOGIC := '0';
     Reset_Reg <= NOT Reset;
     
-    NewComponent Real_Time_Clock 
+    NewComponent DS3231_Interface
     (
         CLK_Frequency => CLK_Frequency,
 

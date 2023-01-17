@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2021 Protop Solutions UG. All right reserved.
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
     
     Permission is hereby granted, free of charge, to any person obtaining a copy of
     this hdl code and associated documentation files (the "HDL Code"), to deal in the
@@ -18,73 +18,230 @@
     AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
     WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
 
-    Insertion: -Right click on SDRAM.vhdp -> Add to project
-               -Right click on SDRAM.qsys -> Add to project
-               -Add NewComponent of SDRAM in your code
-               -Right click the name SDRAM next to NewComponent and create the needed signal
+    Insertion: -Right click on SDRAM_Interface.vhdp -> Add to project
+               -Right click on SDRAM_Interface.qsys -> Add to project
+               -Add NewComponent of SDRAM_Interface in your code
+               -Right click the name SDRAM_Interface next to NewComponent and create the needed signal
     
     Function:  -You can read or write a 16bit word with the Write_SDRAM or Read_SDRAM function
                -See the Intel Avalon Interface Specifications sheet for more information on how to use the SDRAM component
-*/
+ */
 
 Component SDRAM_Interface
 (
-    Reset                   : in    std_logic := '0';
+    Generic
+    (
+        Sim : BOOLEAN := false;
+    );
+    Reset                 : IN    std_logic                     := '0';
+    CLK_150_Out           : OUT   std_logic;                                        -- 50MHz Clock Output
     
-    Busy                    : OUT   STD_LOGIC := '0';
-    Address                 : IN    STD_LOGIC_VECTOR(21 downto 0) := (others => '0'); --Address to read from or write to
-    Byte_Enable             : IN    STD_LOGIC_VECTOR(1 downto 0) := "11"; --If you e.g. want to write only one of the two bytes
-    Write_Enable            : IN    STD_LOGIC := '0';
-    Write_Data              : IN    STD_LOGIC_VECTOR(15 downto 0);
-    Read_Enable             : IN    STD_LOGIC := '0';
-    Read_Data               : OUT   STD_LOGIC_VECTOR(15 downto 0);
-    Read_Valid              : OUT   STD_LOGIC := '0';
+    Address               : IN    std_logic_vector(21 downto 0) := (others => '0'); -- Data Address
+    Write_Enable          : IN    std_logic                     := '0';             -- Enable Write
+    Write_Data            : IN    std_logic_vector(15 downto 0) := (others => '0'); -- Data to Write
+    Read_Enable           : IN    std_logic                     := '0';             -- Enable Write
+    Read_Data             : OUT   std_logic_vector(15 downto 0) := (others => '0'); -- Data to Write
+    Read_Valid            : OUT   std_logic                     := '0';             -- Read Data Calid
+    Busy                  : OUT   std_logic                     := '0';             -- Read/Write Busy
     
-    SDRAM_addr              : OUT   STD_LOGIC_VECTOR(11 downto 0);
-    SDRAM_ba                : OUT   STD_LOGIC_VECTOR(1 downto 0);
-    SDRAM_cas_n             : OUT   STD_LOGIC;
-    SDRAM_dq                : INOUT STD_LOGIC_VECTOR(15 downto 0) := (others => 'X');
-    SDRAM_dqm               : OUT   STD_LOGIC_VECTOR(1 downto 0);
-    SDRAM_ras_n             : OUT   STD_LOGIC;
-    SDRAM_we_n              : OUT   STD_LOGIC;
-    SDRAM_clk               : OUT   STD_LOGIC;
+    sdram_addr            : out   std_logic_vector(11 downto 0);
+    sdram_ba              : out   std_logic_vector(1 downto 0);
+    sdram_cas_n           : out   std_logic;
+    sdram_cke             : out   std_logic := '1';  --NOT USED WITH CORE MAX10
+    sdram_cs_n            : out   std_logic := '0';  --NOT USED WITH CORE MAX10
+    sdram_dq              : inout std_logic_vector(15 downto 0) := (others => '0');
+    sdram_dqm             : out   std_logic_vector(1 downto 0);
+    sdram_ras_n           : out   std_logic;
+    sdram_we_n            : out   std_logic;
+    sdram_clk             : out   std_logic;
 )
 {
+    SIGNAL reset_reset_n : STD_LOGIC;
+    reset_reset_n <= NOT Reset;
+    
+    sdram_s_address <= Address;
+    sdram_s_write_n <= NOT Write_Enable;
+    sdram_s_writedata <= Write_Data;
+    sdram_s_read_n <= NOT Read_Enable;
+    Read_Data <= sdram_s_readdata;
+    Read_Valid <= sdram_s_readdatavalid;
+    Busy <= sdram_s_waitrequest;
+    
+    CLK_150_Out <= CLK_150;
+    
+    AttributeDeclaration
+    {
+        VHDL
+        {
+            component SDRAM_Controller is
+            port (
+                sdram_addr            : out   std_logic_vector(11 downto 0);                    -- addr
+                sdram_ba              : out   std_logic_vector(1 downto 0);                     -- ba
+                sdram_cas_n           : out   std_logic;                                        -- cas_n
+                sdram_cke             : out   std_logic;                                        -- cke
+                sdram_cs_n            : out   std_logic;                                        -- cs_n
+                sdram_dq              : inout std_logic_vector(15 downto 0) := (others => 'X'); -- dq
+                sdram_dqm             : out   std_logic_vector(1 downto 0);                     -- dqm
+                sdram_ras_n           : out   std_logic;                                        -- ras_n
+                sdram_we_n            : out   std_logic;                                        -- we_n
+                
+                sdram_s_address       : in    std_logic_vector(21 downto 0) := (others => 'X'); -- address
+                sdram_s_byteenable_n  : in    std_logic_vector(1 downto 0)  := (others => 'X'); -- byteenable_n
+                sdram_s_chipselect    : in    std_logic                     := 'X';             -- chipselect
+                sdram_s_writedata     : in    std_logic_vector(15 downto 0) := (others => 'X'); -- writedata
+                sdram_s_read_n        : in    std_logic                     := 'X';             -- read_n
+                sdram_s_write_n       : in    std_logic                     := 'X';             -- write_n
+                sdram_s_readdata      : out   std_logic_vector(15 downto 0);                    -- readdata
+                sdram_s_readdatavalid : out   std_logic;                                        -- readdatavalid
+                sdram_s_waitrequest   : out   std_logic;                                        -- waitrequest
+                
+                reset_reset_n         : in    std_logic                     := 'X';             -- reset_n
+                clk_in_clk            : in    std_logic                     := 'X'              -- clk
+            );
+            end component SDRAM_Controller;
+        }
+    }
+    
+    SIGNAL sdram_s_address       : std_logic_vector(21 downto 0) := (others => '0'); -- address
+    SIGNAL sdram_s_byteenable_n  : std_logic_vector(1 downto 0)  := (others => '0'); -- byteenable_n
+    SIGNAL sdram_s_chipselect    : std_logic                     := '1';             -- chipselect
+    SIGNAL sdram_s_writedata     : std_logic_vector(15 downto 0) := (others => '0'); -- writedata
+    SIGNAL sdram_s_read_n        : std_logic                     := '1';             -- read_n
+    SIGNAL sdram_s_write_n       : std_logic                     := '1';             -- write_n
+    SIGNAL sdram_s_readdata      : std_logic_vector(15 downto 0);                    -- readdata
+    SIGNAL sdram_s_readdatavalid : std_logic;                                        -- readdatavalid
+    SIGNAL sdram_s_waitrequest   : std_logic;                                        -- waitrequest
+    
     SeqFunction Write_SDRAM
     (
-        Address            : NATURAL;
-        Data_In            : STD_LOGIC_VECTOR(15 downto 0);
+        Data_In      : STD_LOGIC_VECTOR(15 downto 0);
+        Address_In   : NATURAL;
         
-        SDRAM_Write_Enable : STD_LOGIC;
-        SDRAM_Address      : STD_LOGIC_VECTOR(21 downto 0);
-        SDRAM_Write_Data   : STD_LOGIC_VECTOR(15 downto 0);
-        SDRAM_Busy         : STD_LOGIC;
+        Address      : STD_LOGIC_VECTOR;
+        Write_Enable : STD_LOGIC;
+        Write_Data   : STD_LOGIC_VECTOR(15 downto 0);
+        Busy         : STD_LOGIC;
     )
     {
-        SDRAM_Address      <= STD_LOGIC_VECTOR(TO_UNSIGNED(Address, SDRAM_Address'LENGTH));
-        SDRAM_Write_Data   <= Data_In;
-        SDRAM_Write_Enable <= '1';
-        While(SDRAM_Busy = '1'){}
-        SDRAM_Write_Enable <= '0';
+        Write_Enable <= '1';
+        Address <= STD_LOGIC_VECTOR(TO_UNSIGNED(Address_In, Address'LENGTH));
+        Write_Data <= Data_In;
+        While(Busy = '1') {}
+        Write_Enable <= '0';
     }
     
     SeqFunction Read_SDRAM
     (
-        Address            : NATURAL;
-        Data_Out           : STD_LOGIC_VECTOR(15 downto 0);
+        Data_Out     : STD_LOGIC_VECTOR(15 downto 0);
+        Address_In   : NATURAL;
         
-        SDRAM_Read_Enable  : STD_LOGIC;
-        SDRAM_Address      : STD_LOGIC_VECTOR(21 downto 0);
-        SDRAM_Read_Data    : STD_LOGIC_VECTOR(15 downto 0);
-        SDRAM_Busy         : STD_LOGIC;
+        Address      : STD_LOGIC_VECTOR;
+        Read_Enable  : STD_LOGIC;
+        Read_Data    : STD_LOGIC_VECTOR(15 downto 0);
+        Busy         : STD_LOGIC;
     )
     {
-        SDRAM_Address      <= STD_LOGIC_VECTOR(TO_UNSIGNED(Address, SDRAM_Address'LENGTH));
-        SDRAM_Read_Enable  <= '1';
-        While(SDRAM_Busy = '1'){}
-        SDRAM_Read_Enable  <= '0';
-        Data_Out           <= SDRAM_Read_Data;
+        Read_Enable <= '1';
+        Address <= STD_LOGIC_VECTOR(TO_UNSIGNED(Address_In, Address'LENGTH));
+        While(Busy = '1') {}
+        Data_Out <= Read_Data;
+        Read_Enable <= '0';
     }
+    
+    VHDL
+    {
+        u187: if NOT sim generate
+        u0 : component SDRAM_Controller
+        port map (
+            sdram_addr            => sdram_addr,            --   sdram.addr
+            sdram_ba              => sdram_ba,              --        .ba
+            sdram_cas_n           => sdram_cas_n,           --        .cas_n
+            sdram_cke             => sdram_cke,             --        .cke
+            sdram_cs_n            => sdram_cs_n,            --        .cs_n
+            sdram_dq              => sdram_dq,              --        .dq
+            sdram_dqm             => sdram_dqm,             --        .dqm
+            sdram_ras_n           => sdram_ras_n,           --        .ras_n
+            sdram_we_n            => sdram_we_n,            --        .we_n
+            
+            sdram_s_address       => sdram_s_address,       -- sdram_s.address
+            sdram_s_byteenable_n  => sdram_s_byteenable_n,  --        .byteenable_n
+            sdram_s_chipselect    => sdram_s_chipselect,    --        .chipselect
+            sdram_s_writedata     => sdram_s_writedata,     --        .writedata
+            sdram_s_read_n        => sdram_s_read_n,        --        .read_n
+            sdram_s_write_n       => sdram_s_write_n,       --        .write_n
+            sdram_s_readdata      => sdram_s_readdata,      --        .readdata
+            sdram_s_readdatavalid => sdram_s_readdatavalid, --        .readdatavalid
+            sdram_s_waitrequest   => sdram_s_waitrequest,   --        .waitrequest
+            
+            reset_reset_n         => reset_reset_n,
+            clk_in_clk            => CLK_150
+        );
+        end generate;
+    }
+    
+    TYPE sdram_type IS ARRAY (0 to 3999999) OF STD_LOGIC_VECTOR(15 downto 0);
+    SIGNAL sdram_ram : sdram_type;
+    Generate (if sim)
+    {
+        Process()
+        {
+            If(rising_edge(CLK_150))
+            {
+                VARIABLE wait_r : BOOLEAN := false;
+                If(sdram_s_read_n = '0')
+                {
+                    If(not wait_r)
+                    {
+                        If(sdram_s_waitrequest = '0')
+                        {
+                            sdram_s_waitrequest <= '1';
+                        }
+                        Else
+                        {
+                            sdram_s_waitrequest <= '0';
+                            sdram_s_readdatavalid <= '1';
+                            sdram_s_readdata <= sdram_ram(TO_INTEGER(UNSIGNED(sdram_s_address)));
+                            wait_r := true;
+                        }
+                    }
+                    Else
+                    {
+                        sdram_s_readdatavalid <= '0';
+                    }
+                }
+                ElsIf(sdram_s_write_n = '0')
+                {
+                    If(not wait_r)
+                    {
+                        If(sdram_s_waitrequest = '0')
+                        {
+                            sdram_s_waitrequest <= '1';
+                            sdram_ram(TO_INTEGER(UNSIGNED(sdram_s_address))) <= sdram_s_writedata;
+                        }
+                        Else
+                        {
+                            sdram_s_waitrequest <= '0';
+                            wait_r := true;
+                        }
+                    }
+                }
+                Else
+                {
+                    sdram_s_readdatavalid <= '0';
+                    sdram_s_waitrequest <= '0';
+                    wait_r := false;
+                }
+            }
+        }
+    }
+    
+    SIGNAL CLK_150     : STD_LOGIC;
+    NewComponent SDRAM_PLL
+    (
+        inclk0 => CLK,
+        c0     => CLK_150,
+        c1     => sdram_clk,
+    );
     
     Connections
     {
@@ -104,6 +261,8 @@ Component SDRAM_Interface
         sdram_ba[0]    => SDRAM_BAN_1,
         sdram_ba[1]    => SDRAM_BAN_2,
         sdram_cas_n    => SDRAM_CAS,
+        sdram_cs_n     => SDRAM_CSE,
+        sdram_cke      => SDRAM_CKE,
         sdram_clk      => SDRAM_CLK,
         sdram_ras_n    => SDRAM_RAS,
         sdram_we_n     => SDRAM_WEN,
@@ -125,86 +284,7 @@ Component SDRAM_Interface
         sdram_dq[13]   => SDRAM_DAT_14,
         sdram_dq[14]   => SDRAM_DAT_15,
         sdram_dq[15]   => SDRAM_DAT_16,
-    }
-    
-    AttributeDeclaration
-    {
-        SIGNAL reset_reset_n           : STD_LOGIC;
-        SIGNAL interface_address       : std_logic_vector(21 downto 0) := (others => 'X'); -- address
-        SIGNAL interface_byteenable_n  : std_logic_vector(1 downto 0)  := (others => 'X'); -- byteenable_n
-        SIGNAL interface_chipselect    : std_logic                     := 'X';             -- chipselect
-        SIGNAL interface_writedata     : std_logic_vector(15 downto 0) := (others => 'X'); -- writedata
-        SIGNAL interface_read_n        : std_logic                     := 'X';             -- read_n
-        SIGNAL interface_write_n       : std_logic                     := 'X';             -- write_n
-        SIGNAL interface_readdata      : std_logic_vector(15 downto 0);                    -- readdata
-        SIGNAL interface_readdatavalid : std_logic;                                        -- readdatavalid
-        SIGNAL interface_waitrequest   : std_logic;                                        -- waitrequest
         
-        VHDL
-        {
-            component SDRAM
-            port (
-                clk_in_clk              : in    std_logic                     := 'X';             -- clk
-                reset_reset_n           : in    std_logic                     := 'X';             -- reset_n
-                sdram_addr              : out   std_logic_vector(11 downto 0);                    -- addr
-                sdram_ba                : out   std_logic_vector(1 downto 0);                     -- ba
-                sdram_cas_n             : out   std_logic;                                        -- cas_n
-                sdram_cke               : out   std_logic;                                        -- cke
-                sdram_cs_n              : out   std_logic;                                        -- cs_n
-                sdram_dq                : inout std_logic_vector(15 downto 0) := (others => 'X'); -- dq
-                sdram_dqm               : out   std_logic_vector(1 downto 0);                     -- dqm
-                sdram_ras_n             : out   std_logic;                                        -- ras_n
-                sdram_we_n              : out   std_logic;                                        -- we_n
-                sdram_clk_clk           : out   std_logic;                                        -- clk
-                interface_address       : in    std_logic_vector(21 downto 0) := (others => 'X'); -- address
-                interface_byteenable_n  : in    std_logic_vector(1 downto 0)  := (others => 'X'); -- byteenable_n
-                interface_chipselect    : in    std_logic                     := 'X';             -- chipselect
-                interface_writedata     : in    std_logic_vector(15 downto 0) := (others => 'X'); -- writedata
-                interface_read_n        : in    std_logic                     := 'X';             -- read_n
-                interface_write_n       : in    std_logic                     := 'X';             -- write_n
-                interface_readdata      : out   std_logic_vector(15 downto 0);                    -- readdata
-                interface_readdatavalid : out   std_logic;                                        -- readdatavalid
-                interface_waitrequest   : out   std_logic                                         -- waitrequest
-            );
-            end component;
-        }
-    }
-
-    reset_reset_n          <= NOT Reset;
-    interface_address      <= Address;
-    interface_byteenable_n <= NOT Byte_Enable;
-    interface_write_n      <= NOT Write_Enable;
-    interface_read_n       <= NOT Read_Enable;
-    interface_writedata    <= Write_Data;
-    Read_Data              <= interface_readdata;
-    Read_Valid             <= interface_readdatavalid;
-    Busy                   <= interface_waitrequest;
-    
-    VHDL
-    {
-        u1: SDRAM port map
-        (
-            clk_in_clk              => CLK,
-            reset_reset_n           => reset_reset_n,
-            sdram_addr              => sdram_addr,
-            sdram_ba                => sdram_ba,
-            sdram_cas_n             => sdram_cas_n,
-            sdram_cke               => open,
-            sdram_cs_n              => open,
-            sdram_dq                => sdram_dq,
-            sdram_dqm               => sdram_dqm,
-            sdram_ras_n             => sdram_ras_n,
-            sdram_we_n              => sdram_we_n,
-            sdram_clk_clk           => sdram_clk,
-            interface_address       => interface_address,       -- interface.address
-            interface_byteenable_n  => interface_byteenable_n,  --          .byteenable_n
-            interface_chipselect    => '1',                     --          .chipselect
-            interface_writedata     => interface_writedata,     --          .writedata
-            interface_read_n        => interface_read_n,        --          .read_n
-            interface_write_n       => interface_write_n,       --          .write_n
-            interface_readdata      => interface_readdata,      --          .readdata
-            interface_readdatavalid => interface_readdatavalid, --          .readdatavalid
-            interface_waitrequest   => interface_waitrequest    --          .waitrequest
-        );
+        Reset,
     }
 }

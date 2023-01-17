@@ -1,0 +1,204 @@
+Main
+(
+
+    Camera_CLK_Lane      : IN     STD_LOGIC;
+    Camera_Data_Lane     : IN     STD_LOGIC_VECTOR (1 downto 0);
+    Camera_Enable        : OUT    STD_LOGIC;
+    Camera_SCL           : INOUT  STD_LOGIC;
+    Camera_SDA           : INOUT  STD_LOGIC;
+
+    HDMI_DATA            : OUT    STD_LOGIC_VECTOR(2 downto 0);
+    HDMI_CLK             : OUT    STD_LOGIC;
+    HDMI_HPD             : IN     STD_LOGIC;
+
+    Capture_sdram_addr   : OUT    STD_LOGIC_VECTOR (11 downto 0);
+    Capture_sdram_ba     : OUT    STD_LOGIC_VECTOR (1 downto 0);
+    Capture_sdram_cas_n  : OUT    STD_LOGIC;
+    Capture_sdram_dq     : INOUT  STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
+    Capture_sdram_dqm    : OUT    STD_LOGIC_VECTOR (1 downto 0);
+    Capture_sdram_ras_n  : OUT    STD_LOGIC;
+    Capture_sdram_we_n   : OUT    STD_LOGIC;
+    Capture_sdram_clk    : OUT    STD_LOGIC;
+
+)
+{
+
+
+--GENERATED SIGNALS---------------------------------------------------------------------------------------------
+
+    --Camera and HDMI----------------------------------------------------------------------------------------
+
+    --More Settings in Libraries/Image_Data.vhdp
+
+    --true = saves image before output false = direcly ouptuts image (doesn't work with all monitors)
+    CONSTANT Use_Capture : BOOLEAN := true;
+
+    --Clock Settings in SDRAM_HDMI/VS_SDRAM_PLL
+    CONSTANT Pixel_Clock : NATURAL := 28000000;
+    
+    --RAW Camera Stream
+    SIGNAL Camera_Stream       : rgb_stream;
+    
+    --Stream with HSV color space
+    SIGNAL HSV_Stream          : rgb_stream;
+    
+    --Stream with color threshold
+    SIGNAL Red_Threshold_Stream : rgb_stream;
+    
+    --Stream for HDMI output
+    SIGNAL Output_Stream : rgb_stream;
+    
+    --Interface for RAM buffer
+    SIGNAL Capture_CLK_140     : STD_LOGIC;
+    SIGNAL Capture_Read_Column : NATURAL          range 0 to Image_Width-1 := 0;
+    SIGNAL Capture_Read_Row    : NATURAL          range 0 to Image_Height-1 := 0;
+    SIGNAL Capture_Read_Data   : STD_LOGIC_VECTOR (23 downto 0) := (others => '0');
+    
+    --Interface for HDMI output
+    SIGNAL VS_PCLK   : STD_LOGIC;
+    SIGNAL VS_SCLK   : STD_LOGIC;
+    SIGNAL VS_R      : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL VS_G      : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL VS_B      : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL VS_HS     : STD_LOGIC;
+    SIGNAL VS_VS     : STD_LOGIC;
+    SIGNAL VS_DE     : STD_LOGIC;
+    
+
+--GENERATED CODE------------------------------------------------------------------------------------------------
+
+    --Camera and HDMI----------------------------------------------------------------------------------------
+
+    --Output_Stream <= Red_Threshold_Stream;
+    Output_Stream <= Camera_Stream;
+
+--GENERATED COMPONENTS------------------------------------------------------------------------------------------
+
+    --Camera and HDMI----------------------------------------------------------------------------------------
+
+--Camera Interface-------------------------------------------------------------------
+
+    Camera_Enable <= '1';
+
+    --Receive CSI Data
+    NewComponent OV5647_Camera
+    (
+        CLK_Frequency => Pixel_Clock,
+        CLK_as_PCLK   => true,
+
+        CLK           => VS_PCLK,
+
+        Reset         => '0',
+        CLK_Lane      => Camera_CLK_Lane,
+        Data_Lane     => Camera_Data_Lane,
+        SCL           => Camera_SCL,
+        SDA           => Camera_SDA,
+
+        oStream       => Camera_Stream,
+    );
+
+    --Filter Red Pixels------------------------------------------------------------------
+
+    --Convert to HSV color space
+    NewComponent RGB2HSV_Filter
+    (
+        CLK_Edge => false,
+
+        iStream  => Camera_Stream,
+        oStream  => HSV_Stream,
+    );
+
+    --Filter red pixels
+    NewComponent Color_Threshold_HSV_Filter
+    (
+        CLK_Edge => true,
+
+        H_Min    => 170,      --Min Hue (0°-180°)
+        H_Max    => 30,       --Max Hue (0°-180°)
+        S_Min    => 60,       --Min Saturation (0-255)
+        S_Max    => 255,      --Max Saturation (0-255)
+        V_Min    => 20,       --Min Brightness (0-255)
+        V_Max    => 255,      --Max Brightness (0-255)
+        iStream  => HSV_Stream,
+        oStream  => Red_Threshold_Stream,
+    );
+
+    --Output image with HDMI-------------------------------------------------------------
+
+    --First saves image and then outputs it with correct timing
+    Generate (if Use_Capture)
+    {
+        NewComponent Camera_Capture_SDRAM
+        (
+            CLK_Edge    => false,
+
+            iStream     => Output_Stream,
+
+            CLK_140     => Capture_CLK_140,
+            Read_Column => Capture_Read_Column,
+            Read_Row    => Capture_Read_Row,
+            Read_Data   => Capture_Read_Data,
+
+            sdram_addr  => Capture_sdram_addr,
+            sdram_ba    => Capture_sdram_ba,
+            sdram_cas_n => Capture_sdram_cas_n,
+            sdram_dq    => Capture_sdram_dq,
+            sdram_dqm   => Capture_sdram_dqm,
+            sdram_ras_n => Capture_sdram_ras_n,
+            sdram_we_n  => Capture_sdram_we_n,
+        );
+
+        NewComponent VS_SDRAM_Interface
+        (
+            Read_Column    => Capture_Read_Column,
+            Read_Row       => Capture_Read_Row,
+            Read_Data      => Capture_Read_Data,
+
+            CLK_140        => Capture_CLK_140,
+
+            SDRAM_CLK      => Capture_sdram_clk,
+
+            VS_PCLK        => VS_PCLK,
+            VS_SCLK        => VS_SCLK,
+            VS_R           => VS_R,
+            VS_G           => VS_G,
+            VS_B           => VS_B,
+            VS_HS          => VS_HS,
+            VS_VS          => VS_VS,
+            VS_DE          => VS_DE,
+        );
+    }
+
+    Generate (if not Use_Capture)
+    {
+        NewComponent VS_Converter
+        (
+            iStream => Output_Stream,
+            VS_PCLK => VS_PCLK,
+            VS_SCLK => VS_SCLK,
+            VS_R    => VS_R,
+            VS_G    => VS_G,
+            VS_B    => VS_B,
+            VS_HS   => VS_HS,
+            VS_VS   => VS_VS,
+            VS_DE   => VS_DE,
+        );
+    }
+
+    --Output video stream with hdmi interface
+    NewComponent HDMI_Out
+    (
+        VS_PCLK    => VS_PCLK,
+        VS_SCLK    => VS_SCLK,
+        VS_R       => VS_R,
+        VS_G       => VS_G,
+        VS_B       => VS_B,
+        VS_HS      => VS_HS,
+        VS_VS      => VS_VS,
+        VS_DE      => VS_DE,
+
+        HDMI_DATA  => HDMI_DATA,
+        HDMI_CLK   => HDMI_CLK,
+        HDMI_HPD   => HDMI_HPD,
+    );
+}

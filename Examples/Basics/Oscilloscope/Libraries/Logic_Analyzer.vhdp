@@ -35,13 +35,14 @@ Component Logic_Analyzer
         Max_Samples    : NATURAL := 25000;    --25,000 samples
         CLK_Frequency  : NATURAL := 12000000; --12MHz
         Channels       : NATURAL := 8;
-        Start_Offset   : NATURAL := 0;        --Number of samples that are saved before start changes to '1' to see the data before the trigger point
     );
     
     Rate_Div     : IN  NATURAL range 1 to CLK_Frequency := 12; --12 = CLK_Frequency/12 = 1Mio samples per second
+    Samples      : IN  NATURAL range 1 to Max_Samples   := Max_Samples;  --Samples to save with offset samples
+    Start_Offset : IN  NATURAL range 0 to Max_Samples   := 0;  --Number of samples that are saved before start changes to '1' to see the data before the trigger point
     
-    Start        : IN  STD_LOGIC := '0'; --Saves data while Start is '1'
-    Full         : OUT STD_LOGIC := '0'; --changes from '0' to '1' when ram is full -> Set Start to '0'
+    Run          : IN  STD_LOGIC := '0'; --Saves data while Run is '1'. Read data when Full is '1'. Set Run to '0' after you read the data from the RAM
+    Full         : OUT STD_LOGIC := '0'; --changes from '0' to '1' when ram is full -> Set Run to '0' after you read the data
     
     Inputs       : IN  STD_LOGIC_VECTOR(Channels-1 downto 0) := (others => '0');
     
@@ -57,7 +58,7 @@ Component Logic_Analyzer
     Process ()
     {
         VARIABLE div_cntr : NATURAL range 0 to CLK_Frequency := 0;
-        If(div_cntr = Rate_Div-1)
+        If(div_cntr >= Rate_Div-1)
         {
             div_cntr := 0;
             sample_clk_en <= '1';
@@ -70,86 +71,70 @@ Component Logic_Analyzer
     }
     --sample_clk <= CLK when sample_clk_en = '1' else '0';
     
+    --Samples routieren -> nach trigger restliche samples speicher und start merkem -> speichern stoppen und warten dass ausgelesen wird -> routieren starten
     
-    TYPE la_ram_type IS ARRAY (0 to Max_Samples-1) OF STD_LOGIC_VECTOR(Channels-1 downto 0);
-    SIGNAL la_ram   : la_ram_type;
-    Outputs <= la_ram(Address);
-    
-    TYPE lao_ram_type IS ARRAY (0 to Start_Offset-1) OF STD_LOGIC_VECTOR(Channels-1 downto 0);
+    TYPE lao_ram_type IS ARRAY (0 to Max_Samples-1) OF STD_LOGIC_VECTOR(Channels-1 downto 0);
     SIGNAL lao_ram   : lao_ram_type;
-    SIGNAL lao_ram_out : STD_LOGIC_VECTOR(Channels-1 downto 0);
-    lao_ram_out <= lao_ram(offset_addr);
     
     Process ()
     {
-        SIGNAL in_addr      : NATURAL range 0 to Max_Samples := 0;
-        SIGNAL offset_addr  : NATURAL range 0 to Start_Offset := 0;
-        VARIABLE copy_start : BOOLEAN := false;
-        If(Start = '0')
+        VARIABLE in_addr      : NATURAL range 0 to Max_Samples := 0;
+        SIGNAL   ram_addr     : NATURAL range 0 to Max_Samples := 0;
+        SIGNAL   start_addr   : NATURAL range 0 to Max_Samples := 0;
+        VARIABLE copy_start   : BOOLEAN := true;
+        If(Run = '0')
         {
             full_reg   <= '0';
-            in_addr    <= Start_Offset;
-            copy_start := false;
+            copy_start := true;
             
             If(sample_clk_en = '1')
             {
-                lao_ram(offset_addr) <= Inputs;
-                If(offset_addr < Start_Offset-1)
+                lao_ram(in_addr) <= Inputs;
+                If(in_addr < Max_Samples-1)
                 {
-                    offset_addr <= offset_addr + 1;
+                    in_addr := in_addr + 1;
                 }
                 Else
                 {
-                    offset_addr <= 0;
+                    in_addr := 0;
                 }
             }
+            
+            
+            start_addr  <= (in_addr-Start_Offset) mod Max_Samples;
         }
         Else
         {
-            If(copy_start)
+            
+            If(copy_start or in_addr /= (start_addr + Samples) mod Max_Samples)
             {
-                If(full_reg = '0')
+                If(sample_clk_en = '1')
                 {
-                    If(in_addr = Start_Offset-1)
+                    copy_start := false;
+                    
+                    lao_ram(in_addr) <= Inputs;
+                    If(in_addr < Max_Samples-1)
                     {
-                        full_reg <= '1';
-                    }
-                    la_ram(in_addr) <= lao_ram_out;
-                    If(offset_addr < Start_Offset-1)
-                    {
-                        offset_addr <= offset_addr + 1;
+                        in_addr := in_addr + 1;
                     }
                     Else
                     {
-                        offset_addr <= 0;
+                        in_addr := 0;
                     }
-                    in_addr <= in_addr + 1;
                 }
             }
             Else
             {
-                If(in_addr < Max_Samples)
-                {
-                    If(sample_clk_en = '1')
-                    {
-                        la_ram(in_addr) <= Inputs;
-                        in_addr <= in_addr + 1;
-                    }
-                }
-                Else
-                {
-                    if(Start_Offset = 0)
-                    {
-                        full_reg <= '1';
-                    }
-                    Else
-                    {
-                        copy_start := true;
-                        in_addr    <= 0;
-                    }
-                }
+                full_reg <= '1';
+                VARIABLE out_addr : NATURAL range 0 to Max_Samples := 0;
+                SIGNAL out_addr_sig : NATURAL range 0 to Max_Samples := 0;
+                out_addr := (Address + start_addr) mod Max_Samples;
+                Outputs <= lao_ram(out_addr);
+                out_addr_sig <= out_addr;
             }
         }
+        
+        ram_addr    <= in_addr;
     }
     
 }

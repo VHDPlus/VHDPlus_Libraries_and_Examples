@@ -1,0 +1,32 @@
+# auto-generated
+[Libraries]
+work.files = [
+	'Libraries/HDMI/VS_PLL.vhd',
+	'Libraries/SDRAM_HDMI/VS_SDRAM_PLL.vhd',
+	'Generated/Camera_CSI.vhd',
+	'Generated/Camera_Capture_SDRAM.vhd',
+	'Generated/Color_Threshold_HSV_Filter.vhd',
+	'Generated/HDMI_Out.vhd',
+	'Generated/I2C_Master_Interface.vhd',
+	'Generated/Image_Data_Package.vhd',
+	'Generated/OV5647_Camera.vhd',
+	'Generated/RGB2HSV_Filter.vhd',
+	'Generated/VS_Converter.vhd',
+	'Generated/VS_SDRAM_Interface.vhd'
+]
+[libraries.work]
+files = [
+	'Libraries/HDMI/VS_PLL.vhd',
+	'Libraries/SDRAM_HDMI/VS_SDRAM_PLL.vhd',
+	'Generated/Camera_CSI.vhd',
+	'Generated/Camera_Capture_SDRAM.vhd',
+	'Generated/Color_Threshold_HSV_Filter.vhd',
+	'Generated/HDMI_Out.vhd',
+	'Generated/I2C_Master_Interface.vhd',
+	'Generated/Image_Data_Package.vhd',
+	'Generated/OV5647_Camera.vhd',
+	'Generated/RGB2HSV_Filter.vhd',
+	'Generated/VS_Converter.vhd',
+	'Generated/VS_SDRAM_Interface.vhd'
+]
+# auto-generated-end

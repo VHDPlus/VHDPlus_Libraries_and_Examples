@@ -1,0 +1,195 @@
+/*
+    Name: CRT Controller
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 06.06.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Description: This component takes a VGA 24bit RAM interface for image data and creates an video stream with 25MHz pixel clk
+ */
+
+Component VS_SDRAM_Interface
+(
+    Include
+    (
+        Image_Data_Package.all,
+    );
+    Generic
+    (
+        pixel_shift : NATURAL := 5;
+        black_row   : NATURAL := 2;
+    );
+    
+    --RAM interface (VGA 24bit)
+    Read_Column : OUT    NATURAL range 0 to Image_Width-1 := 0;
+    Read_Row    : OUT    NATURAL range 0 to Image_Height-1 := 0;
+    Read_Data   : IN     STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
+    Read_Ena    : OUT    STD_LOGIC := '0';
+    
+    CLK_140     : OUT    STD_LOGIC;
+    SDRAM_CLK   : OUT    STD_LOGIC;
+    
+    --Video stream output
+    VS_PCLK     : OUT    STD_LOGIC;
+    VS_SCLK     : OUT    STD_LOGIC;
+    VS_R        : OUT    STD_LOGIC_VECTOR (7 downto 0);
+    VS_G        : OUT    STD_LOGIC_VECTOR (7 downto 0);
+    VS_B        : OUT    STD_LOGIC_VECTOR (7 downto 0);
+    VS_HS       : OUT    STD_LOGIC;
+    VS_VS       : OUT    STD_LOGIC;
+    VS_DE       : OUT    STD_LOGIC;
+)
+{
+    VS_PCLK <= PLL_c0;
+    VS_SCLK <= PLL_c1;
+    
+    CLK_140   <= PLL_c2;
+    SDRAM_CLK <= PLL_c3;
+    
+    Connections
+    {
+        SDRAM_CLK      => SDRAM_CLK,
+    }
+    
+    SIGNAL PLL_c0     : STD_LOGIC;
+    SIGNAL PLL_c1     : STD_LOGIC;
+    SIGNAL PLL_c2     : STD_LOGIC;
+    SIGNAL PLL_c3     : STD_LOGIC;
+    NewComponent VS_SDRAM_PLL
+    (
+        inclk0 => CLK,
+        c0     => PLL_c0, --28MHz
+        c1     => PLL_c1, --280MHz
+        c2     => PLL_c2, --140MHz
+        c3     => PLL_c3, --140MHz -90°
+    );
+    
+    CONSTANT porchHF : NATURAL := HDMI_Width; --start of horizntal front porch
+    CONSTANT syncH   : NATURAL := HDMI_Width+HFP_Len; --start of horizontal sync
+    CONSTANT porchHB : NATURAL := HDMI_Width+HFP_Len+HSLEN_Len; --start of horizontal back porch
+    CONSTANT maxH    : NATURAL := HDMI_Width+HFP_Len+HSLEN_Len+HBP_Len; --total length of line (usually rgb_stream determines this)
+    
+    CONSTANT porchVF : NATURAL := HDMI_Height; --start of vertical front porch
+    CONSTANT syncV   : NATURAL := HDMI_Height+VFP_Len; --start of vertical sync
+    CONSTANT porchVB : NATURAL := HDMI_Height+VFP_Len+VSLEN_Len; --start of vertical back porch
+    CONSTANT maxV    : NATURAL := HDMI_Height+VFP_Len+VSLEN_Len+VBP_Len; --total rows
+    
+    SIGNAL Row_Div   : NATURAL := 1;
+    SIGNAL Col_Div   : NATURAL := 1;
+    Row_Div <= HDMI_Height/Image_Height when HDMI_Height > Image_Height;
+    Col_Div <= HDMI_Width/Image_Width when HDMI_Width > Image_Width;
+    
+    SIGNAL xCountReg : INTEGER range 0 to maxH := 0;
+    SIGNAL yCountReg : INTEGER range 0 to maxV := 0;
+    
+    --Pixel CLK = Request next pixel
+    Read_Ena <= PLL_c0 when xCountReg < porchHF AND yCountReg < porchVF else '0';
+
+    Process ()
+    {
+        If(rising_edge(PLL_c0))
+        {
+            VARIABLE xCount : INTEGER range 0 to maxH := 0;
+            VARIABLE yCount : INTEGER range 0 to maxV := 0;
+            If(xCount < maxH)
+            {
+                xCount := xCount + 1;
+            }
+            Else
+            {
+                xCount := 0;
+                If(yCount < maxV)
+                {
+                    yCount := yCount + 1;
+                }
+                Else
+                {
+                    yCount := 0;
+                }
+            }
+            
+            If(xCount < Image_Width AND yCount < Image_Height)
+            {
+                --Set RAM address for next pixel
+                Read_Row    <= yCount/Row_Div;
+                Read_Column <= xCount/Col_Div;
+            }
+            
+            VARIABLE DE_reg : STD_LOGIC_VECTOR(pixel_shift downto 0);
+            VARIABLE HS_reg : STD_LOGIC_VECTOR(pixel_shift downto 0);
+            VARIABLE VS_reg : STD_LOGIC_VECTOR(pixel_shift downto 0);
+            
+            --Set pixel data
+            VS_R <= Read_Data(23 downto 16);
+            VS_G <= Read_Data(15 downto 8);
+            VS_B <= Read_Data(7 downto 0);
+            
+            --Enable '1' while in display area
+            If(xCount < porchHF AND yCount < porchVF+black_row AND yCount >= black_row)
+            {
+                --VS_DE <= '1';
+                DE_reg := '1' & DE_reg(pixel_shift downto 1);
+                
+                /*
+                If(yCount < HDMI_Height-pixel_shift){ Read_Row <= yCount/Row_Div+pixel_shift; }
+                Else            { Read_Row <= (yCount + pixel_shift - HDMI_Height)/Col_Div; }
+                
+                If(xCount < HDMI_Width-pixel_shift){ Read_Column <= xCount/Col_Div+pixel_shift; }
+                Else            { Read_Column <= (xCount + pixel_shift - HDMI_Width)/Col_Div; }
+                */
+            }
+            Else
+            {
+                --VS_DE <= '0';
+                DE_reg := '0' & DE_reg(pixel_shift downto 1);
+                
+                --Check for HS
+                If(xCount >= syncH AND xCount < porchHB)
+                {
+                    --VS_HS <= '0';
+                    HS_reg := '1' & HS_reg(pixel_shift downto 1);
+                }
+                Else
+                {
+                    --VS_HS <= '1';
+                    HS_reg := '0' & HS_reg(pixel_shift downto 1);
+                }
+                --Check for VS
+                If(yCount >= syncV AND yCount < porchVB)
+                {
+                    --VS_VS <= '0';
+                    VS_reg := '1' & VS_reg(pixel_shift downto 1);
+                }
+                Else
+                {
+                    --VS_VS <= '1';
+                    VS_reg := '0' & VS_reg(pixel_shift downto 1);
+                }
+            }
+            
+            VS_DE <= DE_reg(0);
+            VS_HS <= HS_reg(0);
+            VS_VS <= VS_reg(0);
+            
+            xCountReg <= xCount;
+            yCountReg <= yCount;
+        }
+    }
+}

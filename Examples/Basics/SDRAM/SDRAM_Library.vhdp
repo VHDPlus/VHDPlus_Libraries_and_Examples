@@ -45,19 +45,18 @@ Main
         {
             For(VARIABLE i : INTEGER := 0; i < 255; i := i + 1)
             {
-                NewFunction Write_SDRAM (i, STD_LOGIC_VECTOR(TO_UNSIGNED(i, 16)), SDRAM_Write_Enable, SDRAM_Address, SDRAM_Write_Data, SDRAM_Busy);
+                NewFunction Write_SDRAM (STD_LOGIC_VECTOR(TO_UNSIGNED(i, 16)), i, SDRAM_Address, SDRAM_Write_Enable, SDRAM_Write_Data, SDRAM_Busy);
             }
             
             While(true)
             {
-                NewFunction Read_SDRAM (TO_INTEGER(UNSIGNED(ISSP_source)), ISSP_probe(15 downto 0), SDRAM_Read_Enable, SDRAM_Address, SDRAM_Read_Data, SDRAM_Busy);
+                NewFunction Read_SDRAM (ISSP_probe(15 downto 0), TO_INTEGER(UNSIGNED(ISSP_source)), SDRAM_Address, SDRAM_Read_Enable, SDRAM_Read_Data, SDRAM_Busy);
             }
         }
     }
     
     SIGNAL SDRAM_Busy         : STD_LOGIC := '0';
     SIGNAL SDRAM_Address      : STD_LOGIC_VECTOR (21 downto 0) := (others => '0');
-    SIGNAL SDRAM_Byte_Enable  : STD_LOGIC_VECTOR (1 downto 0) := "11";
     SIGNAL SDRAM_Write_Enable : STD_LOGIC := '0';
     SIGNAL SDRAM_Write_Data   : STD_LOGIC_VECTOR (15 downto 0);
     SIGNAL SDRAM_Read_Enable  : STD_LOGIC := '0';
@@ -68,7 +67,6 @@ Main
         Reset        => '0',
         Busy         => SDRAM_Busy,
         Address      => SDRAM_Address,
-        Byte_Enable  => SDRAM_Byte_Enable,
         Write_Enable => SDRAM_Write_Enable,
         Write_Data   => SDRAM_Write_Data,
         Read_Enable  => SDRAM_Read_Enable,

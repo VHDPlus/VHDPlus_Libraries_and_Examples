@@ -1,0 +1,729 @@
+/*
+    Name: OV5647 Camera
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 26.01.2021
+    Copyright (c) 2021 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important:   -The Enable pin (11) has to be set to '1' manually
+                 -CLK_Lane and Data_Lane are differential I/Os. Connect positive pins with the signals.
+                 -To add the negative pins, use "Connections" in this file and connect [signal name](n).
+    
+    Description: -This component initializies a Raspberry Pi Camera with an I2C interface and
+                  outputs the received camera data.
+    
+    Insertion:   -Right click on the CSI_Camera folder and the I2C library -> Add to active project
+                 -Add NewComponent of OV5647_Camera into your code
+                 -Set CLK_Frequency to the frequency of your external oszillator
+                 -Right click OV5647_Camera next to NewComponent and create the required signals
+    
+    Function:    1. Wait until Column changes
+                 2. Read the pixel value at the current Row and Column (The image is 640x480)
+                    
+    Example:     Camera_CSI_Example
+ */
+
+Component OV5647_Camera
+(
+    Include
+    (
+        Image_Data_Package.all,
+    );
+    Generic
+    (
+        CLK_Frequency : NATURAL := 12000000;
+        CLK_as_PCLK   : BOOLEAN := false; --true = saves last row in buffer, uses CLK as Pixel CLK and spreads pixels even
+    );
+    
+    Reset     : IN STD_LOGIC := '0';                --Initialized on falling edge (or on startup if Reset = '0')
+    
+    CLK_Lane  : IN STD_LOGIC;                       --Clk Lane (p)
+    Data_Lane : IN STD_LOGIC_VECTOR(1 downto 0);    --(0) = Lane 1 (p) / (1) = Lane 2 (p)
+    
+    SCL       : INOUT STD_LOGIC;
+    SDA       : INOUT STD_LOGIC;
+    
+    oStream   : OUT rgb_stream;
+)
+{
+    Connections
+    {
+        CLK_Lane        => HS_Dif_5,  --B2_P
+        CLK_Lane(n)     => HS_Dif_6,  --B2_N
+        Data_Lane[0]    => HS_Dif_7,  --B3_P
+        Data_Lane[0](n) => HS_Dif_8,  --B3_N
+        Data_Lane[1]    => HS_Dif_9,  --B4_P
+        Data_Lane[1](n) => HS_Dif_10, --B4_N
+        SCL             => HS_Dif_2,  --B0_N
+        SDA             => HS_Dif_1,  --B0_P
+        Enable          => HS_Dif_22, --A4_N
+    }
+
+    --Send initial data on startup
+    Process Cam_Init
+    (
+        VARIABLE state  : NATURAL range 0 to 7 := 7;
+        VARIABLE count  : NATURAL range 0 to CLK_Frequency/1000 := 0;
+    )
+    {
+        If(Reset = '1')
+        {
+            address <= (others => '0');
+            state := 7;
+            count := 0;
+            I2C_Master_Interface_Enable <= '0';
+        }
+        Else
+        {
+            If(state = 0)
+            {
+                I2C_Master_Interface_Address <= "0110110";
+                I2C_Master_Interface_RW      <= '0';
+                I2C_Master_Interface_Data_Wr <= sreg(23 downto 16);
+                I2C_Master_Interface_Enable  <= '1';
+                state := 1;
+            }
+            Elsif(state = 1)
+            {
+                If(I2C_Master_Interface_Busy = '1')
+                {
+                    I2C_Master_Interface_Data_Wr <= sreg(15 downto 8);
+                    state := 2;
+                }
+            }
+            Elsif(state = 2)
+            {
+                If(I2C_Master_Interface_Busy = '0')
+                {
+                    state := 3;
+                }
+            }
+            Elsif(state = 3)
+            {
+                If(I2C_Master_Interface_Busy = '1')
+                {
+                    I2C_Master_Interface_Data_Wr <= sreg(7 downto 0);
+                    state := 4;
+                }
+            }
+            Elsif(state = 4)
+            {
+                If(I2C_Master_Interface_Busy = '0')
+                {
+                    I2C_Master_Interface_Enable  <= '0';
+                    state := 5;
+                }
+            }
+            Elsif(state = 5)
+            {
+                If(I2C_Master_Interface_Busy = '1')
+                {
+                    state := 6;
+                }
+            }
+            Elsif(state = 6)
+            {
+                If(I2C_Master_Interface_Busy = '0')
+                {
+                    If(address /= x"61")
+                    {
+                        address <= STD_LOGIC_VECTOR(UNSIGNED(address)+1);
+                        state   := 7;
+                    }
+                }
+            }
+            Else
+            {
+                If(count < CLK_Frequency/1000)
+                {
+                    count := count + 1;
+                }
+                Else
+                {
+                    count := 0;
+                    state := 0;
+                }
+            }
+        }
+    }
+    
+    SIGNAL address : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    SIGNAL sreg    : STD_LOGIC_VECTOR(23 downto 0) := x"000000";
+    
+    --Initial data to send
+    Process Cam_Init_Register ()
+    {
+        Case(address)
+        {
+            When(x"00"){ sreg <=  x"010000"; } --Standby
+            When(x"01"){ sreg <=  x"010301"; } --Reset
+            When(x"02"){ sreg <=  x"303408"; } --MIPI 8-bit mode
+            When(x"03"){ sreg <=  x"303541"; } --Clk / 4 + MIPI CLK / 1
+            When(x"04"){ sreg <=  x"303646"; } --PLL * 70
+            When(x"05"){ sreg <=  x"303c11"; } --PLL change pump = 1 + PLL / 1
+            When(x"06"){ sreg <=  x"3106f5"; } --PLL_SCLK/2
+            When(x"07"){ sreg <=  x"382107"; } --Horizontal binning enable, Sensor mirror & ISP mirror
+            When(x"08"){ sreg <=  x"382041"; } --Sensor vflip + debug mode = 4
+            When(x"09"){ sreg <=  x"3827ec"; }
+            When(x"0A"){ sreg <=  x"370c0f"; }
+            When(x"0B"){ sreg <=  x"361259"; }
+            When(x"0C"){ sreg <=  x"361800"; }
+            When(x"0D"){ sreg <=  x"500006"; } --White pixel cancellation enable + Black pixel cancellation
+            When(x"0E"){ sreg <=  x"500101"; } --Auto white balance (01 = enable)
+            When(x"0F"){ sreg <=  x"500241"; } --41 = enable 40 = disable
+            When(x"10"){ sreg <=  x"500308"; }
+            When(x"11"){ sreg <=  x"5a0008"; }
+            When(x"12"){ sreg <=  x"300000"; }
+            When(x"13"){ sreg <=  x"300100"; }
+            When(x"14"){ sreg <=  x"300200"; }
+            When(x"15"){ sreg <=  x"301608"; } --mipi_pad_enable
+            When(x"16"){ sreg <=  x"3017e0"; } --pgm_vcm = 11, pgm_lptx = 10 (High speed mode voltage)
+            When(x"17"){ sreg <=  x"301844"; } --power down phy hs tx, lp rx
+            When(x"18"){ sreg <=  x"301cf8"; }
+            When(x"19"){ sreg <=  x"301df0"; }
+            When(x"1A"){ sreg <=  x"3a1800"; }
+            When(x"1B"){ sreg <=  x"3a19f8"; } --gain ceiling
+            When(x"1C"){ sreg <=  x"3c0180"; } --50/60 HZ detection manual mode
+            When(x"1D"){ sreg <=  x"3b070c"; } --flex_inv
+            When(x"1E"){ sreg <=  x"380c07"; } --Total horizontal size
+            When(x"1F"){ sreg <=  x"380d68"; }
+            When(x"20"){ sreg <=  x"380e03"; } --Total vertical size
+            When(x"21"){ sreg <=  x"380fd8"; }
+            When(x"22"){ sreg <=  x"381431"; } --Horzontal subsample
+            When(x"23"){ sreg <=  x"381531"; } --Vertical subsample
+            When(x"24"){ sreg <=  x"370864"; }
+            When(x"25"){ sreg <=  x"370952"; }
+            When(x"26"){
+                VARIABLE Image_Width_Reg : STD_LOGIC_VECTOR (11 downto 0);
+                Image_Width_Reg := STD_LOGIC_VECTOR(TO_UNSIGNED(Image_Width, 12));
+                sreg <=  x"38080" & Image_Width_Reg(11 downto 8);
+            } --DVP output horizontal width = 320 (0x2 & 0x80)
+            When(x"27"){ sreg <=  x"3809" & Image_Width_Reg(7 downto 0); }
+            When(x"28"){
+                VARIABLE Image_Height_Reg : STD_LOGIC_VECTOR (11 downto 0);
+                Image_Height_Reg := STD_LOGIC_VECTOR(TO_UNSIGNED(Image_Height, 12));
+                sreg <=  x"380a0" & Image_Height_Reg(11 downto 8);
+            } --DVP output vertical height = 240 (0x1 & 0xE0)
+            When(x"29"){ sreg <=  x"380b" & Image_Height_Reg(7 downto 0); }
+            When(x"2A"){ sreg <=  x"380000"; } --X address start = 0
+            When(x"2B"){ sreg <=  x"380100"; }
+            When(x"2C"){ sreg <=  x"380200"; } --Y address start = 0
+            When(x"2D"){ sreg <=  x"380300"; }
+            When(x"2E"){ sreg <=  x"38040a"; } --X address end = 2624 (0xa & 0x3f)
+            When(x"2F"){ sreg <=  x"38053f"; }
+            When(x"30"){ sreg <=  x"380607"; } --Y address end = 1952 (0x7 & 0xA1)
+            When(x"31"){ sreg <=  x"3807a1"; }
+            When(x"32"){ sreg <=  x"381108"; } --ISP horizontal offset = 8
+            When(x"33"){ sreg <=  x"381302"; } --ISP vertical offset = 2
+            When(x"34"){ sreg <=  x"36302e"; }
+            When(x"35"){ sreg <=  x"3632e2"; }
+            When(x"36"){ sreg <=  x"363323"; }
+            When(x"37"){ sreg <=  x"363444"; }
+            When(x"38"){ sreg <=  x"363606"; }
+            When(x"39"){ sreg <=  x"362064"; }
+            When(x"3A"){ sreg <=  x"3621e0"; }
+            When(x"3B"){ sreg <=  x"360037"; }
+            When(x"3C"){ sreg <=  x"3704a0"; }
+            When(x"3D"){ sreg <=  x"37035a"; }
+            When(x"3E"){ sreg <=  x"371578"; }
+            When(x"3F"){ sreg <=  x"371701"; }
+            When(x"40"){ sreg <=  x"373102"; }
+            When(x"41"){ sreg <=  x"370b60"; }
+            When(x"42"){ sreg <=  x"37051a"; }
+            When(x"43"){ sreg <=  x"3f0502"; }
+            When(x"44"){ sreg <=  x"3f0610"; }
+            When(x"45"){ sreg <=  x"3f010a"; }
+            When(x"46"){ sreg <=  x"3a0801"; }
+            When(x"47"){ sreg <=  x"3a0927"; }
+            When(x"48"){ sreg <=  x"3a0a00"; }
+            When(x"49"){ sreg <=  x"3a0bf6"; }
+            When(x"4A"){ sreg <=  x"3a0d04"; }
+            When(x"4B"){ sreg <=  x"3a0e03"; }
+            When(x"4C"){ sreg <=  x"3a0f58"; }
+            When(x"4D"){ sreg <=  x"3a1050"; }
+            When(x"4E"){ sreg <=  x"3a1b58"; }
+            When(x"4F"){ sreg <=  x"3a1e50"; }
+            When(x"50"){ sreg <=  x"3a1160"; }
+            When(x"51"){ sreg <=  x"3a1f28"; }
+            When(x"52"){ sreg <=  x"400102"; }
+            When(x"53"){ sreg <=  x"400402"; }
+            When(x"54"){ sreg <=  x"400009"; }
+            When(x"55"){ sreg <=  x"483724"; }
+            When(x"56"){ sreg <=  x"40506e"; }
+            When(x"57"){ sreg <=  x"40518f"; }
+            When(x"58"){ sreg <=  x"503d00"; }
+            When(x"59"){ sreg <=  x"303701"; } --CLK / 1
+            When(x"5A"){ sreg <=  x"3036" & STD_LOGIC_VECTOR(TO_UNSIGNED((32 * Image_FPS)/26, 8)); } --CLK * 96   / 0x40 (64) = 52fps 0x30 (48) = 40fps 0x20 (32) = 26fps
+            When(x"5B"){ sreg <=  x"010001"; }
+            When(x"5C"){ sreg <=  x"010001"; }
+            When(x"5D"){ sreg <=  x"480004"; }
+            When(x"5E"){ sreg <=  x"420200"; }
+            When(x"5F"){ sreg <=  x"300D00"; }
+            When(x"60"){ sreg <=  x"420200"; }
+            When(x"61"){ sreg <=  x"300D00"; }
+            When(others){sreg <=  x"FFFFFF"; }
+        }
+    }
+
+    SIGNAL I2C_Master_Interface_Enable        : STD_LOGIC := '0';
+    SIGNAL I2C_Master_Interface_Address       : STD_LOGIC_VECTOR (6 DOWNTO 0) := (others => '0');
+    SIGNAL I2C_Master_Interface_RW            : STD_LOGIC := '0';
+    SIGNAL I2C_Master_Interface_Data_Wr       : STD_LOGIC_VECTOR (7 DOWNTO 0) := (others => '0');
+    SIGNAL I2C_Master_Interface_Busy          : STD_LOGIC;
+    SIGNAL I2C_Master_Interface_Data_RD       : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL I2C_Master_Interface_Ack_Error     : STD_LOGIC;
+
+    NewComponent I2C_Master_Interface
+    (
+        CLK_Frequency => CLK_Frequency,
+        Bus_CLK       => 400000,
+        
+        Reset         => Reset,
+        Enable        => I2C_Master_Interface_Enable,
+        Address       => I2C_Master_Interface_Address,  --42 write 43 read
+        RW            => I2C_Master_Interface_RW,
+        Data_Wr       => I2C_Master_Interface_Data_Wr,
+        Busy          => I2C_Master_Interface_Busy,
+        Data_RD       => I2C_Master_Interface_Data_RD,
+        Ack_Error     => I2C_Master_Interface_Ack_Error,
+        SDA           => SDA,
+        SCL           => SCL,
+    );
+
+    SIGNAL Pixel_R_Reg   : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Pixel_G_Reg   : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Pixel_B_Reg   : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL New_Pixel_Reg : STD_LOGIC;
+
+    SIGNAL Pixel_R_Reg_O   : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Pixel_G_Reg_O   : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL Pixel_B_Reg_O   : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL New_Pixel_Reg_O : STD_LOGIC;
+    
+    SIGNAL New_Pixel : STD_LOGIC;
+    
+    Pixel_R_Reg  <= STD_LOGIC_VECTOR(Pixel1.R(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.R(Convert_Type));
+    Pixel_G_Reg  <= STD_LOGIC_VECTOR(Pixel1.G(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.G(Convert_Type));
+    Pixel_B_Reg  <= STD_LOGIC_VECTOR(Pixel1.B(Convert_Type)) when First_New_Pixel(0) = '1' else STD_LOGIC_VECTOR(Pixel2.B(Convert_Type));
+    New_Pixel_Reg <= '0' when Start_Reg(1) = '1' else First_New_Pixel(0) OR Second_New_Pixel;
+    
+    New_Pixel <= New_Pixel_Reg_O when CLK_as_PCLK else New_Pixel_Reg;
+
+    --Output current data
+    oStream.New_Pixel <= New_Pixel;
+    oStream.Column <= Column;
+    oStream.Row <= Row;
+    oStream.R <= Pixel_R_Reg_O when CLK_as_PCLK else Pixel_R_Reg;
+    oStream.G <= Pixel_G_Reg_O when CLK_as_PCLK else Pixel_G_Reg;
+    oStream.B <= Pixel_B_Reg_O when CLK_as_PCLK else Pixel_B_Reg;
+
+    --Keep track of current row and column
+    Process Cam_RX ()
+    {
+        If(rising_edge(New_Pixel))
+        {
+            SIGNAL Column : NATURAL range 0 to Image_Width-1 := 0;
+            SIGNAL Row    : NATURAL range 0 to Image_Height-1 := 0;
+
+            If(start_buf /= start_buf_reg)
+            {
+                Column <= 0;
+                Row    <= 0;
+            }
+            Else
+            {
+                If(Column < Image_Width-1)
+                {
+                    Column <= Column + 1;
+                }
+                Else
+                {
+                    If(Row < Image_Height-1)
+                    {
+                        Row    <= Row + 1;
+                        Column <= 0;
+                    }
+                }
+            }
+            start_buf_reg := start_buf;
+            VARIABLE start_buf_reg : STD_LOGIC;
+        }
+    }
+
+    --30 - 30k 50 - 50k
+    SIGNAL Cur_Pixel_Reg_I : STD_LOGIC_VECTOR(23 downto 0);
+    SIGNAL Cur_Pixel_Reg : STD_LOGIC_VECTOR(23 downto 0);
+    Pixel_R_Reg_O <= Cur_Pixel_Reg(23 downto 16);
+    Pixel_G_Reg_O <= Cur_Pixel_Reg(15 downto 8);
+    Pixel_B_Reg_O <= Cur_Pixel_Reg(7 downto 0);
+    
+    SIGNAL RAM_Addr_A : STD_LOGIC_VECTOR(10 downto 0);
+    SIGNAL RAM_Addr_B : STD_LOGIC_VECTOR(10 downto 0);
+    RAM_Addr_A <= STD_LOGIC_VECTOR(TO_UNSIGNED(buf_col,11));
+    RAM_Addr_B <= STD_LOGIC_VECTOR(TO_UNSIGNED(Column,11));
+    
+    SIGNAL Pixel_Clk_Start : BOOLEAN := false;
+    Pixel_Clk_Start <= true when buf_col = 1 else false when Column = 0 else Pixel_Clk_Start;
+    
+    SIGNAL Pixel_Clk_Enable : BOOLEAN := false;
+    Process ()
+    {
+        If(falling_edge(CLK))
+        {
+            Pixel_Clk_Enable <= Column < Image_Width-1 OR Pixel_Clk_Start;
+        }
+    }
+    
+    New_Pixel_Reg_O <= CLK when Pixel_Clk_Enable else '0';
+    
+    --Row Buffer
+    Generate (if Image_Width > 1024)
+    {
+        NewComponent ALTSYNCRAM
+        (
+            address_reg_b => "CLOCK1",
+            clock_enable_input_a => "BYPASS",
+            clock_enable_input_b => "BYPASS",
+            clock_enable_output_b => "BYPASS",
+            intended_device_family => "unused",
+            lpm_type => "altsyncram",
+            numwords_a => 2048,
+            numwords_b => 2048,
+            operation_mode => "DUAL_PORT",
+            outdata_reg_b => "CLOCK1",
+            widthad_a => 11,
+            widthad_b => 11,
+            width_a => 24,
+            width_b => 24,
+            
+            address_a => RAM_Addr_A,
+            address_b => RAM_Addr_B,
+            clock0 => New_Pixel_Reg,
+            clock1 => New_Pixel_Reg_O,
+            data_a => Cur_Pixel_Reg_I,
+            wren_a => '1',
+            q_b => Cur_Pixel_Reg,
+        );
+    }
+    Generate (if Image_Width <= 1024)
+    {
+        NewComponent ALTSYNCRAM
+        (
+            address_reg_b => "CLOCK1",
+            clock_enable_input_a => "BYPASS",
+            clock_enable_input_b => "BYPASS",
+            clock_enable_output_b => "BYPASS",
+            intended_device_family => "unused",
+            lpm_type => "altsyncram",
+            numwords_a => 1024,
+            numwords_b => 1024,
+            operation_mode => "DUAL_PORT",
+            outdata_reg_b => "CLOCK1",
+            widthad_a => 10,
+            widthad_b => 10,
+            width_a => 24,
+            width_b => 24,
+            
+            address_a => RAM_Addr_A(9 downto 0),
+            address_b => RAM_Addr_B(9 downto 0),
+            clock0 => New_Pixel_Reg,
+            clock1 => New_Pixel_Reg_O,
+            data_a => Cur_Pixel_Reg_I,
+            wren_a => '1',
+            q_b => Cur_Pixel_Reg,
+        );
+    }
+
+    Process ()
+    {
+        If(rising_edge(New_Pixel_Reg))
+        {
+            Signal buf_col : NATURAL range 0 to Image_Width-1;
+            If(Start_Reg(0) = '1')
+            {
+                buf_col <= 0;
+                SIGNAL start_buf : STD_LOGIC := '0';
+                start_buf <= not start_buf;
+            }
+            Else
+            {
+                If(buf_col < Image_Width-1)
+                {
+                    buf_col <= buf_col + 1;
+                }
+                Else
+                {
+                    buf_col <= 0;
+                }
+            }
+            
+            Cur_Pixel_Reg_I <= Pixel_R_Reg & Pixel_G_Reg & Pixel_B_Reg;
+        }
+    }
+
+    SIGNAL Data_H          : STD_LOGIC_VECTOR(1 downto 0) := (others => '0');
+    SIGNAL Data_L          : STD_LOGIC_VECTOR(1 downto 0) := (others => '0');
+
+    NewComponent ALTDDIO_IN
+    (
+        intended_device_family => "unused",
+        width                  => 2,
+        
+        datain                 => Data_Lane,
+        inclock                => CLK_Lane,
+        dataout_h              => Data_H,
+        dataout_l              => Data_L,
+    );
+
+    SIGNAL RAM_Addr          : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
+    SIGNAL RAM_Data          : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+    SIGNAL RAM_Data_Out      : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+    SIGNAL Received_Byte     : STD_LOGIC := '0';
+    SIGNAL Combine_Bytes     : STD_LOGIC := '0';
+    SIGNAL RAM_DATA_A        : STD_LOGIC_VECTOR(31 downto 0);
+    RAM_DATA_A <= (RAM_Data(15 downto 0) & Second_Byte_Reg(7 downto 0) & First_Byte_Reg(7 downto 0));
+    SIGNAL RAM_WREN_A        : STD_LOGIC;
+    RAM_WREN_A <= (Received_Byte AND Combine_Bytes);
+
+    Generate (if Image_Width > 1024)
+    {
+        NewComponent ALTSYNCRAM
+        (
+            address_reg_b                      => "CLOCK0",
+            clock_enable_input_a               => "BYPASS",
+            clock_enable_input_b               => "BYPASS",
+            clock_enable_output_b              => "BYPASS",
+            intended_device_family             => "unused",
+            numwords_a                         => 2048,
+            numwords_b                         => 2048,
+            operation_mode                     => "DUAL_PORT",
+            width_a                            => 32,
+            width_b                            => 32,
+            width_byteena_a                    => 1,
+            widthad_a                          => 11,
+            widthad_b                          => 11,
+
+            address_a                          => RAM_Addr(10 downto 0),
+            address_b                          => RAM_Addr(10 downto 0),
+            clock0                             => CLK_Lane,
+            data_a                             => RAM_DATA_A,
+            q_b                                => RAM_Data_Out,
+            wren_a                             => RAM_WREN_A,
+        );
+    }
+    Generate (if Image_Width <= 1024)
+    {
+        NewComponent ALTSYNCRAM
+        (
+            address_reg_b                      => "CLOCK0",
+            clock_enable_input_a               => "BYPASS",
+            clock_enable_input_b               => "BYPASS",
+            clock_enable_output_b              => "BYPASS",
+            intended_device_family             => "unused",
+            numwords_a                         => 1024,
+            numwords_b                         => 1024,
+            operation_mode                     => "DUAL_PORT",
+            width_a                            => 32,
+            width_b                            => 32,
+            width_byteena_a                    => 1,
+            widthad_a                          => 10,
+            widthad_b                          => 10,
+
+            address_a                          => RAM_Addr(9 downto 0),
+            address_b                          => RAM_Addr(9 downto 0),
+            clock0                             => CLK_Lane,
+            data_a                             => RAM_DATA_A,
+            q_b                                => RAM_Data_Out,
+            wren_a                             => RAM_WREN_A,
+        );
+    }
+
+    RAM_Data <= (others => '0') when Start_Reg(1) = '1' else RAM_Data_Out;
+
+    TYPE Pixel_Value_type IS ARRAY (1 downto 0) OF UNSIGNED(7 downto 0);
+    TYPE Pixel_RGB_type IS RECORD
+    R : Pixel_Value_type;
+    G : Pixel_Value_type;
+    B : Pixel_Value_type;
+    END RECORD Pixel_RGB_type;
+    SIGNAL Pixel1 : Pixel_RGB_type := (others => (others => (others => '0')));
+    SIGNAL Pixel2 : Pixel_RGB_type := (others => (others => (others => '0')));
+
+    Process ()
+    {
+        If(rising_edge(CLK_Lane))
+        {
+            SIGNAL Byte_Start_Phase : BOOLEAN := false;
+            --Save received bits-------------------------------
+            SIGNAL First_Byte_Reg, Second_Byte_Reg : STD_LOGIC_VECTOR(11 downto 0) := (others => '0');
+            VARIABLE First_Byte_Data, Second_Byte_Data : STD_LOGIC_VECTOR(7 downto 0);
+            If(Byte_Start_Phase)
+            {
+                First_Byte_Reg <= "000" & Data_H(0) & Data_L(0) & First_Byte_Reg(8 downto 2);
+                Second_Byte_Reg <= "000" & Data_H(1) & Data_L(1) & Second_Byte_Reg(8 downto 2);
+            }
+            Else
+            {
+                First_Byte_Reg <= "00" & Data_H(0) & Data_L(0) & First_Byte_Reg(9 downto 2);
+                Second_Byte_Reg <= "00" & Data_H(1) & Data_L(1) & Second_Byte_Reg(9 downto 2);
+            }
+            First_Byte_Data  := First_Byte_Reg(7 downto 0);
+            Second_Byte_Data := Second_Byte_Reg(7 downto 0);
+            ---------------------------------------------------
+
+            --Count preamble zeros-----------------------------
+            SIGNAL Zero_Count          : NATURAL range 0 to 4 := 0;
+            If(First_Byte_Reg(1 downto 0) = "00" AND Second_Byte_Reg(1 downto 0) = "00")
+            {
+                If(Zero_Count < 4)
+                {
+                    Zero_Count <= Zero_Count + 1;
+                }
+            }
+            Else
+            {
+                Zero_Count <= 0;
+            }
+            ---------------------------------------------------
+            
+            --Keep track of bits and bytes---------------------
+            SIGNAL Bit_Count         : NATURAL range 0 to 2 := 0;
+            Bit_Count <= Bit_Count + 1;
+            
+            SIGNAL Byte_Count        : NATURAL range 0 to 2 := 0;
+            Received_Byte    <= '0';
+            -- find header -> first byte
+            If(First_Byte_Data = "10111000" AND Second_Byte_Data = "10111000" AND Zero_Count = 4 AND Combine_Bytes = '0')
+            {
+                Bit_Count  <= 0;
+                Byte_Count <= 1;
+            }
+            -- check for header at opposite phase
+            Elsif(First_Byte_Data = "10111000" AND Second_Byte_Data = "10111000" AND Zero_Count = 4 AND Combine_Bytes = '0')
+            {
+                Bit_Count  <= 0;
+                Byte_Count <= 1;
+
+                Byte_Start_Phase <= NOT Byte_Start_Phase;
+                If(Byte_Start_Phase)
+                {
+                    First_Byte_Reg  <= "00" & Data_H(0) & Data_L(0) & First_Byte_Reg(8 downto 1);
+                    Second_Byte_Reg <= "00" & Data_H(1) & Data_L(1) & Second_Byte_Reg(8 downto 1);
+                }
+                Else
+                {
+                    First_Byte_Reg  <= "000" & Data_H(0) & Data_L(0) & First_Byte_Reg(9 downto 3);
+                    Second_Byte_Reg <= "000" & Data_H(1) & Data_L(1) & Second_Byte_Reg(9 downto 3);
+                }
+            }
+            -- check for full byte
+            Elsif(Bit_Count = 2)
+            {
+                Received_Byte <= '1';
+            }
+            ---------------------------------------------------
+            
+            --Create New Pixel Impuls--------------------------
+            SIGNAL First_New_Pixel  : STD_LOGIC_VECTOR(1 downto 0) := (others => '0');
+            SIGNAL Second_New_Pixel : STD_LOGIC := '0';
+            Second_New_Pixel <= First_New_Pixel(1) AND NOT Start_Reg(0);
+            First_New_Pixel  <= First_New_Pixel(0) & '0';
+            ---------------------------------------------------
+            
+            --Process Bytes------------------------------------
+            If(Received_Byte = '1')
+            {
+                -- Check for packet type with first byte of header
+                If(Byte_Count = 1)
+                {
+                    Byte_Count <= 2;
+                    --0x00 is VSync
+                    If(First_Byte_Data = x"00")
+                    {
+                        SIGNAL Start_Reg   : UNSIGNED(1 downto 0) := (others => '0');
+                        Start_Reg          <= "01"; --Start of frame
+                        First_New_Pixel(0) <= '1';
+                        Convert_Type       <= 0;
+                    }
+                    --0x2A = new data
+                    Elsif(First_Byte_Data = x"2A")
+                    {
+                        Combine_Bytes     <= '1';
+                        RAM_Addr(7 downto 0) <= Second_Byte_Data(7 downto 0);
+                    }
+                }
+                --Set full RAM address with second byte
+                Elsif(Byte_Count = 2)
+                {
+                    Byte_Count   <= 0;
+                    Start_Reg    <= Start_Reg(0) & '0'; --save that last byte was vsync
+                    If(Combine_Bytes = '1')
+                    {
+                        RAM_Addr(15 downto 0) <= STD_LOGIC_VECTOR(UNSIGNED(First_Byte_Data & RAM_Addr(7 downto 0))-2);
+                    }
+                    Last_Bytes_Buf  <= (others => '0');
+                }
+                Elsif(Combine_Bytes = '1')
+                {
+                    SIGNAL Last_Bytes_Buf   : UNSIGNED(47 downto 0) := (others => '0');
+                    Last_Bytes_Buf <= UNSIGNED(RAM_Data & Second_Byte_Data & First_Byte_Data); --Save RAM_Data and Last_Bytes for next operation
+
+                    --Convert bayer matrix to RGB
+                    SIGNAL Convert_Type    : NATURAL range 0 to 1;
+                    If(Convert_Type = 1)
+                    {
+                        Pixel1.R(1) <= resize(shift_right(('0' & Last_Bytes_Buf(47 downto 40)) + ('0' & Last_Bytes_Buf(15 downto 8)), 1), 8);
+                        Pixel1.G(1) <= resize(shift_right(('0' & Last_Bytes_Buf(31 downto 24) & "00") + UNSIGNED("000" & First_Byte_Data) + ("000" & Last_Bytes_Buf(7 downto 0)) + ("000" & Last_Bytes_Buf(39 downto 32)) + UNSIGNED("000" & RAM_Data(23 downto 16)), 3), 8);
+                        Pixel1.B(1) <= resize(shift_right(('0' & Last_Bytes_Buf(23 downto 16)) + ('0' & Last_Bytes_Buf(7 downto 0)), 1), 8);
+
+                        Pixel2.R(1) <= resize(shift_right(("00" & Last_Bytes_Buf(47 downto 40)) + UNSIGNED("00" & RAM_Data(31 downto 24)) + ("00" & Last_Bytes_Buf(15 downto 8)) + UNSIGNED("00" & Second_Byte_Data), 2), 8);
+                        Pixel2.G(1) <= resize(shift_right(("00" & Last_Bytes_Buf(31 downto 24)) + UNSIGNED("00" & RAM_Data(15 downto 8)) + UNSIGNED("00" & RAM_Data(23 downto 16)) + UNSIGNED("00" & First_Byte_Data), 2), 8);
+                        Pixel2.B(1) <= UNSIGNED(RAM_Data(7 downto 0));
+                    }
+                    Else
+                    {
+                        Pixel1.R(0) <= Last_Bytes_Buf(31 downto 24);
+                        Pixel1.G(0) <= resize(shift_right(("00" & Last_Bytes_Buf(47 downto 40)) + UNSIGNED("00" & RAM_Data(7 downto 0)) + ("00" & Last_Bytes_Buf(15 downto 8)) + ("00" & Last_Bytes_Buf(23 downto 16)), 2), 8);
+                        Pixel1.B(0) <= resize(shift_right(("00" & Last_Bytes_Buf(39 downto 32)) + UNSIGNED("00" & RAM_Data(23 downto 16)) + ("00" & Last_Bytes_Buf(7 downto 0)) + UNSIGNED("00" & First_Byte_Data), 2), 8);
+
+                        Pixel2.R(0) <= resize(shift_right(('0' & Last_Bytes_Buf(31 downto 24)) + UNSIGNED('0' & RAM_Data(15 downto 8)), 1), 8);
+                        Pixel2.G(0) <= resize(shift_right(UNSIGNED('0' & RAM_Data(7 downto 0) & "00") + UNSIGNED("000" & Second_Byte_Data) + ("000" & Last_Bytes_Buf(15 downto 8)) + ("000" & Last_Bytes_Buf(47 downto 40)) + UNSIGNED("000" & RAM_Data(31 downto 24)), 3), 8);
+                        Pixel2.B(0) <= resize(shift_right(UNSIGNED('0' & RAM_Data(23 downto 16)) + UNSIGNED('0' & First_Byte_Data), 1), 8);
+                    }
+                    -- finished one pixel
+                    First_New_Pixel(0) <= '1';
+                    -- Check for packet end
+                    If(RAM_Addr = x"0000")
+                    {
+                        -- get ready for next
+                        Combine_Bytes <= '0';
+                        Convert_Type  <= Convert_Type + 1;
+                    }
+                    Else
+                    {
+                        -- Go to next address
+                        RAM_Addr <= STD_LOGIC_VECTOR(UNSIGNED(RAM_Addr)-2);
+                    }
+                }
+            }
+            ---------------------------------------------------
+        }
+    }
+}

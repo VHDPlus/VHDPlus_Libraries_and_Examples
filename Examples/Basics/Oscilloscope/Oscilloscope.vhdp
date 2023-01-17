@@ -173,7 +173,7 @@ Main
         Start_Offset  => 250,
 
         Rate_Div      => Logic_Analyzer_Rate_Div,
-        Start         => Logic_Analyzer_Start,
+        Run           => Logic_Analyzer_Start,
         Full          => Logic_Analyzer_Full,
         Inputs        => Logic_Analyzer_Inputs,
         Address       => Logic_Analyzer_Address,

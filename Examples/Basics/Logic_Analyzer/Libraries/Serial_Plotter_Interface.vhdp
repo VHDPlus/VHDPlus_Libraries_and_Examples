@@ -138,7 +138,6 @@ Component Serial_Plotter_Interface
         oString.Write <= '0';
     }
     
-    
     SIGNAL UART_Interface_TX_Enable     : STD_LOGIC := '0';
     SIGNAL UART_Interface_TX_Busy       : STD_LOGIC := '0';
     SIGNAL UART_Interface_TX_Data       : STD_LOGIC_VECTOR (8-1 DOWNTO 0) := (others => '0');
