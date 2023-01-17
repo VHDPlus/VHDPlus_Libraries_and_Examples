@@ -1,0 +1,23 @@
+﻿<Project>
+  <ItemGroup>
+    <File Include="Generated/Graphics_Render.vhd" />
+    <File Include="Generated/HDMI.vhd" />
+    <File Include="Generated/HDMI_Out.vhd" />
+    <File Include="Generated/Image_Data_Package.vhd" />
+    <File Include="Generated/VS_Converter.vhd" />
+    <File Include="Generated/VS_RAM_Interface.vhd" />
+    <File Include="Libraries/HDMI/DVI_OUT.v" />
+    <File Include="Libraries/HDMI/HDMI_Out.vhdp" />
+    <File Include="Libraries/HDMI/TMDS_ENCODE.v" />
+    <File Include="Libraries/HDMI/VS_Converter.vhdp" />
+    <File Include="Libraries/HDMI/VS_PLL.qip" />
+    <File Include="Libraries/HDMI/VS_PLL.vhd" />
+    <File Include="Libraries/HDMI/VS_RAM_Interface.vhdp" />
+    <File Include="Libraries/HDMI/VS_RAM_PLL.qip" />
+    <File Include="Libraries/HDMI/VS_RAM_PLL.vhd" />
+    <File Include="Libraries/Graphics_Render.vhdp" />
+    <File Include="Libraries/Image_Data.vhdp" />
+    <File Include="HDMI.vhdp" />
+  </ItemGroup>
+  <PropertyGroup />
+</Project>

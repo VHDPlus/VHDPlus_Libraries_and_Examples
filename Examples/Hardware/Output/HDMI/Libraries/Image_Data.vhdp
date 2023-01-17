@@ -31,23 +31,30 @@ Package Image_Data_Package
 {
     Include();
     --Tested combinations:
+    
+    --VS_Converter (only works with some HDMI Displays):
+    --Tested on Raspberry Pi 1024*600 HDMI Touchdisplay with TFP401
+    --1280x960 20fps
+    --1280x720 20fps
+    --640x480 40fps
+    
+    --Camera_Capture with VS_RAM_Interface:
+    --640x480 50fps
 
     --SDRAM Capture:
     --640x480 40fps  (with most displays)
-    --up to 1152x864 15fps 50% (with USB Capture)
-    --A 640x480 image is created from 1280x960 pixels
+    --1280x720 25fps (with some displays that also support slower frame rate)
     
-    CONSTANT Image_Width    : NATURAL := 1152;
-    CONSTANT Image_Height   : NATURAL := 864;
-    CONSTANT Image_FPS      : NATURAL := 15;
-    CONSTANT Image_Exposure : NATURAL := 50;   -- 1-100 (in percent of maximum exposure)
+    CONSTANT Image_Width  : NATURAL := 640; --1280, 1280, 640 or 320
+    CONSTANT Image_Height : NATURAL := 480;  --960,  720, 480 or 240
+    CONSTANT Image_FPS    : NATURAL := 30;
     
     --HDMI Timing
     --https://www.digi.com/resources/documentation/digidocs/90001945-13/reference/yocto/r_an_adding_custom_display.htm
     --https://tomverbeure.github.io/video_timings_calculator
 
-    CONSTANT HDMI_Width  : NATURAL := 1152; --1280, 1024 or 640
-    CONSTANT HDMI_Height : NATURAL := 864; -- 720,  600 or 480
+    CONSTANT HDMI_Width  : NATURAL := 640; --1280, 1280, 1024, 640 or 320
+    CONSTANT HDMI_Height : NATURAL := 480; -- 960,  720,  600, 480 or 240
     
     CONSTANT HBP_Len : NATURAL := 47;      --Horizontal Back Porch    (40 for 1280*720, 47 for 640*480,   0 for 1024*600)
     CONSTANT HFP_Len : NATURAL := 16;      --Horizontal Front porch   ( 8 for 1280*720, 16 for 640*480,   0 for 1024*600)

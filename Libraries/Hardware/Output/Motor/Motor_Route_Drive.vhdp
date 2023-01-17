@@ -430,18 +430,18 @@ Component Motor_Route_Drive
         If(Left_nClear)
         {
             --Turn left if driving right around the object
-            Motor_Controller_Drive_L <= Turn_Length * (-1);
-            Motor_Controller_Drive_R <= Turn_Length;
-            Motor_Controller_Drive_Speed <= Turn_Speed;
+            Drive_L <= Turn_Length * (-1);
+            Drive_R <= Turn_Length;
+            Drive_Speed <= Turn_Speed;
         }
         Else
         {
             --Turn right if driving left around the object
-            Motor_Controller_Drive_L <= Turn_Length;
-            Motor_Controller_Drive_R <= Turn_Length * (-1);
-            Motor_Controller_Drive_Speed <= Turn_Speed;
+            Drive_L <= Turn_Length;
+            Drive_R <= Turn_Length * (-1);
+            Drive_Speed <= Turn_Speed;
         }
-        NewFunction driveRoute (Motor_Controller_RST_Drive, Motor_Controller_Finished);
+        NewFunction driveRoute (RST_Drive, Finished);
     }
     
     SeqFunction Turn_Left_Check
@@ -459,18 +459,18 @@ Component Motor_Route_Drive
         If(Left_nClear)
         {
             --Turn right if driving right around the object
-            Motor_Controller_Drive_L <= Turn_Length;
-            Motor_Controller_Drive_R <= Turn_Length * (-1);
-            Motor_Controller_Drive_Speed <= Turn_Speed;
+            Drive_L <= Turn_Length;
+            Drive_R <= Turn_Length * (-1);
+            Drive_Speed <= Turn_Speed;
         }
         Else
         {
             --Turn left if driving left around the object
-            Motor_Controller_Drive_L <= Turn_Length * (-1);
-            Motor_Controller_Drive_R <= Turn_Length;
-            Motor_Controller_Drive_Speed <= Turn_Speed;
+            Drive_L <= Turn_Length * (-1);
+            Drive_R <= Turn_Length;
+            Drive_Speed <= Turn_Speed;
         }
-        NewFunction driveRoute (Motor_Controller_RST_Drive, Motor_Controller_Finished);
+        NewFunction driveRoute (RST_Drive, Finished);
     }
     
     SeqFunction Drive_Back

@@ -29,8 +29,6 @@
 			     -Add NewComponent of Servo in your code
 			     -Remove CLK_Frequency if you use a VHDP Core and no PLL
 			     -Remove Reset or connect it to a signal or input
-			     -Add this to your Main IOs and connect it with the instance Output and the Servo Pin (modify the name if already in use)
-			      Servo	: OUT STD_LOGIC;
 			     -Right click the name Servo next to NewComponent and create the needed signal for the position
     
     Function:    -Set the position of the servo with a value between 0 to 127, but first try the number in the middle
@@ -40,6 +38,7 @@
 
 Component Servo_Controller
 (
+	Include();
 	Generic
 	(
 		CLK_Frequency			    : NATURAL := 12000000;		--Clock Frequency in HZ
@@ -57,6 +56,11 @@ Component Servo_Controller
 
 	    signal cnt : unsigned(10 downto 0);
 	    signal pwmi: unsigned(7 downto 0);
+	}
+	
+	Connections
+	{
+	    Servo,
 	}
 	
 	Process freq_divider ()

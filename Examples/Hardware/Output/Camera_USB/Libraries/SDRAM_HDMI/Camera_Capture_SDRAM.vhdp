@@ -83,6 +83,7 @@ Component Camera_Capture_SDRAM
         sdram_cas_n    => SDRAM_CAS,
         sdram_ras_n    => SDRAM_RAS,
         sdram_cke      => SDRAM_CKE,
+        sdram_clk      => SDRAM_CLK,
         sdram_cs_n     => SDRAM_CSE,
         sdram_we_n     => SDRAM_WEN,
         sdram_dqm[0]   => SDRAM_DQM_1,
@@ -221,7 +222,7 @@ Component Camera_Capture_SDRAM
                 {
                     If(SDRAM_Read_Valid = '1')
                     {
-                        RAM_Out_Row_i  <= (RAM_Out_Row_reg+1) mod 2;
+                        RAM_Out_Row_i  <= (RAM_Out_Row_reg) mod 2;
                         RAM_Out_Col_i  <= col;
                         RAM_Data_Out_i <= SDRAM_Read_Data;
                         
@@ -289,7 +290,7 @@ Component Camera_Capture_SDRAM
     
     sdram_s_address <= SDRAM_Address;
     sdram_s_write_n <= NOT SDRAM_Write_Enable;
-    sdram_s_writedata <= SDRAM_Write_Data when RAM_In_Col_o < Image_Width-1 else x"F800";
+    sdram_s_writedata <= SDRAM_Write_Data;
     sdram_s_read_n <= NOT SDRAM_Read_Enable;
     SDRAM_Read_Data <= sdram_s_readdata;
     SDRAM_Read_Valid <= sdram_s_readdatavalid;

@@ -1,0 +1,24 @@
+# auto-generated
+[Libraries]
+work.files = [
+	'Libraries/HDMI/VS_PLL.vhd',
+	'Libraries/HDMI/VS_RAM_PLL.vhd',
+	'Generated/Graphics_Render.vhd',
+	'Generated/HDMI.vhd',
+	'Generated/HDMI_Out.vhd',
+	'Generated/Image_Data_Package.vhd',
+	'Generated/VS_Converter.vhd',
+	'Generated/VS_RAM_Interface.vhd'
+]
+[libraries.work]
+files = [
+	'Libraries/HDMI/VS_PLL.vhd',
+	'Libraries/HDMI/VS_RAM_PLL.vhd',
+	'Generated/Graphics_Render.vhd',
+	'Generated/HDMI.vhd',
+	'Generated/HDMI_Out.vhd',
+	'Generated/Image_Data_Package.vhd',
+	'Generated/VS_Converter.vhd',
+	'Generated/VS_RAM_Interface.vhd'
+]
+# auto-generated-end

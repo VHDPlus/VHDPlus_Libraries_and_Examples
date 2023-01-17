@@ -1,0 +1,141 @@
+Main
+(
+
+    HDMI_DATA            : OUT    STD_LOGIC_VECTOR(2 downto 0);
+    HDMI_CLK             : OUT    STD_LOGIC;
+    HDMI_HPD             : IN     STD_LOGIC;
+
+)
+{
+
+
+--GENERATED SIGNALS---------------------------------------------------------------------------------------------
+
+    --HDMI----------------------------------------------------------------------------------------
+
+    ------------------------------------------------------------------------------
+    -- IMPORTANT:                                                               --
+    -- Set the Image Size and HDMI Timing settings in Libraries/Image_Data.vhdp --
+    -- For Rasperry Pi Display:                                                 --
+    -- Image and HDMI:                                                          --
+    -- Width = 1024, Height = 600                                               --
+    -- HBP = 0, HFP = 0, HSLEN = 176                                            --
+    -- VBP = 0, VFP = 0, VSLEN = 25                                             --
+    ------------------------------------------------------------------------------
+
+    --Settings for capture
+    CONSTANT Image_Compression : NATURAL := 2;  --Image size divider
+    CONSTANT Image_Depth       : NATURAL := 1;  --Color depth
+    CONSTANT Image_RGB         : BOOLEAN := false;
+    
+    --Renderer Interface
+    SIGNAL Render_Data_CLK     : STD_LOGIC := '0';
+    SIGNAL Render_Point_X      : NATURAL range 0 to 649 := 0;
+    SIGNAL Render_Point_Y      : NATURAL range 0 to 479 := 0;
+    SIGNAL Render_Data         : STD_LOGIC_VECTOR (23 downto 0) := x"000000";
+    SIGNAL Render_Function_Sel : render_functions := none;
+    SIGNAL Render_Busy         : STD_LOGIC := '0';
+    SIGNAL Render_oStream      : rgb_stream;
+    
+    --Video Stream Interface
+    SIGNAL Output_Stream : rgb_stream;
+    
+    --HDMI Output Interface
+    SIGNAL VS_PCLK   : STD_LOGIC;
+    SIGNAL VS_SCLK   : STD_LOGIC;
+    SIGNAL VS_R      : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL VS_G      : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL VS_B      : STD_LOGIC_VECTOR (7 downto 0);
+    SIGNAL VS_HS     : STD_LOGIC;
+    SIGNAL VS_VS     : STD_LOGIC;
+    SIGNAL VS_DE     : STD_LOGIC;
+    
+
+--GENERATED CODE------------------------------------------------------------------------------------------------
+
+    --HDMI----------------------------------------------------------------------------------------
+
+    Process ()
+    {
+        Thread
+        {
+            NewFunction graphics_fill ((others => '1'), Render_Data_CLK, Render_Data, Render_Function_Sel, Render_Busy);
+
+            For(VARIABLE i : INTEGER := 0; i < 100; i := i + 1)
+            {
+                NewFunction graphics_point ((others => '0'), i, i, Render_Data_CLK, Render_Point_X, Render_Point_Y, Render_Data, Render_Function_Sel, Render_Busy);
+                Wait(10ms);
+            }
+
+            For(i := 0; i <= 100; i := i + 20)
+            {
+                NewFunction graphics_line ((others => '0'), 0, i, 50, 50, 1, Render_Data_CLK, Render_Point_X, Render_Point_Y, Render_Data, Render_Function_Sel, Render_Busy);
+                Wait(300ms);
+            }
+
+            NewFunction graphics_rectangle ((others => '0'), 20, 110, 50, 200, 1, '0', Render_Data_CLK, Render_Point_X, Render_Point_Y, Render_Data, Render_Function_Sel, Render_Busy);
+
+            NewFunction graphics_bitmap ((others => '0'), 3, 111, 6, 116, "1011" & "1101" & "0110" & "1011" & "1110" & "0011", Render_Data_CLK, Render_Point_X, Render_Point_Y, Render_Data, Render_Function_Sel, Render_Busy);
+
+            Wait(1s);
+        }
+    }
+
+--GENERATED COMPONENTS------------------------------------------------------------------------------------------
+
+    --HDMI----------------------------------------------------------------------------------------
+
+
+
+    --Create Image-------------------------------------------------------------
+    
+    NewComponent Graphics_Render
+    (
+        Compression  => Image_Compression,
+        Width        => Image_Depth,
+        RGB          => Image_RGB,
+
+        Data_CLK     => Render_Data_CLK,
+        Point_X      => Render_Point_X,
+        Point_Y      => Render_Point_Y,
+        Data         => Render_Data,
+        Function_Sel => Render_Function_Sel,
+        Busy         => Render_Busy,
+        Pixel_CLK    => VS_PCLK,
+        oStream      => Render_oStream,
+    );
+
+    Output_Stream <= Render_oStream;
+
+    --Output image with HDMI-------------------------------------------------------------
+
+    NewComponent VS_Converter
+    (
+        iStream => Output_Stream,
+        VS_PCLK => VS_PCLK,
+        VS_SCLK => VS_SCLK,
+        VS_R    => VS_R,
+        VS_G    => VS_G,
+        VS_B    => VS_B,
+        VS_HS   => VS_HS,
+        VS_VS   => VS_VS,
+        VS_DE   => VS_DE,
+    );
+
+    --Output video stream with hdmi interface
+    NewComponent HDMI_Out
+    (
+        VS_PCLK    => VS_PCLK,
+        VS_SCLK    => VS_SCLK,
+        VS_R       => VS_R,
+        VS_G       => VS_G,
+        VS_B       => VS_B,
+        VS_HS      => VS_HS,
+        VS_VS      => VS_VS,
+        VS_DE      => VS_DE,
+
+        HDMI_DATA  => HDMI_DATA,
+        HDMI_CLK   => HDMI_CLK,
+        HDMI_HPD   => HDMI_HPD,
+    );
+}

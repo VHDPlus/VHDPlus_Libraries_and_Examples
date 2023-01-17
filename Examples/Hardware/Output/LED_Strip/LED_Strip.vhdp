@@ -12,7 +12,7 @@ Main
     SIGNAL LED_Strip_Pixel_CLK        : STD_LOGIC;
     SIGNAL LED_Strip_Address          : NATURAL          range 0 to LEDs-1;
     SIGNAL LED_Strip_Pixel            : STD_LOGIC_VECTOR (23 downto 0) := x"FF00FF";
-    NewComponent LED_Strip_Interface
+    NewComponent WS2812_Interface
     (
         CLK_Frequency => 12000000,
         LEDs          => LEDs,

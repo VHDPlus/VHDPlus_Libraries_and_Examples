@@ -5,21 +5,21 @@
     Date: 06.06.2019
     Copyright (c) 2019 Protop Solutions UG. All right reserved.
     
-    Permission is hereby granted, free of charge, to any person obtaining a copy of 
-    this hdl code and associated documentation files (the "HDL Code"), to deal in the 
-    HDL Code without restriction, including without limitation the rights to use, 
-    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the 
-    HDL Code, and to permit persons to whom the HDL Code is furnished to do so, 
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
     subject to the following conditions:
 
     The above copyright notice and this permission notice shall be included in all
     copies or substantial portions of the HDL Code.
 
-    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
-    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
-    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
-    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
     WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
     
     Important: The Update_Frequency must not be 0 and above 100000
@@ -37,10 +37,11 @@
                -If the Sensor should stop measuring, set Reset to '1'
     
     Example:   Ultrasonic_Example
-*/
+ */
 
 Component Ultrasonic_Controller
 (
+    Include();
     Generic
     (
         CLK_Frequency       : NATURAL := 12000000;      --Clock Frequency in HZ
@@ -49,7 +50,7 @@ Component Ultrasonic_Controller
     Reset   : IN  STD_LOGIC := '0';             --active high reset (set to '1' to pause measuring)
     Trigger : OUT STD_LOGIC := '0';             --Trigger from Sensor
     Echo    : IN  STD_LOGIC := '0';             --Echo from Sensor
-    Dist    : OUT NATURAL range 0 to 1000 := 0; --0 to 1000 cm
+    Dist    : OUT NATURAL range 0 to 1000 := 1000; --0 to 1000 cm
 )
 {
     AttributeDeclaration
@@ -61,13 +62,20 @@ Component Ultrasonic_Controller
     
     Connections
     {
-        Trigger,
-        Echo,
+        Trigger => LS_2,
+        Echo    => LS_1,
+        Echo[0] => LS_1,
+        Echo[1] => LS_4,
+        Echo[2] => LS_3,
+        Echo[3] => LS_5,
+        Echo[4] => LS_7,
+        Echo[5] => LS_6,
+        Echo[6] => LS_8,
     }
     
     Trigger <= TRIGGER_BUF;
     
-    Process TRIGGER_PROCESS 
+    Process TRIGGER_PROCESS
     (
         VARIABLE cnt    : NATURAL range 0 to CLK_Frequency/Update_Frequency := 0;
     )
@@ -75,7 +83,7 @@ Component Ultrasonic_Controller
         If(Reset = '1')
         {
             cnt := 0;
-        } 
+        }
         Else
         {
             If(START = '1' AND cnt = CLK_Frequency/Update_Frequency)  --Start trigger on falling edge of Echo and after time for Update Frequency
@@ -102,7 +110,7 @@ Component Ultrasonic_Controller
         }
     }
     
-    Process ECHO_PROCESS 
+    Process ECHO_PROCESS
     (
         VARIABLE cnt        : NATURAL range 0 to 1000 := 0;     --cm counter
     )
@@ -111,7 +119,7 @@ Component Ultrasonic_Controller
         {
             cnt := 0;
             START <= '0';
-        } 
+        }
         Else
         {
             If(Echo = '0')  --Not receiving
