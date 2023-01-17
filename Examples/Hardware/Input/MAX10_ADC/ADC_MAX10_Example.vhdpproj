@@ -1,23 +1,9 @@
-<?xml version="1.0"?>
-<ArrayOfProjectEntry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>ADC_MAX10.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Hardware\Input\ADC_MAX10\Example</ProjectPath>
-    <IsExpanded>false</IsExpanded>
-  </ProjectEntry>
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>ADC_MAX10_Example.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Hardware\Input\ADC_MAX10\Example</ProjectPath>
-    <IsExpanded>false</IsExpanded>
-  </ProjectEntry>
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>ADC_QSYS.qsys.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Hardware\Input\ADC_MAX10\Example</ProjectPath>
-    <IsExpanded>false</IsExpanded>
-  </ProjectEntry>
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>ADC_QSYS.qsys</Path>
-    <ProjectPath>C:\Users\LeonB\Desktop\Final Libraries\Hardware\Input\ADC_MAX10\Example</ProjectPath>
-    <IsExpanded>false</IsExpanded>
-  </ProjectEntry>
-</ArrayOfProjectEntry>
+﻿<Project>
+  <ItemGroup>
+    <File Include="ADC_MAX10.vhdp" />
+    <File Include="ADC_MAX10_Example.vhdp" />
+    <File Include="ADC_QSYS.qsys" />
+    <File Include="ADC_QSYS.qsys.vhdp" />
+  </ItemGroup>
+  <PropertyGroup />
+</Project>

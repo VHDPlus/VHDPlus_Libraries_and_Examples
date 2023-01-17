@@ -1,18 +1,8 @@
-<?xml version="1.0"?>
-<ArrayOfProjectEntry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>Fingerprint.vhdp</Path>
-    <IsExpanded>true</IsExpanded>
-    <Saved>true</Saved>
-  </ProjectEntry>
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>Fingerprint_Example.vhdp</Path>
-    <IsExpanded>true</IsExpanded>
-    <Saved>true</Saved>
-  </ProjectEntry>
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>UART.vhdp</Path>
-    <IsExpanded>true</IsExpanded>
-    <Saved>true</Saved>
-  </ProjectEntry>
-</ArrayOfProjectEntry>
+﻿<Project>
+  <ItemGroup>
+    <File Include="Fingerprint.vhdp" />
+    <File Include="Fingerprint_Example.vhdp" />
+    <File Include="UART.vhdp" />
+  </ItemGroup>
+  <PropertyGroup />
+</Project>

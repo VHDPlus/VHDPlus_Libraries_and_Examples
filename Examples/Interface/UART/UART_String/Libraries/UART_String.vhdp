@@ -49,6 +49,7 @@
 
 Component UART_String
 (
+    Include();
     Generic
     (
         CLK_Frequency   : INTEGER       := 12000000;            --frequency of system clock in Hertz
@@ -81,12 +82,12 @@ Component UART_String
     SIGNAL UART_Interface_rx_data   : STD_LOGIC_VECTOR (7 DOWNTO 0);
     SIGNAL UART_Interface_rx_busy   : STD_LOGIC;
     SIGNAL UART_Interface_rx_error  : STD_LOGIC;
-    
-    Connections
-    {
-        RX,
-        TX,
-    }
+	
+	Connections
+	{
+	    RX,
+		TX,
+	}
     
     NewComponent UART_Interface 
     (
@@ -107,8 +108,8 @@ Component UART_String
         RX_Data       => UART_Interface_rx_data,
         RX_Error      => UART_Interface_rx_error,
     );
-    
-    SeqFunction printString
+	
+	SeqFunction printString
     (
         str   : STD_LOGIC_VECTOR;
         len   : NATURAL;
