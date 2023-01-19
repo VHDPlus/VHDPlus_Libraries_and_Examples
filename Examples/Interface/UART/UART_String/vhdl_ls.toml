@@ -1,0 +1,16 @@
+# auto-generated
+[Libraries]
+work.files = [
+	'Generated/UART_Array.vhd',
+	'Generated/UART_Interface.vhd',
+	'Generated/UART_String.vhd',
+	'Generated/UART_String_Example.vhd'
+]
+[libraries.work]
+files = [
+	'Generated/UART_Array.vhd',
+	'Generated/UART_Interface.vhd',
+	'Generated/UART_String.vhd',
+	'Generated/UART_String_Example.vhd'
+]
+# auto-generated-end

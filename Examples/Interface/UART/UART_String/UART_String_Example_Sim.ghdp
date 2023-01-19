@@ -1,0 +1,63 @@
+Component UART_String_Example_tb()
+{
+    SIGNAL finished : STD_LOGIC:= '0';
+    CONSTANT period_time : TIME := 83333 ps;
+
+    Process Sim_finished()
+    {
+        wait for 100000 us;
+        finished <= '1';
+        wait;
+    }
+
+    NewComponent UART_String_Example
+    (
+        RX => RX,
+        TX => TX,
+        led => led,
+        CLK => CLK,
+    );
+
+    SIGNAL RX : STD_LOGIC  := '0';
+    SIGNAL TX : STD_LOGIC  := '0';
+    SIGNAL led : STD_LOGIC_VECTOR (7 downto 0) := (others => '0');
+    SIGNAL CLK : STD_LOGIC := '0';
+
+    Process Sim_CLK()
+    {
+        While(finished /= '1')
+        {
+            CLK <= '0';
+            wait for period_time/2;
+            CLK <= '1';
+            wait for period_time/2;
+        }
+        wait;
+    }
+    
+    Process()
+    {
+        Thread
+        {
+            NewFunction printString (s"test", 4, UART_String_TX_Data, UART_String_TX_Bytes, UART_String_TX_Enable, UART_String_TX_Busy);
+            While(true) {}
+        }
+    }
+    
+    SIGNAL UART_String_TX_Enable: STD_LOGIC := '0';
+    SIGNAL UART_String_TX_Bytes: NATURAL range 0 to 8 := 0;
+    SIGNAL UART_String_TX_Data: STD_LOGIC_VECTOR(8 * 8 - 1 downto 0) := (others => '0');
+    SIGNAL UART_String_TX_Busy: STD_LOGIC := '0';
+    NewComponent UART_String
+    (
+        CLK_Frequency => 12000000,
+        Baudrate      => 9600,
+        Max_Bytes     => 8,
+
+        TX            => RX,
+        TX_Enable     => UART_String_TX_Enable,
+        TX_Bytes      => UART_String_TX_Bytes,
+        TX_Data       => UART_String_TX_Data,
+        TX_Busy       => UART_String_TX_Busy,
+    );
+}

@@ -1,21 +1,14 @@
-<?xml version="1.0"?>
-<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <Header>UART_String_Example</Header>
-  <Items xsi:type="ProjectFolder">
-    <Header>Libraries</Header>
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>UART.vhdp</Header>
-    </Items>
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>UART_Array.vhdp</Header>
-    </Items>
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>UART_String.vhdp</Header>
-    </Items>
-  </Items>
-  <Items xsi:type="ProjectFileVHDP">
-    <Header>UART_String_Example.vhdp</Header>
-  </Items>
-  <SelectedExtensionsSave />
-  <IOVoltage>0</IOVoltage>
-</ProjectRoot>
+﻿<Project>
+  <ItemGroup>
+    <File Include="Generated/UART_Array.vhd" />
+    <File Include="Generated/UART_Interface.vhd" />
+    <File Include="Generated/UART_String.vhd" />
+    <File Include="Generated/UART_String_Example.vhd" />
+    <File Include="Libraries/UART.vhdp" />
+    <File Include="Libraries/UART_Array.vhdp" />
+    <File Include="Libraries/UART_String.vhdp" />
+    <File Include="UART_String_Example.vhdp" />
+    <File Include="UART_String_Example_Sim.ghdp" />
+  </ItemGroup>
+  <PropertyGroup />
+</Project>
