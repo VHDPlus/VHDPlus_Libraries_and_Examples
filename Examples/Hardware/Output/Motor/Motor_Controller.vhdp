@@ -27,7 +27,7 @@
     
     Description: -This component is build to drive an exact route with two motors with encoders
                  -The motors correct their speed in order to drive straight
-                 -You can set the distance of drive for each motor and their speed
+                 -You can set the distance to drive for each motor and their speed
                  -While the motors are driving you get information about the driven distance and the current speed
     
     Insertion:   -Right click on Motor_Controller.vhdp, Motor_Encoder.vhdp and PWM.vhdp -> Add to avtive project
@@ -35,8 +35,7 @@
                  -Remove CLK_Frequency if you use a VHDP Core and no phase-locked loop (PLL) or set a frequency according to your clock frequency
                  -Remove or set the additional parameters (more information about their function next to the declaration or hover with your cursor over the parameters in your code)
                  -Set Holes_In_Disk, Gear_Ratio and Wheel_Circumference to the values of your motor to get values in mm,
-                  otherwise Drive_L/R, Driven_L/R and Speed_L/R are given in encoder impules (per second), but in exchange you save logic elements.
-                  You can set the required distance by writing Drive_L/R <= ([Length]*Wheel_Circumference)/(Holes_In_Disk*Gear_Ratio)
+                  otherwise Drive_L/R, Driven_L/R and Speed_L/R are given in encoder impules (per second).
                  -Right click Motor_Controller next to NewComponent and create the required signals (Max_Length, Bits_Resolution and Length_Corr_Step in the declaration have to be replaced with values of you choice or you have to use constants)
     
     Function:    1. Set DriveL/R to the distance the motor has to drive in mm or use the formula([Length]*Wheel_Circumference)/(Holes_In_Disk*Gear_Ratio)
@@ -55,7 +54,7 @@
                     
                  6. The program has to wait until Finished switches to '1'. If Error switches to '1' the motor has not moved for the time defined by Max_Time.
                     Example:
-                    
+                    While (Finished = '1') {}
                     While (Finished = '0')
                     {
                         If (Error = '1')
@@ -81,12 +80,13 @@
         Gear_Ratio = 90
         Wheel_Circumference = 100
         Correction_Step = 1
-        Correction_Cycles = 5
+        Correction_Cycles = 20
         Debounce_Cycles     = 500
  */
 
 Component Motor_Controller
 (
+    Include();
     Generic
     (
         --General
@@ -112,6 +112,7 @@ Component Motor_Controller
         Brake_Length        : NATURAL := 1;          --100 = 10cm braking at the end
         Accel_Speed         : NATURAL := 1;          --100 = increases speed by 100 while acceleration
         Brake_Speed         : NATURAL := 1;          --100 = decreases speed by 100 while braking
+        Max_Turn_Time       : NATURAL := 2000;       --2000 = If wheel needs longer than 2000ms to turn 360°, it doesn't tries to brake or accelerate
     );
     Reset           : IN  STD_LOGIC := '0';
     
@@ -148,7 +149,7 @@ Component Motor_Controller
 {
     AttributeDeclaration
     {
-        CONSTANT Max_Time : NATURAL := 1000000;
+        CONSTANT Max_Time : NATURAL := Max_Turn_Time*10000/(Holes_In_Disk*Gear_Ratio);
         
         SIGNAL Motor_Left_PWM       : STD_LOGIC := '0';
         SIGNAL Motor_Left_Speed     : STD_LOGIC_VECTOR(Bits_Resolution-1 DOWNTO 0) := (others => '0');
@@ -178,13 +179,37 @@ Component Motor_Controller
     
     Connections
     {
-        Encoder_L,
-        Encoder_R,
+        Encoder_L => LS_1, --E2.1
+        Encoder_R => LS_2, --E1.1
         
-        Motor_LF,
-        Motor_LB,
-        Motor_RF,
-        Motor_RB,
+        Motor_LF  => LS_6, --M2.1
+        Motor_LB  => LS_8, --M2.2
+        Motor_RF  => LS_5, --M1.2
+        Motor_RB  => LS_3, --M1.1
+    }
+    
+    --Starts route definded by Drive_L/Drive_R and Drive_Speed.
+    --You still have to wait until Finished is '1'
+    SeqFunction startRoute
+    (
+        rst_drive : STD_LOGIC;
+        motor_fin : STD_LOGIC;
+    )
+    {
+        rst_drive <= '1';
+        Step { rst_drive <= '0'; }
+        While(motor_fin = '1') {}
+    }
+    
+    --Starts route definded by Drive_L/Drive_R and Drive_Speed and waits until finished is '1'
+    SeqFunction driveRoute
+    (
+        rst_drive : STD_LOGIC;
+        motor_fin : STD_LOGIC;
+    )
+    {
+        NewFunction startRoute (rst_drive, motor_fin);
+        While(motor_fin = '0') {}
     }
     
     Correction <= Correction_Buf;
@@ -269,13 +294,20 @@ Component Motor_Controller
         }
         Else
         {
-            If(Length_Left > abs(Drive_L)-Brake_Length)
+            If(Holes_In_Disk*Gear_Ratio*Time_Left < Max_Turn_Time*1000)
             {
-                Accel_Brake_L <= (Brake_Length-(abs(Drive_L)-Length_Left))*(Brake_Speed/Brake_Length);
-            }
-            ElsIf(Length_Left < Accel_Length)
-            {
-                Accel_Brake_L <= (Accel_Length-Length_Left)*(Accel_Speed/Accel_Length);
+                If(Length_Left > abs(Drive_L)-Brake_Length)
+                {
+                    Accel_Brake_L <= (Brake_Length-(abs(Drive_L)-Length_Left))*(Brake_Speed/Brake_Length);
+                }
+                ElsIf(Length_Left < Accel_Length)
+                {
+                    Accel_Brake_L <= (Accel_Length-Length_Left)*(Accel_Speed/Accel_Length);
+                }
+                Else
+                {
+                    Accel_Brake_L <= 0;
+                }
             }
             Else
             {
@@ -292,13 +324,20 @@ Component Motor_Controller
         }
         Else
         {
-            If(Length_Right > abs(Drive_R)-Brake_Length)
+            If(Holes_In_Disk*Gear_Ratio*Time_Right < Max_Turn_Time*1000)
             {
-                Accel_Brake_R <= (Brake_Length-(abs(Drive_R)-Length_Right))*(Brake_Speed/Brake_Length);
-            }
-            ElsIf(Length_Right < Accel_Length)
-            {
-                Accel_Brake_R <= (Accel_Length-Length_Right)*(Accel_Speed/Accel_Length);
+                If(Length_Right > abs(Drive_R)-Brake_Length)
+                {
+                    Accel_Brake_R <= (Brake_Length-(abs(Drive_R)-Length_Right))*(Brake_Speed/Brake_Length);
+                }
+                ElsIf(Length_Right < Accel_Length)
+                {
+                    Accel_Brake_R <= (Accel_Length-Length_Right)*(Accel_Speed/Accel_Length);
+                }
+                Else
+                {
+                    Accel_Brake_R <= 0;
+                }
             }
             Else
             {
@@ -410,7 +449,7 @@ Component Motor_Controller
             }
             
             --Outputs error if start time over, a motor doesn't turn and the motor isn't ready with the route
-            If(Error_Out = '0' AND start_count = Error_Delay*(CLK_Frequency/1000))
+            If(Error_Out = '0' AND start_count = Error_Delay*(CLK_Frequency/1000) AND Accel_Brake_L = 0 AND Accel_Brake_R = 0)
             {
                 problem_side := 0;
                 If(Time_Right = Max_Time AND abs(Drive_R) > Length_Right)

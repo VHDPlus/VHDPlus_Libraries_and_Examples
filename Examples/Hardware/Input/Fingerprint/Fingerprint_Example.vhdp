@@ -1,4 +1,4 @@
-﻿/*
+/*
     Name: Fingerprint Example
     Rev: 1.0
     Creator: Leon Beier
@@ -34,9 +34,9 @@ Main
 	SIGNAL Fingerprint_Controller_ID            : STD_LOGIC_VECTOR (15 downto 0);
 	SIGNAL Fingerprint_Controller_Confidence    : STD_LOGIC_VECTOR (15 downto 0);
 	
-	NewComponent Fingerprint_Controller 
+	NewComponent AS608_Controller
 	(
-		CLK_Frequency => 50000000,
+		CLK_Frequency => 12000000,
 
 		RX            => RX,
 		TX            => TX,

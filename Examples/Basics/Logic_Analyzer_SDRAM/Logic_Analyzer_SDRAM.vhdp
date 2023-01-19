@@ -32,7 +32,7 @@ Component Logic_Analyzer_SDRAM
     Generic
     (
         Max_Samples    : NATURAL := 3000000; --3Mio samples
-        Channels       : NATURAL := 16;
+        Channels       : NATURAL range 1 to 16 := 16;
     );
     
     Rate_Div    : IN  NATURAL range 8 to 150000000 := 150; --150MHz clock/150 = 1Mio samples per second
@@ -75,86 +75,31 @@ Component Logic_Analyzer_SDRAM
         }
     }
 
-    Generate (if Channels < 17)
+    Process ()
     {
-        sdram_data_i(Channels-1 downto 0) <= Inputs;
-        Outputs <= sdram_data_o(Channels-1 downto 0);
-        
-        Process ()
+        If(rising_edge(SDRAM_Interface_CLK_150_Out))
         {
-            If(rising_edge(SDRAM_Interface_CLK_150_Out))
+            Thread
             {
-                Thread
+                VARIABLE in_addr : NATURAL range 0 to Max_Samples := 0;
+                If(Run = '0')
                 {
-                    VARIABLE in_addr : NATURAL range 0 to Max_Samples := 0;
-                    If(Run = '0')
-                    {
-                        in_addr := 0;
-                        Full <= '0';
-                        SIGNAL sdram_data_o : STD_LOGIC_VECTOR(15 downto 0);
-                        NewFunction Read_SDRAM (sdram_data_o, Address, SDRAM_Interface_Address, SDRAM_Interface_Read_Enable, SDRAM_Interface_Read_Data, SDRAM_Interface_Busy);
-                    }
-                    Else
-                    {
-                        For(in_addr := 0; in_addr < Max_Samples AND Run = '1'; in_addr := in_addr + 1)
-                        {
-                            SIGNAL sdram_data_i : STD_LOGIC_VECTOR(15 downto 0);
-                            NewFunction Write_SDRAM (sdram_data_i, in_addr, SDRAM_Interface_Address, SDRAM_Interface_Write_Enable, SDRAM_Interface_Write_Data, SDRAM_Interface_Busy);
-                            While(sample_clk_en = '0'){}
-                        }
-                        Full <= '1';
-                    }
+                    in_addr := 0;
+                    Full <= '0';
+                    SIGNAL sdram_data_o : STD_LOGIC_VECTOR(15 downto 0);
+                    NewFunction Read_SDRAM (sdram_data_o, Address, SDRAM_Interface_Address, SDRAM_Interface_Read_Enable, SDRAM_Interface_Read_Data, SDRAM_Interface_Busy);
+                    Outputs <= sdram_data_o(Channels-1 downto 0);
                 }
-            }
-        }
-    }
-    
-    Generate (if Channels > 16)
-    {
-        Generate (for i in 0 to Channels/16)
-        {
-            Generate (if i = Channels/16)
-            {
-                Outputs(Channels-1 downto 16*i) <= sdram_data_o_a(16*i+15 downto 16*i);
-                sdram_data_i_a(16*i+15 downto 16*i) <= Inputs(Channels-1 downto 16*i);
-            }
-            Generate (if i < Channels/16)
-            {
-                Outputs(16*i+15 downto 16*i) <= sdram_data_o_a(16*i+15 downto 16*i);
-                sdram_data_i_a(16*i+15 downto 16*i) <= Inputs(16*i+15 downto 16*i);
-            }
-        }
-        
-        Process ()
-        {
-            If(rising_edge(SDRAM_Interface_CLK_150_Out))
-            {
-                Thread
+                Else
                 {
-                    VARIABLE in_addr : NATURAL range 0 to Max_Samples := 0;
-                    If(Run = '0')
+                    For(in_addr := 0; in_addr < Max_Samples AND Run = '1'; in_addr := in_addr + 1)
                     {
-                        in_addr := 0;
-                        Full <= '0';
-                        SIGNAL sdram_data_o_a : STD_LOGIC_VECTOR((Channels/16 + 1)*16-1 downto 0);
-                        For(VARIABLE word : NATURAL range 0 to Channels/16+1 := 0; word < Channels/16+1; word := word + 1)
-                        {
-                            NewFunction Read_SDRAM (sdram_data_o(16*word+15 downto 16*word), Address, SDRAM_Interface_Address, SDRAM_Interface_Read_Enable, SDRAM_Interface_Read_Data, SDRAM_Interface_Busy);
-                        }
+                        SIGNAL sdram_data_i : STD_LOGIC_VECTOR(15 downto 0);
+                        sdram_data_i(Channels-1 downto 0) <= Inputs;
+                        NewFunction Write_SDRAM (sdram_data_i, in_addr, SDRAM_Interface_Address, SDRAM_Interface_Write_Enable, SDRAM_Interface_Write_Data, SDRAM_Interface_Busy);
+                        While(sample_clk_en = '0'){}
                     }
-                    Else
-                    {
-                        For(in_addr := 0; in_addr < Max_Samples AND Run = '1'; in_addr := in_addr + 1)
-                        {
-                            SIGNAL sdram_data_i_a : STD_LOGIC_VECTOR((Channels/16 + 1)*16-1 downto 0);
-                            For(word  := 0; word < Channels/16+1; word := word + 1)
-                            {
-                                NewFunction Write_SDRAM (sdram_data_i(16*word+15 downto 16*word), in_addr, SDRAM_Interface_Address, SDRAM_Interface_Write_Enable, SDRAM_Interface_Write_Data, SDRAM_Interface_Busy);
-                            }
-                            While(sample_clk_en = '0'){}
-                        }
-                        Full <= '1';
-                    }
+                    Full <= '1';
                 }
             }
         }

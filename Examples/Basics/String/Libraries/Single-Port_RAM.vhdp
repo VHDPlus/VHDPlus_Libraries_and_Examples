@@ -42,6 +42,7 @@
 
 Component Single_Port_RAM
 (
+	Include();
 	Generic
 	(
 		Width	: NATURAL := 256;	--Number of blocks to save

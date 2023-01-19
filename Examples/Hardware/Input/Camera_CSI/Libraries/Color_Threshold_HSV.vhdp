@@ -1,0 +1,105 @@
+/*
+    Name: Color Threshold HSV
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 23.02.2020
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Important:   -This component is made for HSV data. From the rgb_stream: R = Hue, G = Saturation, B = Velocity
+    
+    Description: -This component compares the HSV data with the minimum and maximum values and either 
+	              sets the output to 0xFFFFFF if the color is in the thresholds or 0x000000 if not
+    
+    Insertion:   -Right click on the file -> Add to active project
+                 -Add NewComponent of this component into your code
+                 -Set the parameters according to your application
+				 -Connect the camera stream
+				 
+    Example:     Camera_CSI_Example
+ */
+
+
+Component Color_Threshold_HSV_Filter
+(
+    Include
+    (
+        Image_Data_Package.all,
+    );
+    Generic
+    (
+        CLK_Edge    : BOOLEAN := true; --true = rising edge
+    );
+    
+    H_Min : IN NATURAL := 0;   --0 = red => 30 yellow => 60 green => 90 turquoise
+    H_Max : IN NATURAL := 255; --180 = red <= 150 pink <= 120 Blue
+    
+    S_Min : IN NATURAL := 0;   --low saturation
+    S_Max : IN NATURAL := 255; --high saturation
+    
+    V_Min : IN NATURAL := 0;   --dark
+    V_Max : IN NATURAL := 255; --bright
+    
+    iStream    : in   rgb_stream;
+    oStream    : out  rgb_stream;
+)
+{
+    SIGNAL iStream_buf    : rgb_stream;
+    SIGNAL oStream_buf    : rgb_stream;
+    
+    oStream.New_Pixel <= iStream.New_Pixel;
+    
+    SIGNAL New_Pixel_Buf : STD_LOGIC;
+    New_Pixel_Buf <= iStream.New_Pixel when CLK_Edge else NOT iStream.New_Pixel;
+
+    Process ()
+    {
+        If(rising_edge(New_Pixel_Buf))
+        {
+            iStream_buf <= iStream;
+            
+            oStream_buf.Column <= iStream_buf.Column;
+            oStream_buf.Row    <= iStream_buf.Row;
+            
+            oStream.R <= oStream_buf.R;
+            oStream.G <= oStream_buf.G;
+            oStream.B <= oStream_buf.B;
+            oStream.Column <= oStream_buf.Column;
+            oStream.Row <= oStream_buf.Row;
+            
+            VARIABLE in_range : BOOLEAN;
+            in_range := (((UNSIGNED(iStream_buf.R) >= H_Min AND UNSIGNED(iStream_buf.R) <= H_Max) AND H_Min <= H_Max) OR ((UNSIGNED(iStream_buf.R) >= H_Min OR UNSIGNED(iStream_buf.R) <= H_Max) AND H_Min > H_Max)) AND
+            UNSIGNED(iStream_buf.G) >= S_Min AND UNSIGNED(iStream_buf.G) <= S_Max AND UNSIGNED(iStream_buf.B) >= V_Min AND UNSIGNED(iStream_buf.B) <= V_Max;
+            
+            If(in_range)
+            {
+                oStream_buf.R <= (others => '1');
+                oStream_buf.G <= (others => '1');
+                oStream_buf.B <= (others => '1');
+            }
+            Else
+            {
+                oStream_buf.R <= (others => '0');
+                oStream_buf.G <= (others => '0');
+                oStream_buf.B <= (others => '0');
+            }
+        }
+    }
+    
+}

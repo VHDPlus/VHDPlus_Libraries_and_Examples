@@ -19,6 +19,7 @@
 
 Component Input_Debouncer
 (
+	Include();
 	Generic
 	(
 		Counter_Size	: INTEGER := 19;		--(19 bits = 1/(12MHz/2^19) = 45ms) determines the time to wait after an input change

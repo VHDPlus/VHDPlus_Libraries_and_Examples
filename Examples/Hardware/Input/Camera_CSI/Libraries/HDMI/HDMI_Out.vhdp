@@ -1,0 +1,114 @@
+/*
+    Name: HDMI Out
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 30.12.2019
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Description: This component takes a video stream and outputs via HDMI
+    
+    Important:   -To add the negative pins, add this for each pin to your qsf file in the project folder,
+                  replace <Signal_Name> with the actual name and replace <N_Pin> with the corresponding negativ pin:
+                    set_instance_assignment -name IO_STANDARD LVDS -to <Signal_Name>
+                    set_location_assignment PIN_<N_Pin> -to "<Signal_Name>(n)"
+ */
+
+Component HDMI_Out
+(
+    Include
+    (
+        Image_Data_Package.all,
+    );
+    --Video stream output
+    VS_PCLK    : IN  STD_LOGIC;
+    VS_SCLK    : IN  STD_LOGIC;
+    VS_R       : IN  STD_LOGIC_VECTOR (7 downto 0);
+    VS_G       : IN  STD_LOGIC_VECTOR (7 downto 0);
+    VS_B       : IN  STD_LOGIC_VECTOR (7 downto 0);
+    VS_HS      : IN  STD_LOGIC;
+    VS_VS      : IN  STD_LOGIC;
+    VS_DE      : IN  STD_LOGIC;
+    
+    HDMI_DATA : OUT STD_LOGIC_VECTOR(2 downto 0);
+    HDMI_CLK  : OUT STD_LOGIC;
+    HDMI_HPD  : IN  STD_LOGIC
+)
+{
+    Connections
+    {
+        HDMI_CLK        => HS_Dif_3,   --B1_P
+        HDMI_CLK(n)     => HS_Dif_4,   --B1_N
+        
+        HDMI_DATA[0]    => HS_Dif_15,  --A1_P
+        HDMI_DATA[0](n) => HS_Dif_16,  --A1_N
+        
+        HDMI_DATA[1]    => HS_Dif_17,  --A2_P
+        HDMI_DATA[1](n) => HS_Dif_18,  --A2_N
+        
+        HDMI_DATA[2]    => HS_Dif_19,  --A3_P
+        HDMI_DATA[2](n) => HS_Dif_20,  --A3_N
+        
+        HDMI_HPD        => HS_Dif_21,  --A4_P
+    }
+    
+    AttributeDeclaration
+    {
+        VHDL
+        {
+            component DVI_OUT
+            port (
+                iPCLK  : IN STD_LOGIC;
+                iSCLK  : IN STD_LOGIC;
+                
+                iRED   : IN STD_LOGIC_VECTOR(7 downto 0);
+                iGRN   : IN STD_LOGIC_VECTOR(7 downto 0);
+                iBLU   : IN STD_LOGIC_VECTOR(7 downto 0);
+                iHS    : IN STD_LOGIC;
+                iVS    : IN STD_LOGIC;
+                iDE    : IN STD_LOGIC;
+                
+                oDVI_DATA : OUT STD_LOGIC_VECTOR(2 downto 0);
+                oDVI_CLK  : OUT STD_LOGIC;
+                iDVI_HPD  : IN  STD_LOGIC
+            );
+            end component;
+        }
+    }
+    
+    VHDL
+    {
+        u1: DVI_OUT port map
+        (
+            iPCLK     => VS_PCLK,
+            iSCLK     => VS_SCLK,
+            
+            iRED      => VS_G,
+            iGRN      => VS_R,
+            iBLU      => VS_B,
+            iHS       => VS_HS,
+            iVS       => VS_VS,
+            iDE       => VS_DE,
+            
+            oDVI_DATA => HDMI_DATA,
+            oDVI_CLK  => HDMI_CLK,
+            iDVI_HPD  => HDMI_HPD
+        );
+    }
+}

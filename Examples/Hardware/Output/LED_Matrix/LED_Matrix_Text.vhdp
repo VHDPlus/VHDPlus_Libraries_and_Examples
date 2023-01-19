@@ -44,6 +44,10 @@
 
 Component LED_Matrix_Text
 (
+    Include
+    (
+        LED_Matrix_Package.all,
+    );
     Generic
     (
         CLK_Frequency   : NATURAL := 12000000;
@@ -567,6 +571,14 @@ Component LED_Matrix_Text
                                                  "01000000",
                                                  "01000000",
                                                  "01000000" );
+                            }
+                            When(x"7C") --|
+                            {
+                                matrix_char := ( "00000000",
+                                                 "00000000",
+                                                 "11111111",
+                                                 "00000000",
+                                                 "00000000" );
                             }
                             When(x"E4" | x"C4") --ä
                             {

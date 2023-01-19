@@ -1,5 +1,5 @@
 /*
-    Name: Real Time Clock
+    Name: DS3231 Real Time Clock
     Rev: 1.0
     Creator: Leon Beier
     Date: 17.08.2019
@@ -31,13 +31,10 @@
                  
     Description: This component allows to read and set the current time, read the temperature and set two alarms
     
-    Insertion:   -Right click on Real_Time_Clock.vhdp, I2C_Array.vhdp and I2C.vhdp -> Add to project
-                 -Add NewComponent of Real_Time_Clock in your code
+    Insertion:   -Right click on DS3231_Real_Time_Clock.vhdp, I2C_Array.vhdp and I2C.vhdp -> Add to project
+                 -Add NewComponent of DS3231_Interface in your code
                  -Remove CLK_Frequency if you use a VHDP Core and no PLL
-                 -Add this to your Main IOs and connect them with the instance IOs and the RTC Pins (modify the names if already in use)
-                  SDA  : INOUT STD_LOGIC;
-                  SCL  : INOUT STD_LOGIC;
-                 -Right click the name Real_Time_Clock next to NewComponent and create the needed signals 
+                 -Right click the name DS3231_Interface next to NewComponent and create the needed signals 
     
     Function:    Setup: -Set Config_Time to the current time and date,
                          the alarms if you want to use them and C_24h_12h.
@@ -48,8 +45,13 @@
     Example:     Real_Time_Clock_Example
 */
 
-Component Real_Time_Clock
+Component DS3231_Interface
 (
+    Include
+    (
+        Date_Time_Package.all,
+        I2C_Data_Array_Package.all,
+    );
     Package Date_Time_Package
     (
         TYPE Date_Time_Type IS RECORD
@@ -109,6 +111,12 @@ Component Real_Time_Clock
     
     CONSTANT Slave_Addr        : STD_LOGIC_VECTOR (6 downto 0) := "1101000";
     SIGNAL Register_Count      : UNSIGNED (7 downto 0) := (others => '0');
+	
+	Connections
+	{
+	    SDA,
+		SCL,
+	}
     
     NewComponent I2C_Array 
     (
@@ -314,7 +322,7 @@ Component Real_Time_Clock
                         }
                         When(x"0E")
                         {
-                            I2C_Array_data_wr(1)(2 downto 7)     <= "000111";
+                            I2C_Array_data_wr(1)(7 downto 2)     <= "000111";
                             I2C_Array_data_wr(1)(1)              <= Alarm2_En;
                             I2C_Array_data_wr(1)(0)              <= Alarm1_En;                          
                         }

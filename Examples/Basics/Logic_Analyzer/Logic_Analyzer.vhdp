@@ -1,3 +1,9 @@
+--IMPORTANT-----------------------------------------
+There is a new version for a logic analyzer
+Please create a new project and select the logic analyzer as hardware to create an example project
+----------------------------------------------------
+
+
 --Logic Analyzer with max. 200MHz
 --Tested with Core MAX10 and Serial Plotter of the VHDPlus IDE
 
@@ -256,12 +262,12 @@ Main
         Max_Samples   => Max_Samples,
         CLK_Frequency => HS_CLK_Freq,
         Channels      => Channels,
-        Start_Offset  => Start_Offset,
 
         CLK           => CLK_200,
         Rate_Div      => Logic_Analyzer_Rate_Div,
         Samples       => Samples,
-        Start         => Logic_Analyzer_Run,
+        Start_Offset  => Start_Offset,
+        Run           => Logic_Analyzer_Run,
         Full          => Logic_Analyzer_Full,
         Inputs        => Inputs,
         Address       => Logic_Analyzer_Address,

@@ -13,10 +13,6 @@
                  -Add NewComponent of Encoder in your code
                  -Set the the counter maximum with Positions (16 = -16 to 15)
                  -Remove or set the rest of the parameters (information next to the declaration)
-                 -Add this to your Main IOs and connect them to the Encoder and the instance (modify the names if already in use)
-                  A           : IN  STD_LOGIC; 
-                  B           : IN  STD_LOGIC;
-                  Set_Origin  : IN  STD_LOGIC;
                  -Right click the name Encoder_Controller next to NewComponent and create the signals
     
     Function:    -Read the current position (counter value) and 
@@ -27,6 +23,7 @@
 
 Component Encoder_Controller
 (
+    Include();
     Generic
     (
         Positions                       :   INTEGER := 16;      --size of the position counter (i.e. number of positions counted)
@@ -52,6 +49,13 @@ Component Encoder_Controller
         SIGNAL  set_origin_cnt      :   INTEGER RANGE 0 TO Set_Origin_Debounce_Time;    --debounce counter for Set_Origin signal
     }
     
+	Connections
+	{
+	    A,
+		B,
+		Set_Origin,
+	}
+	
     Process ()
     {
         --synchronize and debounce a and b inputs

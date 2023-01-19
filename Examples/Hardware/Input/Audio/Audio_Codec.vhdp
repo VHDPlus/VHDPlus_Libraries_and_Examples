@@ -1,5 +1,5 @@
 /*
-    Name: Audio_Codec
+    Name: MAX9867_Audio_Codec
     Rev: 1.0
     Creator: Leon Beier
     Date: 14.06.2020
@@ -24,11 +24,11 @@
     
     Important: -You need to add I2C.vhdp too
     
-    Insertion: -Right click on Audio_Codec.vhdp -> Add to project
+    Insertion: -Right click on MAX9867_Audio_Codec.vhdp -> Add to project
                -Right click on I2C.vhdp -> Add to project
-               -Add NewComponent of Audio_Codec in your code
+               -Add NewComponent of MAX9867_Interface in your code
                -You can change the settings if you want
-               -Right click the name Audio_Codec_Component next to NewComponent and create the signals
+               -Right click the name MAX9867_Interface next to NewComponent and create the signals
     
     Function:  -With Reset you can send the settings again on falling edge
                -ADC_L/R has the current Mic/Line value
@@ -38,7 +38,7 @@
     Example:   Audio (in Examples)
  */
 
-Component Audio_Codec_Component
+Component MAX9867_Interface
 (
     Generic
     (
@@ -86,10 +86,10 @@ Component Audio_Codec_Component
     CONSTANT DAC_Mute    : STD_LOGIC_VECTOR := "0";         --1 = Mute
     CONSTANT DAC_Gain    : STD_LOGIC_VECTOR := "00";        --If Audio_Mode = 0: 01 = +6dB, 10 = +12dB, 11 = +18dB
     
-    CONSTANT Line_L_Mute : STD_LOGIC_VECTOR := "0";         --0 = Line input is connected to the headphone amplifiers
-    CONSTANT Line_R_Mute : STD_LOGIC_VECTOR := "0";         --0 = Line input is connected to the headphone amplifiers
-    
-    CONSTANT Volume      : STD_LOGIC_VECTOR := "000000";    --Datasheet P.38 VOLL/VOLR
+    CONSTANT Line_L_Mute : STD_LOGIC_VECTOR := "1";         --0 = Line input is connected to the headphone amplifiers
+    CONSTANT Line_R_Mute : STD_LOGIC_VECTOR := "1";         --0 = Line input is connected to the headphone amplifiers
+
+    CONSTANT Playback_Volume : STD_LOGIC_VECTOR := x"09";   --  MAX9867 Datasheet P.38 VOLL/VOLR
     
     Connections
     {
@@ -210,8 +210,8 @@ Component Audio_Codec_Component
             When(x"09"){ sreg <=  x"0D" & STD_LOGIC_VECTOR(TO_UNSIGNED(abs(ADC_Volume-3),4)) & STD_LOGIC_VECTOR(TO_UNSIGNED(abs(ADC_Volume-3),4)); }
             When(x"0A"){ sreg <=  x"0E" & "0" & Line_L_Mute & "00" & STD_LOGIC_VECTOR(TO_UNSIGNED(abs(Line_In_Gain/2-12),4)); }
             When(x"0B"){ sreg <=  x"0F" & "0" & Line_R_Mute & "00" & STD_LOGIC_VECTOR(TO_UNSIGNED(abs(Line_In_Gain/2-12),4)); }
-            When(x"0C"){ sreg <=  x"10" & "00" & Volume; }
-            When(x"0D"){ sreg <=  x"11" & "00" & Volume; }
+            When(x"0C"){ sreg <=  x"10" & Playback_Volume; }
+            When(x"0D"){ sreg <=  x"11" & Playback_Volume; }
             When(x"0E" | x"0F") --Mic L/R Gain
             {
                 If(Mic_In_Gain > 30)
@@ -339,10 +339,14 @@ Component Audio_Codec_Component
             SIGNAL   Write_Ena  : STD_LOGIC := '0';
             VARIABLE LRCLK_Reg : STD_LOGIC := '0';
             VARIABLE Bit_Count : NATURAL range 0 to 15 := 15;
+            VARIABLE DAC_L_Reg : SIGNED(15 downto 0);
+            VARIABLE DAC_R_Reg : SIGNED(15 downto 0);
             If(LRCLK /= LRCLK_Reg)      --Prepare for read
             {
                 Write_Ena <= '1';
                 Bit_Count := 15;
+                DAC_L_Reg := DAC_L;
+                DAC_R_Reg := DAC_R;
             }
             LRCLK_Reg := LRCLK;
             
@@ -355,11 +359,11 @@ Component Audio_Codec_Component
                 
                 If(LRCLK = '0')
                 {
-                    SDIN <= DAC_L(Bit_Count);
+                    SDIN <= DAC_L_Reg(Bit_Count);
                 }
                 Else
                 {
-                    SDIN <= DAC_R(Bit_Count);
+                    SDIN <= DAC_R_Reg(Bit_Count);
                 }
                 
                 Bit_Count := Bit_Count - 1;

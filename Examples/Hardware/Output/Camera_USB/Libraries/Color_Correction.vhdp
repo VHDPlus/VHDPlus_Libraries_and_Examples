@@ -23,12 +23,12 @@
     WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
     
     Description: -This component corrects the R, G and B output of the camera
-                 -The values can be multiplied, divided or added by individual values to correct the colors
+	             -The values can be multiplied, divided or added by individual values to correct the colors
 
     Insertion:   -Right click on the file -> Add to active project
                  -Add NewComponent of this component into your code
                  -Set the parameters according to your application
-                 -Connect the camera stream
+				 -Connect the camera stream
                     
     Example:     Camera_CSI_Example
  */

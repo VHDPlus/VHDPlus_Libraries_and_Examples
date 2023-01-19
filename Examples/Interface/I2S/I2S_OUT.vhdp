@@ -27,10 +27,6 @@
 			   -Change Data_Width, Sample_Bits and BCLK_Edge depending on the device to connect 
 			    (see the description next to the declarations and use the datasheet for your device)
 			   -Remove Reset or connect it to a signal or input
-			   -Add this to your Main I/Os and connect RX to TX and TX to RX of the device to connect (modify the names if already in use)
-			    LRCLK  : IN  STD_LOGIC;
-				BCLK   : IN  STD_LOGIC;
-				Data   : OUT STD_LOGIC;
 			   -Right click the name I2S_Interface_OUT next to NewComponent and create the needed signals
 	
     Function:  -Wait for Ready = '1'
@@ -43,6 +39,7 @@
 
 Component I2S_Interface_OUT
 (
+	Include();
 	Generic
 	(
 		Data_Width 			: integer range 16 to 32 	:= 24;	--Number of data bits in a sample
@@ -77,6 +74,12 @@ Component I2S_Interface_OUT
     
     SIGNAL DATA_REG					: STD_LOGIC_VECTOR(Data_Width-1 downto 0) 	:= (others => '0');
 	
+	Connections
+	{
+	    LRCLK,
+	    BCLK,
+		Data,
+	}
 	
 	Process DETECT_EDGE ()		--detects positive and negative edge of BCLK
 	{

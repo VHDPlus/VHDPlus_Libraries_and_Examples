@@ -1,0 +1,34 @@
+﻿<Project>
+  <ItemGroup>
+    <File Include="Generated/Camera_CSI.vhd" />
+    <File Include="Generated/Camera_Capture_SDRAM.vhd" />
+    <File Include="Generated/Color_Threshold_HSV_Filter.vhd" />
+    <File Include="Generated/HDMI_Out.vhd" />
+    <File Include="Generated/I2C_Master_Interface.vhd" />
+    <File Include="Generated/Image_Data_Package.vhd" />
+    <File Include="Generated/OV5647_Camera.vhd" />
+    <File Include="Generated/RGB2HSV_Filter.vhd" />
+    <File Include="Generated/VS_Converter.vhd" />
+    <File Include="Generated/VS_SDRAM_Interface.vhd" />
+    <File Include="Libraries/CSI_Camera/ALTDDIO_IN.qsys.vhdp" />
+    <File Include="Libraries/CSI_Camera/ALTSYNCRAM.qsys.vhdp" />
+    <File Include="Libraries/CSI_Camera/OV5647_Camera.vhdp" />
+    <File Include="Libraries/HDMI/DVI_OUT.v" />
+    <File Include="Libraries/HDMI/HDMI_Out.vhdp" />
+    <File Include="Libraries/HDMI/TMDS_ENCODE.v" />
+    <File Include="Libraries/HDMI/VS_Converter.vhdp" />
+    <File Include="Libraries/HDMI/VS_PLL.qip" />
+    <File Include="Libraries/HDMI/VS_PLL.vhd" />
+    <File Include="Libraries/SDRAM_HDMI/Camera_Capture_SDRAM.vhdp" />
+    <File Include="Libraries/SDRAM_HDMI/SDRAM_Controller.qsys" />
+    <File Include="Libraries/SDRAM_HDMI/VS_SDRAM_Interface.vhdp" />
+    <File Include="Libraries/SDRAM_HDMI/VS_SDRAM_PLL.qip" />
+    <File Include="Libraries/SDRAM_HDMI/VS_SDRAM_PLL.vhd" />
+    <File Include="Libraries/Color_Threshold_HSV.vhdp" />
+    <File Include="Libraries/I2C.vhdp" />
+    <File Include="Libraries/Image_Data.vhdp" />
+    <File Include="Libraries/RGB2HSV.vhdp" />
+    <File Include="Camera_CSI.vhdp" />
+  </ItemGroup>
+  <PropertyGroup />
+</Project>

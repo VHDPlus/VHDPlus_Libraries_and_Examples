@@ -78,7 +78,7 @@ Component UART_Interface
     
     SeqFunction write
     (
-        iData    : STD_LOGIC_VECTOR(D_Width-1 DOWNTO 0);
+        iData    : STD_LOGIC_VECTOR;
         
         tx_data  : STD_LOGIC_VECTOR;
         tx_busy  : STD_LOGIC;
@@ -95,7 +95,7 @@ Component UART_Interface
     
     SeqFunction read
     (
-        oData    : STD_LOGIC_VECTOR(D_Width-1 DOWNTO 0);
+        oData    : STD_LOGIC_VECTOR;
         
         rx_data  : STD_LOGIC_VECTOR;
         rx_busy  : STD_LOGIC;

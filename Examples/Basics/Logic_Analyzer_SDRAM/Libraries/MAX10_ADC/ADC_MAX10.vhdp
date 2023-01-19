@@ -41,6 +41,10 @@ Component ADC_MAX10
     (
         ADC_data_package.all,
     );
+    Generic
+    (
+        MAX1000 : BOOLEAN := false;
+    );
     Package ADC_data_package
     (
         TYPE ADC_data_type IS ARRAY (0 to 8) OF NATURAL range 0 to 4095;
@@ -113,22 +117,45 @@ Component ADC_MAX10
             --AN6 = 3
             --AN7 = 2
             --AIN = 1
-            Case(adc_response_channel)
+            If(MAX1000)
             {
-                When("00000") { resp := 1; }
-                When("00001") { resp := 8; }
-                When("00010") { resp := 7; }
-                When("00011") { resp := 6; }
-                When("00100") { resp := 3; }
-                When("00101") { resp := 2; }
-                When("00110") { resp := 5; }
-                When("00111") { resp := 4; }
-                When("01000") { resp := 0; }
-                When(others)
+                Case(adc_response_channel)
                 {
-                    resp := 8;
+                    When("00000") { resp := 0; }
+                    When("00001") { resp := 8; }
+                    When("00010") { resp := 3; }
+                    When("00011") { resp := 1; }
+                    When("00100") { resp := 4; }
+                    When("00101") { resp := 6; }
+                    When("00110") { resp := 2; }
+                    When("00111") { resp := 7; }
+                    When("01000") { resp := 5; }
+                    When(others)
+                    {
+                        resp := 8;
+                    }
                 }
             }
+            Else
+            {
+                Case(adc_response_channel)
+                {
+                    When("00000") { resp := 1; }
+                    When("00001") { resp := 8; }
+                    When("00010") { resp := 7; }
+                    When("00011") { resp := 6; }
+                    When("00100") { resp := 3; }
+                    When("00101") { resp := 2; }
+                    When("00110") { resp := 5; }
+                    When("00111") { resp := 4; }
+                    When("01000") { resp := 0; }
+                    When(others)
+                    {
+                        resp := 8;
+                    }
+                }
+            }
+            
             Data(resp) <= TO_INTEGER(UNSIGNED(adc_response_data));
         }
     }

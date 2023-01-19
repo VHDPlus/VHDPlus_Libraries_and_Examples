@@ -57,6 +57,7 @@
 
 Component IntTostring
 (
+	Include();
 	Generic(
 		Bits	: INTEGER := 24;								--size of the binary input numbers in bits
 		Digits	: INTEGER := 7;									--number of BCD digits to convert to
@@ -96,7 +97,7 @@ Component IntTostring
 		BCD    => bcd,
 	);
 	
-	Thread
+	Process
 	(
 		VARIABLE ena_prev  : STD_LOGIC := '0';
 		VARIABLE usedBuf   : NATURAL := 0;

@@ -86,6 +86,7 @@
 
 Component Motor_Controller
 (
+    Include();
     Generic
     (
         --General
@@ -178,13 +179,13 @@ Component Motor_Controller
     
     Connections
     {
-        Encoder_L,
-        Encoder_R,
+        Encoder_L => LS_1, --E2.1
+        Encoder_R => LS_2, --E1.1
         
-        Motor_LF,
-        Motor_LB,
-        Motor_RF,
-        Motor_RB,
+        Motor_LF  => LS_6, --M2.1
+        Motor_LB  => LS_8, --M2.2
+        Motor_RF  => LS_5, --M1.2
+        Motor_RB  => LS_3, --M1.1
     }
     
     --Starts route definded by Drive_L/Drive_R and Drive_Speed.

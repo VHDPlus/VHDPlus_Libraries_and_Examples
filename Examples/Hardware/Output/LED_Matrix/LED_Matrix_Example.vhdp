@@ -65,7 +65,7 @@ Main
         Text_En       => LED_Matrix_Text_Text_En,
     );
     
-    NewComponent LED_Matrix
+    NewComponent MAX7219_Interface
     (
         CLK_Frequency => 12000000,
         Panels        => Panels,

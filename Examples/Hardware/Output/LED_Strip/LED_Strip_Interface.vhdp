@@ -1,5 +1,5 @@
 /*
-    Name: LED Strip Interface
+    Name: WS2812 LED Strip
     Rev: 1.0
     Creator: Leon Beier
     Date: 31.08.2020
@@ -24,9 +24,9 @@
     
     Important: -This interface is for LED Strips with WS2812 (5V) or Ws2811 (12V) LED
     
-    Insertion: -Right click on LED_Strip_Interface.vhdp -> Add to project
-               -Add NewComponent of LED_Strip_Interface in your code
-               -Right click the name LED_Strip_Interface next to NewComponent and create the signals
+    Insertion: -Right click on WS2812_LED_Strip.vhdp -> Add to project
+               -Add NewComponent of WS2812_Interface in your code
+               -Right click the name WS2812_Interface next to NewComponent and create the signals
     
     Function:  -Set Update from '0' to '1' to update the LEDs and keep it '1' to keep updating
                -Wait for a rising edge of Pixel_CLK
@@ -36,7 +36,7 @@
     Example:   -Examples/LED_Strip
  */
 
-Component LED_Strip_Interface
+Component WS2812_Interface
 (
     Include();
     Generic

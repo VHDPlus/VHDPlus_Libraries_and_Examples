@@ -1,8 +1,9 @@
-<?xml version="1.0"?>
-<ArrayOfProjectEntry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <ProjectEntry xsi:type="ProjectFile">
-    <Path>test.vhdp</Path>
-    <ProjectPath>C:\Users\LeonB\Documents\GitHub\VHDPlus_Libraries_and_Examples\Examples\Hardware\Output\Motor</ProjectPath>
-    <IsExpanded>false</IsExpanded>
-  </ProjectEntry>
-</ArrayOfProjectEntry>
+﻿<Project>
+  <ItemGroup>
+    <File Include="Motor_Controller.vhdp" />
+    <File Include="Motor_Controller_Example.vhdp" />
+    <File Include="Motor_Encoder.vhdp" />
+    <File Include="PWM.vhdp" />
+  </ItemGroup>
+  <PropertyGroup />
+</Project>
