@@ -59,7 +59,7 @@ Main
         RX_Data       => UART_String_RX_Data,
         RX_Busy       => UART_String_RX_Busy,
         RX_Error      => UART_String_RX_Error,
-    );
+    );    
     
     Process()
     {
@@ -69,7 +69,8 @@ Main
             While(UART_String_RX_Busy = '1') {}
             If(UART_String_RX_Data(UART_String_RX_Bytes*8-1 downto (UART_String_RX_Bytes-4)*8) = s"test")
             {
-                NewFunction printString (s"ok\n\r", 4, UART_String_TX_Data, UART_String_TX_Bytes, UART_String_TX_Enable, UART_String_TX_Busy);
+                CONSTANT text : STD_LOGIC_VECTOR := s"ok\n\r";
+                NewFunction printString (text, text'LENGTH/8, UART_String_TX_Data, UART_String_TX_Bytes, UART_String_TX_Enable, UART_String_TX_Busy);
             }
         }
     }

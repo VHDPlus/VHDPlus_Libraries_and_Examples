@@ -81,9 +81,9 @@ Component Color_Correction_Filter
             oStream.Column <= oStream_buf.Column;
             oStream.Row <= oStream_buf.Row;
             
-            VARIABLE pixel_buf_r : INTEGER range -100 to 355;
-            VARIABLE pixel_buf_g : INTEGER range -100 to 355;
-            VARIABLE pixel_buf_b : INTEGER range -100 to 355;
+            VARIABLE pixel_buf_r : INTEGER range -64 to (255*15+63);
+            VARIABLE pixel_buf_g : INTEGER range -64 to (255*15+63);
+            VARIABLE pixel_buf_b : INTEGER range -64 to (255*15+63);
             pixel_buf_r := (TO_INTEGER(UNSIGNED(iStream_buf.R))*R_Multiplier)/R_Divider + R_Add;
             pixel_buf_g := (TO_INTEGER(UNSIGNED(iStream_buf.G))*G_Multiplier)/G_Divider + G_Add;
             pixel_buf_b := (TO_INTEGER(UNSIGNED(iStream_buf.B))*B_Multiplier)/B_Divider + B_Add;

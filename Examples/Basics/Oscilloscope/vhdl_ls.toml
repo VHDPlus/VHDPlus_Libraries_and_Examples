@@ -1,2 +1,30 @@
-[libraries] 
+
+# auto-generated
+[Libraries]
+work.files = [
+	'Generated/ADC_MAX10_Single.vhd',
+	'Generated/BinaryToBcd.vhd',
+	'Generated/BinaryToBcdDigit.vhd',
+	'Generated/Logic_Analyzer.vhd',
+	'Generated/Oscilloscope.vhd',
+	'Generated/Serial_Plotter_Interface.vhd',
+	'Generated/Single_Port_RAM.vhd',
+	'Generated/Single_Port_ROM.vhd',
+	'Generated/String_Type_Package.vhd',
+	'Generated/UART_Interface.vhd'
+]
+[libraries.work]
+files = [
+	'Generated/ADC_MAX10_Single.vhd',
+	'Generated/BinaryToBcd.vhd',
+	'Generated/BinaryToBcdDigit.vhd',
+	'Generated/Logic_Analyzer.vhd',
+	'Generated/Oscilloscope.vhd',
+	'Generated/Serial_Plotter_Interface.vhd',
+	'Generated/Single_Port_RAM.vhd',
+	'Generated/Single_Port_ROM.vhd',
+	'Generated/String_Type_Package.vhd',
+	'Generated/UART_Interface.vhd'
+]
+# auto-generated-end[libraries] 
 work.files = [ '*.vhd', ]
