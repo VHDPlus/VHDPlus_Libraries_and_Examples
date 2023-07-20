@@ -490,7 +490,7 @@ Component AR0830_Camera
         }
     }
     
-    NewComponent AR0830_Cam_Config_Test
+    NewComponent AR0830_Cam_Config
     (
         CLK_Frequency => CLK_Frequency,
 
