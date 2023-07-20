@@ -1,0 +1,115 @@
+/*
+    Name: CNN Convolution
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 09.08.2022
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+    Description: -This component calculates the outputs for one convolution layer
+    
+    Insertion:   -Specify the paramters with the constants in th CNN_Data file
+                 -Connect the input data and stream signal with the input or previous layer
+ */
+
+ --TODO:
+ -- 1. More Activations
+ -- 2. Prunning
+ -- 3. Calculation cycles
+ -- 4. strides
+
+Component NN_Layer_Parallel
+(
+    Include
+    (
+        ieee.std_logic_1164.all,
+        ieee.numeric_std.all,
+        ieee.math_real.all,
+        CNN_Config_Package.all,
+    );
+    Generic
+    (
+        Inputs         : NATURAL := 16;
+        Outputs        : NATURAL := 8;
+        Activation     : Activation_T := relu; --Activation after dot product
+        Prunning_Limit : NATURAL := 0;  --Set parameters to 0 below this value to reduce needed calculations
+        Offset         : INTEGER := 0;
+        Weights        : CNN_Weights_T;
+    );
+    iStream : IN  CNN_Stream_T;
+    iData   : IN  CNN_Values_T(Inputs-1 downto 0);
+    
+    oStream : OUT CNN_Stream_T;
+    oData   : OUT CNN_Values_T(Outputs-1 downto 0) := (others => 0);
+)
+{
+    
+    oStream.Data_CLK <= iStream.Data_CLK;
+    
+    CONSTANT value_max     : NATURAL := 2**(CNN_Value_Resolution)-1;   --128 = 1 for floating point, but outputs are from 0 to 255
+    CONSTANT sum_max       : NATURAL := value_max * 2**(max_val(Offset, 0)) * (Inputs + 1);
+    Process()
+    {
+        If(rising_edge(iStream.Data_CLK))
+        {
+            --multiply matrix data with weights and create sum
+            VARIABLE sum : INTEGER range (-1)*sum_max to sum_max;
+            For(filter in 0 to Outputs-1)
+            {
+                sum := 0;
+                
+                For(input in 0 to Inputs-1)
+                {
+                    --Matrix Data: (Input, Row, Column)
+                    --Weights: (Filters)
+                    sum := sum + to_integer(shift_right(to_signed(iData(input) * Weights(filter, input), CNN_Value_Resolution+CNN_Weight_Resolution), CNN_Weight_Resolution-Offset-1));
+                }
+                --Add Bias
+                If(Offset >= 0) { sum := sum + to_integer(shift_left (to_signed(Weights(filter, Inputs), CNN_Weight_Resolution+Offset), Offset)); }
+                Else            { sum := sum + to_integer(shift_right(to_signed(Weights(filter, Inputs), CNN_Weight_Resolution), abs(Offset))); }
+                
+                --ReLU
+                If(Activation = relu)
+                {
+                    oData(filter) <= relu_f(sum, value_max);
+                }
+                Elsif(Activation = linear)
+                {
+                    oData(filter) <= linear_f(sum, value_max);
+                }
+                Elsif(Activation = leaky_relu)
+                {
+                    oData(filter) <= leaky_relu_f(sum, value_max, integer(ceil(log2(real(sum_max)))));
+                }
+                Elsif(Activation = step_func)
+                {
+                    oData(filter) <= step_f(sum);
+                }
+                Elsif(Activation = sign_func)
+                {
+                    oData(filter) <= sign_f(sum);
+                }
+            }
+            oStream.Column     <= iStream.Column;
+            oStream.Row        <= iStream.Row;
+            oStream.Data_Valid <= iStream.Data_Valid;
+        }
+    }
+    
+}

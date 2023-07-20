@@ -1,0 +1,121 @@
+/*
+    Name: CNN Pooling
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 09.08.2022
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+    Description: -This component finds the maximum value in a matrix
+    
+    Insertion:   -Specify the paramters with the constants in th CNN_Data file
+                 -Connect the input data and stream signal with the input or previous layer
+ */
+
+Component CNN_Pooling_Parallel
+(
+    Include
+    (
+        CNN_Config_Package.all,
+    );
+    Generic
+    (
+        Input_Columns  : NATURAL := 28; --Size in x direction of input
+        Input_Rows     : NATURAL := 28; --Size in y direction of input
+        Input_Values   : NATURAL := 4;  --Number of Filters in previous layer or 3 for RGB input
+        Filter_Columns : NATURAL := 2;  --Size in x direction of filters
+        Filter_Rows    : NATURAL := 2;  --Size in y direction of filters
+        Strides        : NATURAL := 1;  --1 = Output every value, 2 = Skip every second value
+        Padding        : Padding_T := valid;   --valid = use available data, same = add padding to use data on the edge
+        Calc_Cycles    : NATURAL := 1;  --In deeper layers, the clock is faster than the new data. So the operation can be done in seperate cycles
+    );
+    iStream : IN  CNN_Stream_T;
+    iData   : IN  CNN_Values_T(Input_Values-1 downto 0);
+    
+    oStream : OUT CNN_Stream_T;
+    oData   : OUT CNN_Values_T(Input_Values-1 downto 0) := (others => 0);
+)
+{
+    SIGNAL Matrix_Stream : CNN_Stream_T;
+    SIGNAL Matrix_Data   : CNN_Value_Matrix_T(Input_Values-1 downto 0, Filter_Rows-1 downto 0, Filter_Columns-1 downto 0);
+    Generate(if Filter_Rows > 1)
+    {
+        NewComponent CNN_Row_Buffer_Parallel
+        (
+            Input_Columns  => Input_Columns,
+            Input_Rows     => Input_Rows,
+            Input_Values   => Input_Values,
+            Filter_Columns => Filter_Columns,
+            Filter_Rows    => Filter_Rows,
+            Strides        => Strides,
+            Padding        => Padding,
+
+            iStream        => iStream,
+            iData          => iData,
+            oStream        => Matrix_Stream,
+            oData          => Matrix_Data,
+        );
+    }
+    Generate(if Filter_Rows = 1)
+    {
+        NewComponent CNN_Column_Buffer
+        (
+            Input_Columns  => Input_Columns,
+            Input_Values   => Input_Values,
+            Filter_Columns => Filter_Columns,
+            Strides        => Strides,
+            Padding        => Padding,
+
+            iStream        => iStream,
+            iData          => iData,
+            oStream        => Matrix_Stream,
+            oData          => Matrix_Data,
+        );
+    }
+    
+    oStream.Data_CLK <= Matrix_Stream.Data_CLK;
+    
+    Process()
+    {
+        If(rising_edge(Matrix_Stream.Data_CLK))
+        {
+            For(input in 0 to Input_Values-1)
+            {
+                VARIABLE max : CNN_Value_T := 0;
+                max := Matrix_Data(input, 0, 0);
+                For(x in 0 to Filter_Columns-1)
+                {
+                    For(y in 0 to Filter_Rows-1)
+                    {
+                        If(Matrix_Data(input, y, x) > max)
+                        {
+                            max := Matrix_Data(input, y, x);
+                        }
+                    }
+                }
+                oData(input) <= max;
+            }
+            
+            oStream.Column     <= Matrix_Stream.Column;
+            oStream.Row        <= Matrix_Stream.Row;
+            oStream.Data_Valid <= Matrix_Stream.Data_Valid;
+        }
+        
+    }
+}

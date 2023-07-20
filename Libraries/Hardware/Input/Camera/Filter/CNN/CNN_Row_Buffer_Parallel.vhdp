@@ -1,0 +1,269 @@
+/*
+    Name: CNN Row Buffer
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 01.08.2022
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+    Description: -This component buffers rows to output a matrix
+                 -Output: For Columns and Rows lower number = older data
+                 00, 01, 02
+                 10, 11, 12
+                 20, 21, 22
+    
+    Insertion:   -Set the parameters according to the convolution/pooling parameters
+ */
+
+Component CNN_Row_Buffer_Parallel
+(
+    Include
+    (
+        CNN_Config_Package.all,
+    );
+    Generic
+    (
+        Input_Columns  : NATURAL := 28; --Size in x direction of input
+        Input_Rows     : NATURAL := 28; --Size in y direction of input
+        Input_Values   : NATURAL := 1;  --Number of Filters in previous layer or 3 for RGB input
+        Filter_Columns : NATURAL := 3;  --Size in x direction of filters
+        Filter_Rows    : NATURAL := 3;  --Size in y direction of filters
+        Strides        : NATURAL := 1;  --1 = Output every value, 2 = Skip every second value
+        Padding        : Padding_T := valid; --valid = use available data, same = add padding to use data on the edge
+    );
+    iStream : IN  CNN_Stream_T;
+    iData   : IN  CNN_Values_T(Input_Values-1 downto 0);
+    
+    oStream : OUT CNN_Stream_T;
+    oData   : OUT CNN_Value_Matrix_T(Input_Values-1 downto 0, Filter_Rows-1 downto 0, Filter_Columns-1 downto 0) := (others => (others => (others => 0)));
+)
+{
+    type Value_Row_T is array (Filter_Rows-1 downto 0) of CNN_Values_T(Input_Values-1 downto 0);
+    type Value_Matrix_T is array (Filter_Columns-1 downto 0) of Value_Row_T;
+    
+    type RAM_T is array (Input_Values-1 downto 0, 0 to Input_Columns-1, 0 to Filter_Rows-2) of STD_LOGIC_VECTOR(CNN_Value_Resolution+CNN_Value_Negative-1 downto 0);
+    SIGNAL Buffer_RAM : RAM_T;
+    
+    oStream.Data_CLK <= iStream.Data_CLK;
+
+    Process()
+    {
+        If(rising_edge(iStream.Data_CLK))
+        {
+            VARIABLE Colum_Buf  : NATURAL range 0 to CNN_Input_Columns-1;
+            VARIABLE Row_Buf    : NATURAL range 0 to CNN_Input_Rows-1;
+            VARIABLE Valid_Buf  : STD_LOGIC;
+            
+            VARIABLE Start_Row  : NATURAL range 0 to Filter_Rows-2;
+            VARIABLE l_row : NATURAL range 0 to CNN_Input_Rows-1 := 0;
+            If(l_row /= iStream.Row)
+            {
+                If(Start_Row < Filter_Rows-2)
+                {
+                    Start_Row := Start_Row + 1;
+                }
+                Else
+                {
+                    Start_Row := 0;
+                }
+            }
+            
+            VARIABLE Value_Buf : Value_Matrix_T;
+            VARIABLE oData_Buf : Value_Matrix_T;
+            Valid_Buf := '0';
+            If(iStream.Data_Valid = '1')
+            {
+                VARIABLE Column_Out : Value_Row_T;
+                For(i in 0 to Input_Values-1) --Save data in nxm matrix with ram data
+                {
+                    For(j in 0 to Filter_Rows-2)
+                    {
+                        VARIABLE read_row : NATURAL range 0 to Filter_Rows-2 := 0;
+                        read_row := (j+Filter_Rows-1-Start_Row) mod (Filter_Rows-1);
+                        If(CNN_Value_Negative = 0)
+                        {
+                            Column_Out(read_row)(i) := TO_INTEGER(UNSIGNED(Buffer_RAM(i, iStream.Column, j)));
+                        }
+                        Else
+                        {
+                            Column_Out(read_row)(i) := TO_INTEGER(SIGNED(Buffer_RAM(i, iStream.Column, j)));
+                        }
+                    }
+                    
+                    Column_Out(Filter_Rows-1)(i) := iData(i); --save new data
+                }
+                
+                Value_Buf := Value_Buf(Filter_Columns-2 downto 0) & Column_Out; --Create matrix with last columns
+                
+                If(Padding = valid)
+                {
+                    If(iStream.Column >= Filter_Columns-1 AND iStream.Row >= Filter_Rows-1) --Without padding, start output when ram full
+                    {
+                        Colum_Buf          := iStream.Column - (Filter_Columns-1);
+                        Row_Buf            := iStream.Row - (Filter_Rows-1);
+                        Valid_Buf          := '1';
+                        oData_Buf          := Value_Buf;
+                    }
+                }
+                
+                --RAM has to be written every clk cycle -> variable buffer with last valid data
+                VARIABLE iData_Buf   : CNN_Values_T(Input_Values-1 downto 0);
+                VARIABLE iColumn_Buf : NATURAL range 0 to Input_Columns-1;
+                VARIABLE Start_Buf   : NATURAL range 0 to Filter_Rows-2;
+                iData_Buf := iData;
+                iColumn_Buf := iStream.Column;
+                Start_Buf := Start_Row;
+            }
+            
+            For(i in 0 to Input_Values-1) --Save last input data in ram
+            {
+                If(CNN_Value_Negative = 0)
+                {
+                    Buffer_RAM(i, iColumn_Buf,Start_Buf) <= STD_LOGIC_VECTOR(TO_UNSIGNED(iData_Buf(i), CNN_Value_Resolution));
+                }
+                Else
+                {
+                    Buffer_RAM(i, iColumn_Buf,Start_Buf) <= STD_LOGIC_VECTOR(TO_SIGNED(iData_Buf(i), CNN_Value_Resolution+CNN_Value_Negative));
+                }
+            }
+            
+            VARIABLE Valid_Delay   : NATURAL range 0 to Filter_Columns/2 := Filter_Columns/2;
+            VARIABLE Row_Delay     : NATURAL range 0 to Filter_Rows/2 := 0;
+            VARIABLE Row_Delay_Reg : NATURAL range 0 to Filter_Rows/2 := 0;
+            If(Padding = same)  --create output with padding
+            {
+                --With padding, start output when half of ram full (vertical and horizontal axis)
+                If(iStream.Data_Valid = '1')
+                {
+                    If(iStream.Column >= (Filter_Columns-1)/2) --Create column while input valid
+                    {
+                        Valid_Delay := (Filter_Columns-1)/2;
+                        Colum_Buf   := iStream.Column - Valid_Delay;
+                    }
+                    Else  --Create column after last column received
+                    {
+                        Colum_Buf   := Input_Columns - Valid_Delay;
+                        Valid_Delay := Valid_Delay - 1;
+                    }
+                    
+                    Row_Delay_Reg := Row_Delay;
+                    VARIABLE l_row_padding : NATURAL range 0 to CNN_Input_Rows-1 := 0;
+                    VARIABLE end_row       : BOOLEAN := false;
+                    If(iStream.Row >= (Filter_Rows-1)/2)  --Create oStream.Row
+                    {
+                        Row_Delay     := (Filter_Rows-1)/2;
+                        If(iStream.Column >= (Filter_Columns-1)/2)
+                        {
+                            Row_Buf       := iStream.Row - Row_Delay;
+                        }
+                        end_row       := false;
+                    }
+                    Else  --count last rows with padding after iStream.Row is sending rows for next image
+                    {
+                        If(l_row_padding /= iStream.Row)
+                        {
+                            Row_Delay     := Row_Delay - 1;
+                        }
+                        If(iStream.Column >= (Filter_Columns-1)/2)
+                        {
+                            Row_Buf       := Input_Rows-1 - Row_Delay;
+                        }
+                        If(Valid_Delay = 0 AND Row_Delay = 0)
+                        {
+                            end_row   := true;
+                        }
+                    }
+                    l_row_padding := iStream.Row;
+                    
+                    Valid_Buf := '1';
+                    
+                    oData_Buf := (others => (others => (others => 0)));  --Start with 0 for each value
+                    
+                    VARIABLE Row_Min    : NATURAL range 0 to Filter_Rows-1;
+                    Row_Min   := 0;
+                    
+                    VARIABLE iRow_Buf : NATURAL range 0 to Input_Rows-1;
+                    iRow_Buf := iStream.Row;
+                    If(iStream.Column < (Filter_Columns-1)/2) -- Output Row = Input Row - 1 for first Columns
+                    {
+                        If(iRow_Buf > 0)
+                        {
+                            iRow_Buf := iRow_Buf - 1;
+                        }
+                        Else
+                        {
+                            iRow_Buf := Input_Rows-1;
+                        }
+                    }
+                    
+                    If(iRow_Buf < Filter_Rows-1 AND iRow_Buf >= (Filter_Rows-1)/2) --set row to start for first rows
+                    {
+                        Row_Min   := Filter_Rows-1-iRow_Buf;
+                    }
+                    if(iStream.Column < Filter_Columns-1 AND iStream.Column >= (Filter_Columns-1)/2) --set data for first columns
+                    {
+                        For(i in 0 to Filter_Columns-1)
+                        {
+                            If(i <= iStream.Column)
+                            {
+                                oData_Buf(i)(Filter_Rows/2+Row_Delay_Reg downto Row_Min) := Value_Buf(i)(Filter_Rows/2+Row_Delay_Reg downto Row_Min);  --!! statt r_row_min, r_row_max mit row_delay_reg ausrechnen
+                            }
+                        }
+                    }
+                    Else  --set data while matrix full and for last columns/rows
+                    {
+                        For(i in 0 to Filter_Columns-1)
+                        {
+                            If(i >= (Filter_Columns-1)/2-Valid_Delay)
+                            {
+                                oData_Buf(i)(Filter_Rows/2+Row_Delay_Reg downto Row_Min) := Value_Buf(i)(Filter_Rows/2+Row_Delay_Reg downto Row_Min);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            If(Colum_Buf mod Strides = 0 AND Row_Buf mod Strides = 0)
+            {
+                oStream.Column <= Colum_Buf/Strides;
+                oStream.Row    <= Row_Buf/Strides;
+                oStream.Data_Valid <= Valid_Buf;
+                If(Valid_Buf = '1')
+                {
+                    For(i in 0 to Input_Values-1) --Output Data from Buffer as matrix
+                    {
+                        For(j in 0 to Filter_Rows-1)
+                        {
+                            For(k in 0 to Filter_Columns-1)
+                            {
+                                oData(i,j,Filter_Columns-1-k) <= oData_Buf(k)(j)(i);
+                            }
+                        }
+                    }
+                }
+            }
+            Else
+            {
+                oStream.Data_Valid <= '0';
+            }
+            
+            l_row := iStream.Row;
+        }
+    }
+}

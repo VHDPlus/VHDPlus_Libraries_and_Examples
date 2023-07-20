@@ -1,0 +1,440 @@
+/*
+    Name: CNN Convolution
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 09.08.2022
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+    Description: -This component calculates the outputs for one convolution layer
+    
+    Insertion:   -Specify the paramters with the constants in th CNN_Data file
+                 -Connect the input data and stream signal with the input or previous layer
+ */
+
+Component NN_Layer
+(
+    Include
+    (
+        ieee.std_logic_1164.all,
+        ieee.numeric_std.all,
+        ieee.math_real.all,
+        CNN_Config_Package.all,
+    );
+    Generic
+    (
+        Inputs          : NATURAL := 16;
+        Outputs         : NATURAL := 8;
+        Activation      : Activation_T := relu; --Activation after dot product
+        Calc_Cycles_In  : NATURAL := 1;  --In deeper layers, the clock is faster than the new data. So the operation can be done in seperate cycles. Has to be divisor of inputs
+        Out_Cycles      : NATURAL := 1;  --Second priority
+        Out_Delay       : NATURAL := 1;  --Cycles between Output Values
+        Calc_Cycles_Out : NATURAL := 1;
+        Offset_In       : NATURAL := 0;  --Offset of Input Values
+        Offset_Out      : NATURAL := 0;  --Offset of Output Values
+        Offset          : INTEGER := 0;
+        Weights         : CNN_Weights_T;
+    );
+    iStream : IN  CNN_Stream_T;
+    iData   : IN  CNN_Values_T(Inputs/Calc_Cycles_In-1 downto 0);
+    iCycle  : IN  NATURAL range 0 to Calc_Cycles_In-1;
+    
+    oStream : OUT CNN_Stream_T;
+    oData   : OUT CNN_Values_T(Outputs/Calc_Cycles_Out-1 downto 0) := (others => 0);
+    oCycle  : OUT NATURAL range 0 to Calc_Cycles_Out-1;
+)
+{
+    CONSTANT Calc_Outputs  : NATURAL := Outputs/Out_Cycles;
+    CONSTANT Calc_Inputs   : NATURAL := Inputs/Calc_Cycles_In;
+    CONSTANT Out_Values    : NATURAL := Outputs/Calc_Cycles_Out;
+    CONSTANT Offset_Diff   : INTEGER := Offset_Out-Offset_In;
+    
+    Function Init_Bias(return CNN_Weights_T; weights_in : CNN_Weights_T; filters : NATURAL; inputs : NATURAL)
+    {
+        VARIABLE Bias_Const    : CNN_Weights_T(0 to filters-1, 0 to 0);
+        
+        For(i in 0 to filters-1)
+        {
+            Bias_Const(i,0) := weights_in(i,inputs);
+        }
+        
+        return Bias_Const;
+    }
+    
+    CONSTANT Bias_Const    : CNN_Weights_T(0 to Outputs-1, 0 to 0) := Init_Bias(Weights, Outputs, Inputs);
+    
+    type ROM_Array is array (0 to Out_Cycles*Calc_Cycles_In-1) of STD_LOGIC_VECTOR(Calc_Outputs * Calc_Inputs * CNN_Weight_Resolution - 1 downto 0);
+    
+    Function Init_ROM(return ROM_Array; weights_in : CNN_Weights_T; filters : NATURAL; inputs : NATURAL; elements : NATURAL; calc_filters : NATURAL; calc_steps : NATURAL)
+    {
+        VARIABLE rom_reg : ROM_Array;
+        VARIABLE filters_cnt : NATURAL range 0 to filters := 0;
+        VARIABLE inputs_cnt  : NATURAL range 0 to inputs := 0;
+        VARIABLE element_cnt : NATURAL range 0 to elements := 0;
+        VARIABLE this_weight : STD_LOGIC_VECTOR(CNN_Weight_Resolution-1 downto 0);
+        filters_cnt := 0;
+        inputs_cnt  := 0;
+        element_cnt := 0;
+        while(inputs_cnt < inputs)
+        {
+            filters_cnt := 0;
+            while(filters_cnt < filters)
+            {
+                For(s in 0 to calc_steps-1)
+                {
+                    For(f in 0 to calc_filters-1)
+                    {
+                        this_weight :=  STD_LOGIC_VECTOR(TO_SIGNED(weights_in(filters_cnt+f, inputs_cnt+s), CNN_Weight_Resolution));
+                        rom_reg(element_cnt)(CNN_Weight_Resolution*(1+s*calc_filters+f)-1 downto CNN_Weight_Resolution*(s*calc_filters+f)) := this_weight;
+                    }
+                }
+                filters_cnt := filters_cnt + calc_filters;
+                element_cnt := element_cnt + 1;
+            }
+            inputs_cnt  := inputs_cnt + calc_steps;
+        }
+        return rom_reg;
+    }
+    
+    SIGNAL ROM : ROM_Array := Init_ROM(Weights, Outputs, Inputs, Out_Cycles*Calc_Cycles_In, Calc_Outputs, Calc_Inputs);
+    CONSTANT Use_ROM : BOOLEAN := true;
+    SIGNAL ROM_Addr  : NATURAL range 0 to Out_Cycles*Calc_Cycles_In-1;
+    SIGNAL ROM_Data  : STD_LOGIC_VECTOR(Calc_Outputs * Calc_Inputs * CNN_Weight_Resolution - 1 downto 0);
+    Process()
+    {
+        If(rising_edge(iStream.Data_CLK))
+        {
+            ROM_Data <= ROM(ROM_Addr);
+        }
+    }
+    
+    oStream.Data_CLK <= iStream.Data_CLK;
+    
+    CONSTANT value_max     : NATURAL := 2**(CNN_Value_Resolution)-1;   --128 = 1 for floating point, but outputs are from 0 to 255
+    --CONSTANT sum_max       : NATURAL := value_max * 2**(max_val(Offset, 0)) * (Inputs + 1);
+    CONSTANT bits_max      : NATURAL := CNN_Value_Resolution + max_val(Offset, 0) + integer(ceil(log2(real(Inputs + 1))));
+    
+    type sum_set_t is array (0 to Calc_Outputs-1) of SIGNED(bits_max downto 0);
+    type sum_ram_t is array (natural range <>) of sum_set_t;
+    SIGNAL SUM_RAM : sum_ram_t(0 to Out_Cycles-1) := (others => (others => (others => '0')));
+    SIGNAL SUM_Rd_Addr  : NATURAL range 0 to Out_Cycles-1;
+    SIGNAL SUM_Rd_Data  : sum_set_t;
+    SIGNAL SUM_Wr_Addr  : NATURAL range 0 to Out_Cycles-1;
+    SIGNAL SUM_Wr_Data  : sum_set_t;
+    SIGNAL SUM_Wr_Ena   : STD_LOGIC := '1';
+    Process()
+    {
+        If(rising_edge(iStream.Data_CLK))
+        {
+            If(SUM_Wr_Ena = '1')
+            {
+                SUM_RAM(SUM_Wr_Addr) <= SUM_Wr_Data;
+            }
+        }
+    }
+    
+    SUM_Rd_Data <= SUM_RAM(SUM_Rd_Addr);
+    
+    CONSTANT OUT_RAM_Elements : NATURAL := min_val(Out_Cycles,Calc_Cycles_Out);
+    type OUT_set_t is array (0 to Outputs/OUT_RAM_Elements-1) of SIGNED(CNN_Value_Resolution downto 0);
+    type OUT_ram_t is array (natural range <>) of OUT_set_t;
+    SIGNAL OUT_RAM      : OUT_ram_t(0 to OUT_RAM_Elements-1) := (others => (others => (others => '0')));
+    SIGNAL OUT_Rd_Addr  : NATURAL range 0 to OUT_RAM_Elements-1;
+    SIGNAL OUT_Rd_Data  : OUT_set_t;
+    SIGNAL OUT_Wr_Addr  : NATURAL range 0 to OUT_RAM_Elements-1;
+    SIGNAL OUT_Wr_Data  : OUT_set_t;
+    SIGNAL OUT_Wr_Ena   : STD_LOGIC := '1';
+    Process()
+    {
+        If(rising_edge(iStream.Data_CLK))
+        {
+            If(OUT_Wr_Ena = '1')
+            {
+                OUT_RAM(OUT_Wr_Addr) <= OUT_Wr_Data;
+            }
+        }
+    }
+    
+    OUT_Rd_Data <= OUT_RAM(OUT_Rd_Addr);
+    
+    Process()
+    {
+        If(rising_edge(iStream.Data_CLK))
+        {
+            last_input <= '0';
+            add_bias   <= false;
+            
+            VARIABLE Weights_Buf_Var : CNN_Weights_T(0 to Calc_Outputs-1, 0 to Calc_Inputs-1);
+            
+            For(s in 0 to Calc_Inputs-1)
+            {
+                For(f in 0 to Calc_Outputs-1)
+                {
+                    Weights_Buf_Var(f, s) := TO_INTEGER(SIGNED(ROM_Data(CNN_Weight_Resolution*(1+s*Calc_Outputs+f)-1 downto CNN_Weight_Resolution*(s*Calc_Outputs+f))));
+                }
+            }
+            
+            If(add_bias)
+            {
+                type Act_sum_t is array (Calc_Outputs-1 downto 0) of SIGNED(CNN_Value_Resolution downto 0);
+                VARIABLE Act_sum : Act_sum_t;
+                
+                for(o in 0 to Calc_Outputs-1)
+                {
+                        --Add Bias
+                    If(Offset >= 0) { sum_buf(o) := resize(sum_buf(o) + resize(shift_left (to_signed(Bias_Const(o+Offset_Buf, 0), CNN_Weight_Resolution+Offset), Offset),bits_max+1),bits_max+1); }
+                    Else            { sum_buf(o) := resize(sum_buf(o) + resize(shift_right(to_signed(Bias_Const(o+Offset_Buf, 0), CNN_Weight_Resolution), abs(Offset)),bits_max+1),bits_max+1); }
+                    
+                    If(Offset_Diff > 0)
+                    {
+                        sum_buf(o) := shift_right(sum_buf(o), Offset_Diff);
+                    }
+                    Elsif(Offset_Diff < 0)
+                    {
+                        sum_buf(o) := shift_left(sum_buf(o), abs(Offset_Diff));
+                    }
+                    
+                    --ReLU
+                    If(Activation = relu)
+                    {
+                        Act_sum(o) := resize(relu_f(sum_buf(o), value_max), CNN_Value_Resolution+1);
+                    }
+                    Elsif(Activation = linear)
+                    {
+                        Act_sum(o) := resize(linear_f(sum_buf(o), value_max), CNN_Value_Resolution+1);
+                    }
+                    Elsif(Activation = leaky_relu)
+                    {
+                        Act_sum(o) := resize(leaky_relu_f(sum_buf(o), value_max, CNN_Value_Resolution + max_val(Offset, 0) + integer(ceil(log2(real(Inputs + 1))))), CNN_Value_Resolution+1);
+                    }
+                    Elsif(Activation = step_func)
+                    {
+                        Act_sum(o) := resize(step_f(sum_buf(o)), CNN_Value_Resolution+1);
+                    }
+                    Elsif(Activation = sign_func)
+                    {
+                        Act_sum(o) := resize(sign_f(sum_buf(o)), CNN_Value_Resolution+1);
+                    }
+                }
+                
+                If(Out_Cycles = OUT_RAM_Elements)
+                {
+                    OUT_Wr_Addr <= Count_Buf;
+                    For(i in 0 to Calc_Outputs-1)
+                    {
+                        OUT_Wr_Data(i) <= Act_sum(i);
+                    }
+                }
+                Else --Calc_Cycles > Elements
+                {
+                    CONSTANT Act_sum_buf_cycles : NATURAL := Out_Cycles/OUT_RAM_Elements;
+                    type Act_sum_buf_t is array (Act_sum_buf_cycles-1 downto 0) of Act_sum_t;
+                    VARIABLE Act_sum_buf     : Act_sum_buf_t;
+                    VARIABLE Act_sum_buf_cnt : NATURAL range 0 to Act_sum_buf_cycles-1 := 0;
+                    Act_sum_buf_cnt := Count_Buf mod Act_sum_buf_cycles;
+                    Act_sum_buf(Act_sum_buf_cnt) := Act_sum;
+                    If(Act_sum_buf_cnt = Act_sum_buf_cycles-1)
+                    {
+                        OUT_Wr_Addr <= Count_Buf/Act_sum_buf_cycles;
+                        For(i in 0 to Act_sum_buf_cycles-1)
+                        {
+                            For(j in 0 to Calc_Outputs-1)
+                            {
+                                OUT_Wr_Data(Calc_Outputs*i + j) <= Act_sum_buf(i)(j);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            If(En)
+            {
+                --multiply matrix data with weights and create sum
+                --type sum_array_t is array (natural range <>) of INTEGER range (-1)*sum_max to sum_max;
+                
+                If(Out_Cycles > 1)
+                {
+                    sum := SUM_Rd_Data;
+                }
+                
+                VARIABLE sum : sum_set_t := (others => (others => '0'));
+                If(input = 0)
+                {
+                    sum := (others => (others => '0'));
+                }
+                
+                For(o in 0 to Calc_Outputs-1)
+                {
+                    For(i in 0 to Inputs/Calc_Cycles_In-1)
+                    {
+                        --Matrix Data: (Input, Row, Column)
+                        --Weights: (Outputs)
+                        sum(o) := resize(sum(o) + resize(shift_right(to_signed(iData_Buf(i) * Weights_Buf_Var(o, i)  + (2**(CNN_Weight_Resolution-Offset-2)), CNN_Value_Resolution+CNN_Weight_Resolution), CNN_Weight_Resolution-Offset-1),bits_max+1),bits_max+1);
+                    }
+                }
+                
+                SIGNAL Offset_Buf : NATURAL range 0 to Outputs := 0;
+                SIGNAL Count_Buf  : NATURAL range 0 to Out_Cycles := 0;
+                Offset_Buf <= Out_Offset;
+                Count_Buf  <= Out_Count;
+                
+                SIGNAL   add_bias   : BOOLEAN := false;
+                VARIABLE sum_buf    : sum_set_t := (others => (others => '0'));
+                If(input = (Inputs/Calc_Cycles_In)*(Calc_Cycles_In-1))
+                {
+                    --Set data valid if this are the last filters to calculate
+                    If(Out_Offset = Outputs-(Calc_Outputs))
+                    {
+                        SIGNAL last_input : STD_LOGIC;
+                        last_input <= '1';
+                    }
+                    
+                    sum_buf  := sum;
+                    add_bias <= true;
+                }
+                
+                If(Out_Cycles > 1)
+                {
+                    SUM_Wr_Data <= sum;
+                }
+            }
+            
+            --multiply matrix data with weights and create sum
+            SIGNAL   En          : BOOLEAN := false;
+            SIGNAL   iData_Buf   : CNN_Values_T(Inputs/Calc_Cycles_In-1 downto 0);
+            VARIABLE Out_Offset  : NATURAL range 0 to Outputs := 0;
+            VARIABLE Out_Count   : NATURAL range 0 to Out_Cycles := 0;
+            VARIABLE Element_Cnt : NATURAL range 0 to Out_Cycles*Calc_Cycles_In-1 := 0;
+            VARIABLE Element_buf : NATURAL range 0 to Out_Cycles*Calc_Cycles_In-1 := 0;
+            --Create counter for filters to calculate
+            If(iStream.Data_Valid = '1') --First calculation cycle
+            {
+                En         <= true;
+                iData_Buf  <= iData;
+                Out_Offset := 0;
+                Out_Count  := 0;
+                VARIABLE input     : NATURAL range 0 to Inputs-1;
+                input := Calc_Inputs*iCycle;
+                
+                If(iCycle = 0)
+                {
+                    Element_Cnt := 0;
+                }
+                Else
+                {
+                    Element_Cnt := Element_Cnt + 1;
+                }
+            }
+            Elsif(Out_Count < Out_Cycles-1)
+            {
+                Out_Offset  := Out_Offset + Calc_Outputs;
+                Out_Count   := Out_Count + 1;
+                Element_Cnt := Element_Cnt + 1;
+            }
+            Else
+            {
+                --Disable calculation if all calculations done for last input data
+                En    <= false;
+                Out_Offset := Outputs;
+            }
+            
+            SUM_Wr_Addr <= SUM_Rd_Addr;
+            SUM_Rd_Addr <= Out_Count;
+            
+            --Copy weights for current filters in buffer
+            If(iStream.Data_Valid = '1' OR Out_Offset < Outputs)
+            {
+                SIGNAL Weights_Buf : CNN_Weights_T(0 to Calc_Outputs-1, 0 to Inputs/Calc_Cycles_In-1);
+                
+                If(NOT Use_ROM)
+                {
+                    For(i in 0 to Calc_Outputs-1)
+                    {
+                        For(j in 0 to Inputs/Calc_Cycles_In-1)
+                        {
+                            Weights_Buf(i, j) <= Weights(i+Out_Offset, j+input);
+                        }
+                    }
+                }
+                Else
+                {
+                    If(Element_Cnt < Out_Cycles*Calc_Cycles_In-1)
+                    {
+                        ROM_Addr <= Element_Cnt + 1;
+                    }
+                    Else
+                    {
+                        ROM_Addr <= 0;
+                    }
+                }
+            }
+            
+            
+            
+            VARIABLE oCycle_Cnt_Var : NATURAL range 0 to Calc_Cycles_Out-1 := Calc_Cycles_Out-1;
+            SIGNAL   oCycle_Cnt     : NATURAL range 0 to Calc_Cycles_Out-1 := Calc_Cycles_Out-1;
+            SIGNAL   Delay_Cycle    : NATURAL range 0 to Out_Delay-1 := Out_Delay-1;
+            SIGNAL   Valid_Reg_O    : STD_LOGIC;
+            Valid_Reg_O <= '0';
+            If(last_input = '1')
+            {
+                oCycle_Cnt_Var := 0;
+                Delay_Cycle    <= 0;
+                Valid_Reg_O    <= '1';
+            }
+            Elsif(Delay_Cycle < Out_Delay-1)
+            {
+                Delay_Cycle <= Delay_Cycle + 1;
+            }
+            Elsif(oCycle_Cnt < Calc_Cycles_Out-1)
+            {
+                Delay_Cycle    <= 0;
+                oCycle_Cnt_Var := oCycle_Cnt + 1;
+                Valid_Reg_O    <= '1';
+            }
+            oCycle_Cnt  <= oCycle_Cnt_Var;
+            
+            OUT_Rd_Addr <= oCycle_Cnt_Var / (Calc_Cycles_Out/OUT_RAM_Elements);
+            
+            If(Delay_Cycle = 0)
+            {
+                For(i in 0 to Out_Values-1)
+                {
+                    If(Calc_Cycles_Out = OUT_RAM_Elements)
+                    {
+                        oData(i) <= to_integer(OUT_Rd_Data(i));
+                    }
+                    Else --Filter_Cycles > OUT_RAM_Elements
+                    {
+                        oData(i) <= to_integer(OUT_Rd_Data(i+(oCycle_Cnt mod (Calc_Cycles_Out/OUT_RAM_Elements))*Out_Values));
+                    }
+                }
+                
+                --oData              <= oData_Buf((oCycle_Cnt+1)*(Outputs/Calc_Cycles_Out)-1 downto oCycle_Cnt*(Outputs/Calc_Cycles_Out));
+                oCycle             <= oCycle_Cnt*(Outputs/Calc_Cycles_Out);
+                oStream.Data_Valid <= Valid_Reg_O;
+            }
+            Else
+            {
+                oStream.Data_Valid <= '0';
+            }
+        }
+    }
+    
+}

@@ -1,0 +1,294 @@
+/*
+    Name: CNN Pooling
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 09.08.2022
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+    Description: -This component finds the maximum value in a matrix
+    
+    Insertion:   -Specify the paramters with the constants in th CNN_Data file
+                 -Connect the input data and stream signal with the input or previous layer
+ */
+
+Component CNN_Pooling
+(
+    Include
+    (
+        CNN_Config_Package.all,
+    );
+    Generic
+    (
+        Input_Columns  : NATURAL := 28; --Size in x direction of input
+        Input_Rows     : NATURAL := 28; --Size in y direction of input
+        Input_Values   : NATURAL := 4;  --Number of Filters in previous layer or 3 for RGB input
+        Filter_Columns : NATURAL := 2;  --Size in x direction of filters
+        Filter_Rows    : NATURAL := 2;  --Size in y direction of filters
+        Strides        : NATURAL := 1;  --1 = Output every value, 2 = Skip every second value
+        Padding        : Padding_T := valid;   --valid = use available data, same = add padding to use data on the edge
+        Input_Cycles   : NATURAL := 1;  --[1 to Input_Values] Filter Cycles of previous convolution
+        Value_Cycles   : NATURAL := 1;  --[1 to Input_Values] Cycles to calculate values of one element of a matrix
+        Filter_Cycles  : NATURAL := 1;  --[1 to Input_Values] Cycles to output data
+        Filter_Delay   : NATURAL := 1;  --Cycles between Filters
+        Expand         : BOOLEAN := false;  --Spreads Row data to maximize cycles per value (needs more RAM)
+        Expand_Cycles  : NATURAL := 1;     --If Expand true: Sets Cycles for each pixel when expaned
+    );
+    iStream : IN  CNN_Stream_T;
+    iData   : IN  CNN_Values_T(Input_Values/Input_Cycles-1 downto 0);
+    
+    oStream : OUT CNN_Stream_T;
+    oData   : OUT CNN_Values_T(Input_Values/Filter_Cycles-1 downto 0) := (others => 0);
+)
+{
+    CONSTANT Calc_Cycles   : NATURAL := Filter_Columns*Filter_Rows*Value_Cycles;
+    CONSTANT matrix_values : NATURAL := Filter_Columns * Filter_Rows;
+    CONSTANT Calc_Outputs : NATURAL := Input_Values/Value_Cycles;
+    CONSTANT Out_Values   : NATURAL := Input_Values/Filter_Cycles;
+    
+    SIGNAL Expand_Stream : CNN_Stream_T;
+    SIGNAL Expand_Data   : CNN_Values_T(Input_Values/Input_Cycles-1 downto 0) := (others => 0);
+    Generate(If Expand)
+    {
+        NewComponent CNN_Row_Expander
+        (
+            Input_Columns => Input_Columns,
+            Input_Rows    => Input_Rows,
+            Input_Values  => Input_Values,
+            Input_Cycles  => Input_Cycles,
+            Output_Cycles => MAX_val(Calc_Cycles+1, Expand_Cycles),
+
+            iStream       => iStream,
+            iData         => iData,
+            oStream       => Expand_Stream,
+            oData         => Expand_Data,
+        );
+    }
+    Generate(If NOT Expand)
+    {
+        Expand_Data   <= iData;
+        Expand_Stream <= iStream;
+    }
+    
+    SIGNAL Matrix_Stream : CNN_Stream_T;
+    SIGNAL Matrix_Data   : CNN_Values_T(Calc_Outputs-1 downto 0);
+    SIGNAL Matrix_Column : NATURAL range 0 to Input_Columns-1;
+    SIGNAL Matrix_Row    : NATURAL range 0 to Input_Rows-1;
+    SIGNAL Matrix_Input  : NATURAL range 0 to Value_Cycles-1;
+    
+    NewComponent CNN_Row_Buffer
+    (
+        Input_Columns  => Input_Columns,
+        Input_Rows     => Input_Rows,
+        Input_Values   => Input_Values,
+        Filter_Columns => Filter_Columns,
+        Filter_Rows    => Filter_Rows,
+        Input_Cycles   => Input_Cycles,
+        Value_Cycles   => Value_Cycles,
+        Strides        => Strides,
+        Padding        => Padding,
+
+        iStream        => Expand_Stream,
+        iData          => Expand_Data,
+        oStream        => Matrix_Stream,
+        oData          => Matrix_Data,
+        oRow           => Matrix_Row,
+        oColumn        => Matrix_Column,
+        oInput         => Matrix_Input,
+    );
+    
+    type MAX_set_t is array (0 to Calc_Outputs-1) of SIGNED(CNN_Value_Resolution downto 0);
+    type MAX_ram_t is array (natural range <>) of MAX_set_t;
+    SIGNAL MAX_RAM      : MAX_ram_t(0 to Value_Cycles-1) := (others => (others => (others => '0')));
+    SIGNAL MAX_Rd_Addr  : NATURAL range 0 to Value_Cycles-1;
+    SIGNAL MAX_Rd_Data  : MAX_set_t;
+    SIGNAL MAX_Wr_Addr  : NATURAL range 0 to Value_Cycles-1;
+    SIGNAL MAX_Wr_Data  : MAX_set_t;
+    SIGNAL MAX_Wr_Ena   : STD_LOGIC := '1';
+    Process()
+    {
+        If(rising_edge(iStream.Data_CLK))
+        {
+            If(MAX_Wr_Ena = '1')
+            {
+                MAX_RAM(MAX_Wr_Addr) <= MAX_Wr_Data;
+            }
+        }
+    }
+    
+    MAX_Rd_Data <= MAX_RAM(MAX_Rd_Addr);
+    
+    CONSTANT OUT_RAM_Elements : NATURAL := min_val(Value_Cycles,Filter_Cycles);
+    type OUT_set_t is array (0 to Input_Values/OUT_RAM_Elements-1) of SIGNED(CNN_Value_Resolution downto 0);
+    type OUT_ram_t is array (natural range <>) of OUT_set_t;
+    SIGNAL OUT_RAM      : OUT_ram_t(0 to OUT_RAM_Elements-1) := (others => (others => (others => '0')));
+    SIGNAL OUT_Rd_Addr  : NATURAL range 0 to OUT_RAM_Elements-1;
+    SIGNAL OUT_Rd_Data  : OUT_set_t;
+    SIGNAL OUT_Wr_Addr  : NATURAL range 0 to OUT_RAM_Elements-1;
+    SIGNAL OUT_Wr_Data  : OUT_set_t;
+    SIGNAL OUT_Wr_Ena   : STD_LOGIC := '1';
+    Process()
+    {
+        If(rising_edge(iStream.Data_CLK))
+        {
+            If(OUT_Wr_Ena = '1')
+            {
+                OUT_RAM(OUT_Wr_Addr) <= OUT_Wr_Data;
+            }
+        }
+    }
+    
+    OUT_Rd_Data <= OUT_RAM(OUT_Rd_Addr);
+    
+    oStream.Data_CLK <= Matrix_Stream.Data_CLK;
+    
+    Process()
+    {
+        If(rising_edge(Matrix_Stream.Data_CLK))
+        {
+            oStream.Data_Valid <= '0';
+            
+            VARIABLE max     : MAX_set_t;
+            last_input := '0';
+            If(Matrix_Stream.Data_Valid = '1')
+            {
+                If(Value_Cycles > 1)
+                {
+                    max := MAX_Rd_Data;
+                    If(Matrix_Input < Value_Cycles-1)
+                    {
+                        MAX_Rd_Addr <= Matrix_Input + 1;
+                    }
+                    Else
+                    {
+                        MAX_Rd_Addr <= 0;
+                    }
+                }
+                
+                VARIABLE input_start : NATURAL range 0 to Input_Values := 0;
+                input_start := Matrix_Input*(Calc_Outputs);
+                For(in_offset in 0 to Calc_Outputs-1)
+                {
+                    VARIABLE MAX_ram : CNN_Value_T;
+                    MAX_ram := Matrix_Data(in_offset);
+                    If((Matrix_Row = 0 AND Matrix_Column = 0) OR MAX_ram > to_integer(max(in_offset)))
+                    {
+                        max(in_offset) := to_signed(MAX_ram, CNN_Value_Resolution+1);
+                    }
+                }
+                
+                If(Matrix_Column = Filter_Columns-1 AND Matrix_Row = Filter_Rows-1)
+                {
+                    If(Matrix_Input = Value_Cycles-1)
+                    {
+                        VARIABLE last_input : STD_LOGIC;
+                        last_input := '1';
+                    }
+                    
+                    If(Value_Cycles = OUT_RAM_Elements)
+                    {
+                        OUT_Wr_Addr <= Matrix_Input;
+                        For(i in 0 to Calc_Outputs-1)
+                        {
+                            OUT_Wr_Data(i) <= max(i);
+                        }
+                    }
+                    Else --Calc_Cycles > Elements
+                    {
+                        CONSTANT Act_sum_buf_cycles : NATURAL := Value_Cycles/OUT_RAM_Elements;
+                        type Act_sum_buf_t is array (Act_sum_buf_cycles-1 downto 0) of MAX_set_t;
+                        VARIABLE Act_sum_buf     : Act_sum_buf_t;
+                        VARIABLE Act_sum_buf_cnt : NATURAL range 0 to Act_sum_buf_cycles-1 := 0;
+                        Act_sum_buf_cnt := Matrix_Input mod Act_sum_buf_cycles;
+                        Act_sum_buf(Act_sum_buf_cnt) := max;
+                        If(Act_sum_buf_cnt = Act_sum_buf_cycles-1)
+                        {
+                            OUT_Wr_Addr <= Matrix_Input/Act_sum_buf_cycles;
+                            For(i in 0 to Act_sum_buf_cycles-1)
+                            {
+                                For(j in 0 to Calc_Outputs-1)
+                                {
+                                    OUT_Wr_Data(Calc_Outputs*i + j) <= Act_sum_buf(i)(j);
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                If(Value_Cycles > 1)
+                {
+                    MAX_Wr_Data <= max;
+                    MAX_Wr_Addr <= Matrix_Input;
+                }
+            }
+            
+            --Set output data
+            VARIABLE oCycle_Cnt_Var : NATURAL range 0 to Filter_Cycles-1;
+            SIGNAL   oCycle_Cnt     : NATURAL range 0 to Filter_Cycles-1;
+            SIGNAL   Delay_Cycle    : NATURAL range 0 to Filter_Delay-1 := Filter_Delay-1;
+            SIGNAL   Valid_Reg_O    : STD_LOGIC;
+            Valid_Reg_O <= '0';
+            If(last_input = '1')
+            {
+                oCycle_Cnt_Var     := 0;
+                Delay_Cycle        <= 0;
+                oStream.Column     <= Matrix_Stream.Column;
+                oStream.Row        <= Matrix_Stream.Row;
+                Valid_Reg_O        <= '1';
+            }
+            Elsif(Delay_Cycle < Filter_Delay-1)
+            {
+                Delay_Cycle <= Delay_Cycle + 1;
+            }
+            Elsif(oCycle_Cnt < Filter_Cycles-1)
+            {
+                Delay_Cycle    <= 0;
+                oCycle_Cnt_Var := oCycle_Cnt + 1;
+                Valid_Reg_O    <= '1';
+            }
+            oCycle_Cnt  <= oCycle_Cnt_Var;
+            
+            OUT_Rd_Addr <= oCycle_Cnt_Var / (Filter_Cycles/OUT_RAM_Elements);
+            
+            If(Delay_Cycle = 0)
+            {
+                For(i in 0 to Out_Values-1)
+                {
+                    If(Filter_Cycles = OUT_RAM_Elements)
+                    {
+                        oData(i) <= to_integer(OUT_Rd_Data(i));
+                    }
+                    Else --Filter_Cycles > OUT_RAM_Elements
+                    {
+                        oData(i) <= to_integer(OUT_Rd_Data(i+(oCycle_Cnt mod (Filter_Cycles/OUT_RAM_Elements))*Out_Values));
+                    }
+                }
+                
+                --oData              <= Out_Buf((oCycle_Cnt+1)*(Input_Values/Filter_Cycles)-1 downto oCycle_Cnt*(Input_Values/Filter_Cycles));
+                oStream.Filter     <= oCycle_Cnt*(Input_Values/Filter_Cycles);
+                oStream.Data_Valid <= Valid_Reg_O;
+            }
+            Else
+            {
+                oStream.Data_Valid <= '0';
+            }
+        }
+        
+    }
+}

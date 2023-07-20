@@ -1,0 +1,294 @@
+/*
+    Name: CNN Config
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 31.07.2022
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Description: -This component has to be included in every project that uses a CNN
+                 -The datatypes and parameters for the entire project are defined
+ */
+
+Package CNN_Config_Package
+{
+    Include();
+    
+    CONSTANT CNN_Value_Resolution       : NATURAL := 10;  --Bits of calculated values (2^(CNN_Value_Resolution)-1 = max)
+    CONSTANT CNN_Weight_Resolution      : NATURAL := 8;  --Bits of weights           (2^(CNN_Weight_Resolution-1) = 1)
+    CONSTANT CNN_Parameter_Resolution   : NATURAL := 8;  --Bits of (normalization) parameters (2^(CNN_Parameter_Resolution-1) = 1)
+    
+    CONSTANT CNN_Input_Columns          : NATURAL := 448; --Number of Input Columns (32 for 32x24 input image)
+    CONSTANT CNN_Input_Rows             : NATURAL := 448; --Number of Input Rows    (24 for 32x24 input image)
+    CONSTANT CNN_Max_Filters            : NATURAL := 8; --Number of filters for convolution with most filters
+    
+    --UNCOMMENT IF VALUES ARE ALWAYS POSITIVE
+    CONSTANT CNN_Value_Negative : NATURAL := 0;
+    subtype CNN_Value_T       is NATURAL range 0 to 2**(CNN_Value_Resolution)-1;   --Output Value after calculation and weights (Because of ReLU only positive values)
+    
+    --UNCOMMENT IF VALUES CAN BE NEGATIVE
+    --CONSTANT CNN_Value_Negative : NATURAL := 1;
+    --subtype CNN_Value_T       is INTEGER range (-1)*(2**(CNN_Value_Resolution)-1) to 2**(CNN_Value_Resolution)-1;   --Output Value after calculation and weights
+    
+    type CNN_Values_T         is array (NATURAL range <>) of CNN_Value_T;   --Different Output Values for layer
+    type CNN_Value_Matrix_T   is array (NATURAL range <>, NATURAL range <>, NATURAL range <>) of CNN_Value_T;   --Different Output Values for layer (Filter -> Row -> Column)
+    
+    subtype CNN_Weight_T      is INTEGER range (-1)*(2**(CNN_Weight_Resolution-1)-1) to 2**(CNN_Weight_Resolution-1)-1;  --Weight Value
+    type CNN_Weights_T        is array (NATURAL range <>, NATURAL range <>) of CNN_Weight_T;  --Weights and Biases for one output (Outputs -> Inputs)
+    
+    subtype CNN_Parameter_T      is INTEGER range (-1)*(2**(CNN_Parameter_Resolution-1)-1) to 2**(CNN_Parameter_Resolution-1)-1;  --Weight Value
+    type CNN_Parameters_T        is array (NATURAL range <>, NATURAL range <>) of CNN_Parameter_T;  --Weights and Biases for one output (Outputs -> Inputs)
+    
+    TYPE CNN_Stream_T IS RECORD
+    Column     : NATURAL range 0 to CNN_Input_Columns-1;
+    Row        : NATURAL range 0 to CNN_Input_Rows-1;
+    Filter     : NATURAL range 0 to CNN_Max_Filters-1;
+    Data_Valid : STD_LOGIC;
+    Data_CLK   : STD_LOGIC;
+    END RECORD CNN_Stream_T;
+    
+    type Activation_T is (relu, linear, leaky_relu, step_func, sign_func);
+    type Padding_T is (valid, same);
+    
+    CONSTANT leaky_relu_mult : CNN_Weight_T := (2**(CNN_Weight_Resolution-1))/10; --0.1
+
+    Function max_val (return INTEGER; a : INTEGER; b : INTEGER)
+    {
+        If(a > b)
+        {
+            return a;
+        }
+        Else
+        {
+            return b;
+        }
+    }
+    
+    Function min_val (return INTEGER; a : INTEGER; b : INTEGER)
+    {
+        If(a < b)
+        {
+            return a;
+        }
+        Else
+        {
+            return b;
+        }
+    }
+    
+    Function relu_f (return INTEGER; i : INTEGER; max : INTEGER)
+    {
+        If(i > 0)
+        {
+            If(i < max)
+            {
+                return i;
+            }
+            Else
+            {
+                return max;
+            }
+        }
+        Else
+        {
+            return 0;
+        }
+    }
+    
+    Function relu_f (return SIGNED; i : SIGNED; max : INTEGER)
+    {
+        If(i > 0)
+        {
+            If(i < to_signed(max, i'LENGTH))
+            {
+                return i;
+            }
+            Else
+            {
+                return to_signed(max, i'LENGTH);
+            }
+        }
+        Else
+        {
+            return to_signed(0, i'LENGTH);
+        }
+    }
+    
+    Function linear_f (return INTEGER; i : INTEGER; max : INTEGER)
+    {
+        If(i < max)
+        {
+            If(i > max*(-1))
+            {
+                return i;
+            }
+            Else
+            {
+                return max*(-1);
+            }
+        }
+        Else
+        {
+            return max;
+        }
+    }
+    
+    Function linear_f (return SIGNED; i : SIGNED; max : INTEGER)
+    {
+        If(i < to_signed(max, i'LENGTH))
+        {
+            If(abs(i) < to_signed(max, i'LENGTH))
+            {
+                return i;
+            }
+            Else
+            {
+                return to_signed(max*(-1), i'LENGTH);
+            }
+        }
+        Else
+        {
+            return to_signed(max, i'LENGTH);
+        }
+    }
+    
+    Function leaky_relu_f (return INTEGER; i : INTEGER; max : INTEGER; max_bits : INTEGER)
+    {
+        If(i > 0)
+        {
+            If(i < max)
+            {
+                return i;
+            }
+            Else
+            {
+                return max;
+            }
+        }
+        Else
+        {
+            VARIABLE i_reg : INTEGER range (-1)*(2**max_bits-1) to (2**max_bits-1);
+            i_reg := to_integer(shift_right(to_signed(i * leaky_relu_mult, max_bits+CNN_Weight_Resolution-1), CNN_Weight_Resolution-1));
+            If(i_reg > max*(-1))
+            {
+                return i_reg;
+            }
+            Else
+            {
+                return max*(-1);
+            }
+        }
+    }
+    
+    Function leaky_relu_f (return SIGNED; i : SIGNED; max : INTEGER; max_bits : INTEGER)
+    {
+        If(i > 0)
+        {
+            If(i < to_signed(max, i'LENGTH))
+            {
+                return i;
+            }
+            Else
+            {
+                return to_signed(max, i'LENGTH);
+            }
+        }
+        Else
+        {
+            VARIABLE i_reg : SIGNED (max_bits-1 downto 0);
+            i_reg := resize(shift_right(resize(i, max_bits+CNN_Weight_Resolution-1) * to_signed(leaky_relu_mult, max_bits+CNN_Weight_Resolution-1), CNN_Weight_Resolution-1), max_bits);
+            If(i_reg > to_signed(max*(-1), i'LENGTH))
+            {
+                return i_reg;
+            }
+            Else
+            {
+                return to_signed(max*(-1), i'LENGTH);
+            }
+        }
+    }
+    
+    Function step_f (return INTEGER; i : INTEGER)
+    {
+        If(i >= 0)
+        {
+            return 2**(CNN_Weight_Resolution-1);
+        }
+        Else
+        {
+            return 0;
+        }
+    }
+    
+    Function step_f (return SIGNED; i : SIGNED)
+    {
+        If(i >= 0)
+        {
+            return to_signed(2**(CNN_Weight_Resolution-1), i'LENGTH);
+        }
+        Else
+        {
+            return to_signed(0, i'LENGTH);
+        }
+    }
+    
+    Function sign_f (return INTEGER; i : INTEGER)
+    {
+        If(i > 0)
+        {
+            return 2**(CNN_Weight_Resolution-1);
+        }
+        Elsif(i < 0)
+        {
+            return (2**(CNN_Weight_Resolution-1))*(-1);
+        }
+        Else
+        {
+            return 0;
+        }
+    }
+    
+    Function sign_f (return SIGNED; i : SIGNED)
+    {
+        If(i > 0)
+        {
+            return to_signed(2**(CNN_Weight_Resolution-1), i'LENGTH);
+        }
+        Elsif(i < 0)
+        {
+            return to_signed((2**(CNN_Weight_Resolution-1))*(-1), i'LENGTH);
+        }
+        Else
+        {
+            return to_signed(0, i'LENGTH);
+        }
+    }
+    
+    Function Bool_Select (return NATURAL; Sel : BOOLEAN; Value  : NATURAL; Alternative : NATURAL)
+    {
+        If(Sel)
+        {
+            return Value;
+        }
+        Else
+        {
+            return Alternative;
+        }
+    }
+}

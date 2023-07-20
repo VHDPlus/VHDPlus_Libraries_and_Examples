@@ -1,0 +1,128 @@
+/*
+    Name: CNN Column Buffer
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 01.08.2022
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+    Description: -This component buffers last values in row
+    
+    Insertion:   -Set the parameters according to the convolution/pooling parameters
+ */
+
+Component CNN_Column_Buffer
+(
+    Include
+    (
+        CNN_Config_Package.all,
+    );
+    Generic
+    (
+        Input_Columns  : NATURAL := 28; --Size in x direction of input
+        Input_Values   : NATURAL := 1;  --Number of Filters in previous layer or 3 for RGB input
+        Filter_Columns : NATURAL := 3;  --Size in x direction of filters
+        Strides        : NATURAL := 1;  --1 = Output every value, 2 = Skip every second value
+        Padding        : Padding_T := valid; --valid = use available data, same = add padding to use data on the edge
+    );
+    iStream : IN  CNN_Stream_T;
+    iData   : IN  CNN_Values_T(Input_Values-1 downto 0);
+    
+    oStream : OUT CNN_Stream_T;
+    oData   : OUT CNN_Value_Matrix_T(Input_Values-1 downto 0, 0 downto 0, Filter_Columns-1 downto 0); --[0, 1, 2] <- lowest colum index is oldest data
+)
+{
+    type Value_RAM_T is array (Filter_Columns-1 downto 0) of CNN_Values_T(Input_Values-1 downto 0);
+    SIGNAL Value_Out : Value_RAM_T;
+    
+    Generate(if Filter_Columns = 1) --Output same data as input
+    {
+        oStream <= iStream;
+        Generate(For i in 0 to Input_Values-1)
+        {
+            oData(i,0,0) <= iData(i);
+        }
+    }
+    
+    Generate(if Filter_Columns > 1)
+    {
+        oStream.Data_CLK <= iStream.Data_CLK;  --Same clock
+        Generate(For i in 0 to Input_Values-1) --Output Data from Buffer as matrix
+        {
+            Generate(For j in 0 to Filter_Columns-1)
+            {
+                oData(i,0,Filter_Columns-1-j) <= Value_Out(j)(i);
+            }
+        }
+        
+        Process()
+        {
+            If(rising_edge(iStream.Data_CLK))
+            {
+                VARIABLE Value_Buf : Value_RAM_T;
+                
+                oStream.Data_Valid <= '0';
+                If(iStream.Data_Valid = '1')
+                {
+                    Value_Buf := Value_Buf(Filter_Columns-2 downto 0) & iData; --Always save the last data
+                    If(Padding = valid)
+                    {
+                        If(iStream.Column >= Filter_Columns-1) --Without padding, start output when ram full
+                        {
+                            oStream.Column     <= iStream.Column - (Filter_Columns-1);
+                            oStream.Row        <= iStream.Row;
+                            oStream.Data_Valid <= '1';
+                            Value_Out          <= Value_Buf;
+                        }
+                    }
+                }
+                
+                VARIABLE Valid_Delay : NATURAL range 0 to Filter_Columns/2 := 0;
+                If(Padding = same)
+                {
+                    If((iStream.Data_Valid = '1' AND iStream.Column >= (Filter_Columns-1)/2) OR Valid_Delay > 0) --With padding, start output when half of ram full
+                    {
+                        If(iStream.Data_Valid = '1' AND iStream.Column >= (Filter_Columns-1)/2) --Create column while input valid
+                        {
+                            Valid_Delay := (Filter_Columns-1)/2;
+                            oStream.Column     <= iStream.Column - Valid_Delay;
+                        }
+                        Else  --Create column after last column received
+                        {
+                            oStream.Column     <= Input_Columns - Valid_Delay;
+                            Valid_Delay := Valid_Delay - 1;
+                        }
+                        oStream.Row        <= iStream.Row;
+                        oStream.Data_Valid <= '1';
+                        
+                        Value_Out <= (others => (others => 0));
+                        if(iStream.Column < Filter_Columns-1 AND iStream.Column >= (Filter_Columns-1)/2) --set data while ram not full
+                        {
+                            Value_Out(iStream.Column downto 0) <= Value_Buf(iStream.Column downto 0);
+                        }
+                        Else  --set data while input valid and while sending last data with padding
+                        {
+                            Value_Out(Filter_Columns-1 downto (Filter_Columns-1)/2-Valid_Delay) <= Value_Buf(Filter_Columns/2+Valid_Delay downto 0);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

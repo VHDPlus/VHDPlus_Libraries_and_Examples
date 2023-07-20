@@ -1,0 +1,133 @@
+/*
+    Name: Color Correction
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 23.02.2020
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+    
+    Description: -This component corrects the R, G and B output of the camera
+                 -The values can be multiplied, divided or added by individual values to correct the colors
+
+    Insertion:   -Right click on the file -> Add to active project
+                 -Add NewComponent of this component into your code
+                 -Set the parameters according to your application
+                 -Connect the camera stream
+                    
+    Example:     Camera_CSI_Example
+ */
+
+Component MAX_Invert_Filter
+(
+    Include
+    (
+        Image_Data_Package.all,
+    );
+    Generic
+    (
+        CLK_Edge    : BOOLEAN := true; --true = rising edge
+    );
+    
+    Threshold    : IN INTEGER range 0 to 1000 := 255;
+    
+    iStream      : in   rgb_stream;
+    oStream      : out  rgb_stream;
+)
+{
+    oStream.New_Pixel <= iStream.New_Pixel;
+    
+    SIGNAL iStream_buf    : rgb_stream;
+    SIGNAL iStream_buf2   : rgb_stream;
+    SIGNAL oStream_buf    : rgb_stream;
+    
+    SIGNAL New_Pixel_Buf : STD_LOGIC;
+    New_Pixel_Buf <= iStream.New_Pixel when CLK_Edge else NOT iStream.New_Pixel;
+    
+    --Synchron machen
+    Process ()
+    {
+        If(rising_edge(New_Pixel_Buf))
+        {
+            iStream_buf <= iStream;
+            
+            oStream.R <= oStream_buf.R;
+            oStream.G <= oStream_buf.G;
+            oStream.B <= oStream_buf.B;
+            oStream.Column <= oStream_buf.Column;
+            oStream.Row <= oStream_buf.Row;
+            
+            
+            pixel_buf_o := Threshold-pixel_buf;
+            
+            If(pixel_buf_o > 255)
+            {
+                pixel_buf_o := 255;
+            }
+            Elsif(pixel_buf_o < 0)
+            {
+                pixel_buf_o := 0;
+            }
+            
+            pixel_buf_o := pixel_buf_o*2;
+            
+            If(pixel_buf_o > 255)
+            {
+                pixel_buf_o := 255;
+            }
+            Elsif(pixel_buf_o < 0)
+            {
+                pixel_buf_o := 0;
+            }
+            
+            
+            If(iStream_buf2.Row >= 448 OR iStream_buf2.Column < 80 OR iStream_buf2.Column >= 528)
+            {
+                pixel_buf_o := 0;
+            }
+            
+            VARIABLE pixel_buf_o : INTEGER range -1000 to 1000;
+            VARIABLE pixel_buf   : INTEGER range 0 to 765;
+            /*
+            pixel_buf   := TO_INTEGER(UNSIGNED(iStream_buf.R));
+            If(pixel_buf > TO_INTEGER(UNSIGNED(iStream_buf.G)))
+            {
+                pixel_buf := TO_INTEGER(UNSIGNED(iStream_buf.G));
+            }
+            If(pixel_buf > TO_INTEGER(UNSIGNED(iStream_buf.B)))
+            {
+                pixel_buf := TO_INTEGER(UNSIGNED(iStream_buf.B));
+            }
+            */
+            pixel_buf   := TO_INTEGER(UNSIGNED(iStream_buf.R)) + TO_INTEGER(UNSIGNED(iStream_buf.G)) + TO_INTEGER(UNSIGNED(iStream_buf.B));
+            
+            --pixel_buf := pixel_buf*3;
+            
+            iStream_buf2.Column <= iStream_buf.Column;
+            iStream_buf2.Row    <= iStream_buf.Row;
+            
+            oStream_buf.Column <= iStream_buf2.Column;
+            oStream_buf.Row    <= iStream_buf2.Row;
+            
+            oStream_buf.R <= STD_LOGIC_VECTOR(TO_UNSIGNED(pixel_buf_o,8));
+            oStream_buf.G <= STD_LOGIC_VECTOR(TO_UNSIGNED(pixel_buf_o,8));
+            oStream_buf.B <= STD_LOGIC_VECTOR(TO_UNSIGNED(pixel_buf_o,8));
+        }
+    }
+    
+}

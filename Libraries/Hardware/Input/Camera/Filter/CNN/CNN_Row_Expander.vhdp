@@ -1,0 +1,160 @@
+/*
+    Name: CNN Row Buffer
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 01.08.2022
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+    Description: -This component buffers a row and creates an oStream that has more space between the new data
+                 -The Convolution layer can then take more time to calculate the output
+                 -Input:  -_-_-_-_________
+                 -Output: -___-___-___-___
+ */
+
+Component CNN_Row_Expander
+(
+    Include
+    (
+        CNN_Config_Package.all,
+    );
+    Generic
+    (
+        Input_Columns  : NATURAL := 28; --Size in x direction of input
+        Input_Rows     : NATURAL := 28; --Size in y direction of input
+        Input_Values   : NATURAL := 1;  --Number of Filters in previous layer or 3 for RGB input
+        Input_Cycles   : NATURAL := 1;  --Filter Cycles of previous convolution
+        Output_Cycles  : NATURAL := 2;  --2 = new data for every second clock edge
+    );
+    iStream : IN  CNN_Stream_T;
+    iData   : IN  CNN_Values_T(Input_Values/Input_Cycles-1 downto 0);
+    
+    oStream : OUT CNN_Stream_T;
+    oData   : OUT CNN_Values_T(Input_Values/Input_Cycles-1 downto 0);
+)
+{
+    type RAM_T is array (0 to Input_Columns*Input_Cycles-1) of STD_LOGIC_VECTOR((CNN_Value_Resolution+CNN_Value_Negative)*(Input_Values/Input_Cycles)-1 downto 0);
+    SIGNAL Buffer_RAM   : RAM_T;
+    SIGNAL RAM_Addr_In  : NATURAL range 0 to Input_Columns*Input_Cycles-1;
+    SIGNAL RAM_Addr_Out : NATURAL range 0 to Input_Columns*Input_Cycles-1;
+    SIGNAL RAM_Data_In  : STD_LOGIC_VECTOR((CNN_Value_Resolution+CNN_Value_Negative)*(Input_Values/Input_Cycles)-1 downto 0);
+    SIGNAL RAM_Data_Out : STD_LOGIC_VECTOR((CNN_Value_Resolution+CNN_Value_Negative)*(Input_Values/Input_Cycles)-1 downto 0);
+    
+    Process()
+    {
+        If(falling_edge(iStream.Data_CLK))
+        {
+            Buffer_RAM(RAM_Addr_In) <= RAM_Data_In;
+            RAM_Data_Out <= Buffer_RAM(RAM_Addr_Out);
+        }
+    }
+    
+    oStream.Data_CLK <= iStream.Data_CLK;
+
+    Process()
+    {
+        If(rising_edge(iStream.Data_CLK))
+        {
+            --Buffer data to set RAM
+            If(iStream.Data_Valid = '1')
+            {
+                VARIABLE iData_Buf : CNN_Values_T(Input_Values/Input_Cycles-1 downto 0);
+                iData_Buf := iData;
+            }
+            --Set new input data
+            For(i in 0 to Input_Values/Input_Cycles-1)
+            {
+                If(CNN_Value_Negative = 0)
+                {
+                    RAM_Data_In(CNN_Value_Resolution*(i+1)-1 downto CNN_Value_Resolution*i) <= STD_LOGIC_VECTOR(TO_UNSIGNED(iData_Buf(i), CNN_Value_Resolution));
+                }
+                Else
+                {
+                    RAM_Data_In((CNN_Value_Resolution+CNN_Value_Negative)*(i+1)-1 downto (CNN_Value_Resolution+CNN_Value_Negative)*i) <= STD_LOGIC_VECTOR(TO_SIGNED(iData_Buf(i), CNN_Value_Resolution+CNN_Value_Negative));
+                }
+            }
+            RAM_Addr_In <= iStream.Column*Input_Cycles+iStream.Filter;
+            --Count for output delay between new data
+            SIGNAL Delay_Cnt : NATURAL range 0 to Output_Cycles-1 := 0;
+            SIGNAL Reset_Col : STD_LOGIC := '0';
+            VARIABLE Valid_Reg : STD_LOGIC := '0';
+            If(iStream.Data_Valid = '1' AND Valid_Reg = '0' and iStream.Column = 0) --Sync output with first column
+            {
+                Delay_Cnt <= 0; --Output is delayed by one cycle
+                Reset_Col <= '1';
+            }
+            Elsif(Delay_Cnt < Output_Cycles-1)
+            {
+                Delay_Cnt <= Delay_Cnt + 1;
+            }
+            Elsif(iStream.Column > Column_Buf)
+            {
+                Delay_Cnt <= 0;
+            }
+            Valid_Reg := iStream.Data_Valid;
+            
+            SIGNAL oStream_Reg : CNN_Stream_T;
+            
+            --Set output data
+            VARIABLE Column_Buf : NATURAL range 0 to Input_Columns-1;
+            VARIABLE Filter_Cnt : NATURAL range 0 to Input_Values-1;
+            If(Reset_Col = '1')
+            {
+                Reset_Col <= '0';
+                Column_Buf := 0;
+                Filter_Cnt := 0;
+                oStream_Reg.Data_Valid <= '1';
+            }
+            Elsif(Delay_Cnt = 0 AND Column_Buf < Input_Columns-1)
+            {
+                Column_Buf := Column_Buf + 1;
+                Filter_Cnt := 0;
+                oStream_Reg.Data_Valid <= '1';
+            }
+            Elsif(Filter_Cnt < (Input_Cycles-1)*(Input_Values/Input_Cycles))
+            {
+                Filter_Cnt := Filter_Cnt + Input_Values/Input_Cycles;
+            }
+            Else
+            {
+                oStream_Reg.Data_Valid <= '0';
+            }
+            oStream_Reg.Column <= Column_Buf;
+            oStream_Reg.Row    <= iStream.Row;
+            oStream_Reg.Filter <= Filter_Cnt;
+            RAM_Addr_Out <= Column_Buf*Input_Cycles+Filter_Cnt;
+            
+            oStream.Column     <= oStream_Reg.Column;
+            oStream.Row        <= oStream_Reg.Row;
+            oStream.Filter     <= oStream_Reg.Filter;
+            oStream.Data_Valid <= oStream_Reg.Data_Valid;
+            For(i in 0 to Input_Values/Input_Cycles-1)
+            {
+                If(CNN_Value_Negative = 0)
+                {
+                    oData(i) <= TO_INTEGER(UNSIGNED(RAM_Data_Out(CNN_Value_Resolution*(i+1)-1 downto CNN_Value_Resolution*i)));
+                }
+                Else
+                {
+                    oData(i) <= TO_INTEGER(SIGNED(RAM_Data_Out((CNN_Value_Resolution+CNN_Value_Negative)*(i+1)-1 downto (CNN_Value_Resolution+CNN_Value_Negative)*i)));
+                }
+            }
+        }
+    }
+}

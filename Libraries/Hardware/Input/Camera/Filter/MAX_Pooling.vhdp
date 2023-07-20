@@ -1,0 +1,197 @@
+/*
+    Name: MAX_Pooling
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 01.08.2022
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+   
+ */
+
+Component MAX_Pooling
+(
+    Include
+    (
+        image_data_package.all
+    );
+    Generic
+    (
+        Input_Columns  : NATURAL := 28; --Size in x direction of input
+        Input_Rows     : NATURAL := 28; --Size in y direction of input
+        Input_Values   : NATURAL := 1;  --(1-3 for R, RG or RGB)
+        Filter_Columns : NATURAL := 3;  --Size in x direction of filters
+        Filter_Rows    : NATURAL := 3;  --Size in y direction of filters
+    );
+    iStream : IN  rgb_stream;
+    
+    oStream : OUT rgb_stream;
+)
+{
+    CONSTANT RAM_Bits  : NATURAL := 8*Input_Values;
+    CONSTANT RAM_Width : NATURAL := Input_Columns/Filter_Columns;
+    SIGNAL RAM_Addr_Out : natural range 0 to RAM_Width - 1;
+    SIGNAL RAM_Addr_In : natural range 0 to RAM_Width - 1;
+    SIGNAL RAM_Data_In : std_logic_vector(23 downto 0);
+    SIGNAL RAM_Data_Out : std_logic_vector(23 downto 0);
+    SIGNAL RAM_Enable  : STD_LOGIC := '0';
+    
+    type RAM_T is array (RAM_Width-1 downto 0) of STD_LOGIC_VECTOR(RAM_Bits-1 downto 0);
+    SIGNAL Buffer_RAM : RAM_T := (others => (others => '0'));
+    
+    Process()
+    {
+        If(rising_edge(iStream.New_Pixel))
+        {
+            If(RAM_Enable = '1')
+            {
+                --Save data in RAM
+                Buffer_RAM(RAM_Addr_In) <= RAM_Data_In(RAM_Bits-1 downto 0);
+            }
+        }
+    }
+    
+    --Outputs one set of values at a time in matrix to output
+    RAM_Data_Out(RAM_Bits-1 downto 0) <= Buffer_RAM(RAM_Addr_Out);
+    
+    oStream.New_Pixel <= iStream.New_Pixel;
+    
+    Process()
+    {
+        If(rising_edge(iStream.New_Pixel))
+        {
+            VARIABLE max_Col_Buf : rgb_data;
+            VARIABLE max_Col_Cnt : NATURAL range 0 to Filter_Columns-1 := Filter_Columns-1;
+            SIGNAL   Col_Reg     : NATURAL range 0 to Image_Width-1;
+            
+            SIGNAL iStream_Buf : rgb_stream;
+            SIGNAL oStream_Buf : rgb_stream;
+            
+            iStream_Buf.R <= iStream.R;
+            If(Input_Values > 1)
+            {
+                iStream_Buf.G <= iStream.G;
+            }
+            If(Input_Values > 2)
+            {
+                iStream_Buf.B <= iStream.B;
+            }
+            iStream_Buf.Column <= iStream.Column;
+            iStream_Buf.Row    <= iStream.Row;
+            
+            oStream.R      <= oStream_Buf.R;
+            oStream.G      <= oStream_Buf.G;
+            oStream.B      <= oStream_Buf.B;
+            oStream.Column <= oStream_Buf.Column;
+            oStream.Row    <= oStream_Buf.Row;
+            
+            If(iStream_Buf.Column /= Col_Reg AND iStream_Buf.Column < Input_Columns AND iStream_Buf.Row < Input_Rows)
+            {
+                If(max_Col_Cnt < Filter_Columns-1)
+                {
+                    max_Col_Cnt := max_Col_Cnt + 1;
+                }
+                Else
+                {
+                    max_Col_Cnt := 0;
+                }
+                
+                If(iStream_Buf.Column = 0)
+                {
+                    max_Col_Cnt := 0;
+                }
+                
+                If(max_Col_Cnt = 0)
+                {
+                    max_Col_Buf.R := iStream_Buf.R;
+                    max_Col_Buf.G := iStream_Buf.G;
+                    max_Col_Buf.B := iStream_Buf.B;
+                }
+                Else
+                {
+                    If(iStream_Buf.R > max_Col_Buf.R)
+                    {
+                        max_Col_Buf.R := iStream_Buf.R;
+                    }
+                    If(Input_Values > 1 AND iStream_Buf.G > max_Col_Buf.G)
+                    {
+                        max_Col_Buf.G := iStream_Buf.G;
+                    }
+                    If(Input_Values > 2 AND iStream_Buf.B > max_Col_Buf.B)
+                    {
+                        max_Col_Buf.B := iStream_Buf.B;
+                    }
+                }
+                
+                If(max_Col_Cnt = Filter_Columns-1)
+                {
+                    If(iStream_Buf.Row mod Filter_Rows > 0)
+                    {
+                        If(UNSIGNED(RAM_Data_Out(7 downto 0)) > UNSIGNED(max_Col_Buf.R))
+                        {
+                            max_Col_Buf.R := RAM_Data_Out(7 downto 0);
+                        }
+                        If(Input_Values > 1 AND UNSIGNED(RAM_Data_Out(15 downto 8)) > UNSIGNED(max_Col_Buf.G))
+                        {
+                            max_Col_Buf.G := RAM_Data_Out(15 downto 8);
+                        }
+                        If(Input_Values > 2 AND UNSIGNED(RAM_Data_Out(23 downto 16)) > UNSIGNED(max_Col_Buf.B))
+                        {
+                            max_Col_Buf.B := RAM_Data_Out(23 downto 16);
+                        }
+                    }
+                    
+                    If(iStream_Buf.Row mod Filter_Rows = Filter_Rows-1)
+                    {
+                        oStream_Buf.R <= max_Col_Buf.R;
+                        If(Input_Values > 1)
+                        {
+                            oStream_Buf.G <= max_Col_Buf.G;
+                        }
+                        If(Input_Values > 2)
+                        {
+                            oStream_Buf.B <= max_Col_Buf.B;
+                        }
+                        
+                        oStream_Buf.Column <= iStream_Buf.Column/Filter_Columns;
+                        oStream_Buf.Row    <= iStream_Buf.Row/Filter_Rows;
+                    }
+                    Else
+                    {
+                        RAM_Data_In(7 downto 0) <= max_Col_Buf.R;
+                        If(Input_Values > 1)
+                        {
+                            RAM_Data_In(15 downto 8) <= max_Col_Buf.G;
+                        }
+                        If(Input_Values > 2)
+                        {
+                            RAM_Data_In(23 downto 16) <= max_Col_Buf.B;
+                        }
+                    }
+                    
+                    RAM_Addr_In <= iStream_Buf.Column/Filter_Columns;
+                }
+                
+                RAM_Addr_Out <= iStream_Buf.Column/Filter_Columns;
+            }
+            
+            Col_Reg <= iStream_Buf.Column;
+        }
+    }
+}

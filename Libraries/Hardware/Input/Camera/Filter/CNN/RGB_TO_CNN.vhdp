@@ -1,0 +1,89 @@
+/*
+    Name: RGB_TO_CNN
+    Rev: 1.0
+    Creator: Leon Beier
+    Date: 01.08.2022
+    Copyright (c) 2020 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+   
+ */
+
+Component RGB_TO_CNN
+(
+    Include
+    (
+        image_data_package.all,
+        cnn_config_package.all,
+    );
+    
+    Generic
+    (
+        Input_Values   : NATURAL := 1;  --(1-3 for R, RG or RGB)
+    );
+    
+    iStream : IN  rgb_stream;
+    
+    oStream : OUT CNN_Stream_T;
+    oData   : OUT CNN_Values_T(Input_Values-1 downto 0);
+)
+{
+    
+    oStream.Data_CLK <= iStream.New_Pixel;
+    
+    Process()
+    {
+        If(rising_edge(iStream.New_Pixel))
+        {
+            SIGNAL   Col_Reg     : NATURAL range 0 to Image_Width-1 := Image_Width-1;
+            
+            SIGNAL oStream_Buf : CNN_Stream_T;
+            SIGNAL oData_Buf   : CNN_Values_T(2 downto 0);
+            
+            If(iStream.Column /= Col_Reg)
+            {
+                oStream_Buf.Data_Valid <= '1';
+            }
+            Else
+            {
+                oStream_Buf.Data_Valid <= '0';
+            }
+            
+            oStream_Buf.Column <= iStream.Column;
+            oStream_Buf.Row    <= iStream.Row;
+            oData_Buf(0)       <= TO_INTEGER(UNSIGNED(iStream.R));
+            If(Input_Values > 1)
+            {
+                oData_Buf(1)       <= TO_INTEGER(UNSIGNED(iStream.G));
+            }
+            If(Input_Values > 2)
+            {
+                oData_Buf(2)       <= TO_INTEGER(UNSIGNED(iStream.B));
+            }
+            
+            oStream.Column     <= oStream_Buf.Column;
+            oStream.Row        <= oStream_Buf.Row;
+            oStream.Data_Valid <= oStream_Buf.Data_Valid;
+            oStream.Filter     <= 0;
+            oData              <= oData_Buf(Input_Values-1 downto 0);
+            
+            Col_Reg <= iStream.Column;
+        }
+    }
+}

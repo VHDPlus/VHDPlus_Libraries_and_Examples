@@ -1,0 +1,308 @@
+Component CNN
+(
+    Generic
+    (
+        Input_Columns  : NATURAL := 448; --Size in x direction of input
+        Input_Rows     : NATURAL := 448; --Size in y direction of input
+        Column_Offset  : NATURAL := 80;  --Offset for column to fit into square
+        CNN_Columns    : NATURAL := 28;  --Size in x direction of CNN
+        CNN_Rows       : NATURAL := 28;  --Size in y direction of CNN
+    );
+    iStream     : IN  rgb_stream;
+    
+    Prediction  : OUT NATURAL range 0 to NN_Layer_1_Outputs-1;
+    Probability : OUT CNN_Value_T;
+)
+{
+    
+    
+    SIGNAL Pooling_iStream    : rgb_stream;
+    
+    Process()
+    {
+        If(rising_edge(iStream.New_Pixel))
+        {
+            
+            If(iStream.Row < Input_Rows)
+            {
+                Pooling_iStream.Row <= iStream.Row;
+            }
+            Else
+            {
+                Pooling_iStream.Row <= Input_Rows-1;
+            }
+            If(iStream.Row < Input_Rows AND iStream.Column >= Column_Offset AND iStream.Column < Input_Columns+Column_Offset)
+            {
+                Pooling_iStream.Column <= iStream.Column-Column_Offset;
+            }
+            Else
+            {
+                Pooling_iStream.Column <= Input_Columns-1;
+            }
+            Pooling_iStream.R         <= iStream.R;
+        }
+    }
+    
+    Pooling_iStream.new_pixel <= iStream.new_pixel;
+    
+    SIGNAL Pooling_oStream     : rgb_stream;
+    NewComponent MAX_Pooling
+    (
+        Input_Columns  => Input_Columns,
+        Input_Rows     => Input_Rows,
+        Input_Values   => 1,
+        Filter_Columns => Input_Columns/CNN_Columns,
+        Filter_Rows    => Input_Rows/CNN_Rows,
+
+        iStream        => Pooling_iStream,
+        oStream        => Pooling_oStream,
+    );
+    
+    NewComponent RGB_TO_CNN
+    (
+        Input_Values => 1,
+
+        iStream      => Pooling_oStream,
+        oStream      => oStream_P,
+        oData        => oData_P,
+    );
+    
+    SIGNAL oStream_P : CNN_Stream_T;
+    SIGNAL oData_P   : CNN_Values_T(0 downto 0);
+    
+    SIGNAL oStream_12 : CNN_Stream_T;
+    SIGNAL oData_12   : CNN_Values_T(Layer_1_Filters/4-1 downto 0);
+    
+    NewComponent CNN_Convolution
+    (
+        Input_Columns  => Layer_1_Columns,
+        Input_Rows     => Layer_1_Rows,
+        Input_Values   => Layer_1_Values,
+        Filter_Columns => Layer_1_Filter_X,
+        Filter_Rows    => Layer_1_Filter_Y,
+        Filters        => Layer_1_Filters,
+        Strides        => Layer_1_Strides,  --For 2 Strides -> Columns and Rows should be a divisor of two
+        Activation     => Layer_1_Activation,
+        Padding        => Layer_1_Padding,
+        Value_Cycles   => 1,
+        Calc_Cycles    => 4,
+        Filter_Cycles  => 4,
+        Expand_Cycles  => 240,
+        Offset_In      => 0,
+        Offset_Out     => Layer_1_Out_Offset-3,  --Most values between -2 and 2 although Out_Offset = 3 -> max = 8
+        Offset         => Layer_1_Offset,
+        Weights        => Layer_1,
+
+        iStream        => oStream_P,
+        iData          => oData_P,
+        oStream        => oStream_12,
+        oData          => oData_12,
+    );
+    
+    SIGNAL oStream_P12 : CNN_Stream_T;
+    SIGNAL oData_P12   : CNN_Values_T(Pooling_1_Values/4-1 downto 0);
+    
+    NewComponent CNN_Pooling
+    (
+        Input_Columns  => Pooling_1_Columns,
+        Input_Rows     => Pooling_1_Rows,
+        Input_Values   => Pooling_1_Values,
+        Filter_Columns => Pooling_1_Filter_X,
+        Filter_Rows    => Pooling_1_Filter_Y,
+        Strides        => Pooling_1_Strides,
+        Padding        => Pooling_1_Padding,
+        Input_Cycles   => 4,
+        Value_Cycles   => 4,
+        Filter_Cycles  => 4,
+        Filter_Delay   => 1,
+
+        iStream        => oStream_12,
+        iData          => oData_12,
+        oStream        => oStream_P12,
+        oData          => oData_P12,
+    );
+    
+    SIGNAL oStream_22 : CNN_Stream_T;
+    SIGNAL oData_22   : CNN_Values_T(Layer_2_Filters/6-1 downto 0);
+    
+    NewComponent CNN_Convolution
+    (
+        Input_Columns  => Layer_2_Columns,
+        Input_Rows     => Layer_2_Rows,
+        Input_Values   => Layer_2_Values,
+        Filter_Columns => Layer_2_Filter_X,
+        Filter_Rows    => Layer_2_Filter_Y,
+        Filters        => Layer_2_Filters,
+        Strides        => Layer_2_Strides,
+        Activation     => Layer_2_Activation,
+        Padding        => Layer_2_Padding,
+        Input_Cycles   => 4,
+        Value_Cycles   => 4,
+        Calc_Cycles    => 6,
+        Filter_Cycles  => 6,
+        Expand_Cycles  => 960,  --240*4
+        Offset_In      => Layer_1_Out_Offset,
+        Offset_Out     => Layer_2_Out_Offset,
+        Offset         => Layer_2_Offset,
+        Weights        => Layer_2,
+
+        iStream        => oStream_P12,
+        iData          => oData_P12,
+        oStream        => oStream_22,
+        oData          => oData_22,
+    );
+    
+    SIGNAL oStream_P22 : CNN_Stream_T;
+    SIGNAL oData_P22   : CNN_Values_T(Pooling_2_Values/6-1 downto 0);
+    
+    NewComponent CNN_Pooling
+    (
+        Input_Columns  => Pooling_2_Columns,
+        Input_Rows     => Pooling_2_Rows,
+        Input_Values   => Pooling_2_Values,
+        Filter_Columns => Pooling_2_Filter_X,
+        Filter_Rows    => Pooling_2_Filter_Y,
+        Strides        => Pooling_2_Strides,
+        Padding        => Pooling_2_Padding,
+        Input_Cycles   => 6,
+        Value_Cycles   => 6,
+        Filter_Cycles  => 6,
+        Filter_Delay   => 1,
+
+        iStream        => oStream_22,
+        iData          => oData_22,
+        oStream        => oStream_P22,
+        oData          => oData_P22,
+    );
+
+    SIGNAL oStream_32 : CNN_Stream_T;
+    SIGNAL oData_32   : CNN_Values_T(Layer_3_Filters/8-1 downto 0);
+    
+    NewComponent CNN_Convolution
+    (
+        Input_Columns  => Layer_3_Columns,
+        Input_Rows     => Layer_3_Rows,
+        Input_Values   => Layer_3_Values,
+        Filter_Columns => Layer_3_Filter_X,
+        Filter_Rows    => Layer_3_Filter_Y,
+        Filters        => Layer_3_Filters,
+        Strides        => Layer_3_Strides,
+        Activation     => Layer_3_Activation,
+        Padding        => Layer_3_Padding,
+        Input_Cycles   => 6,
+        Value_Cycles   => 6,
+        Calc_Cycles    => 8,
+        Filter_Cycles  => 8,
+        Expand_Cycles  => 3840, --960*4
+        Offset_In      => Layer_2_Out_Offset,
+        Offset_Out     => Layer_3_Out_Offset,
+        Offset         => Layer_3_Offset,
+        Weights        => Layer_3,
+
+        iStream        => oStream_P22,
+        iData          => oData_P22,
+        oStream        => oStream_32,
+        oData          => oData_32,
+    );
+    
+    SIGNAL oStream_P32 : CNN_Stream_T;
+    SIGNAL oData_P32   : CNN_Values_T(Pooling_3_Values/8-1 downto 0);
+    
+    NewComponent CNN_Pooling
+    (
+        Input_Columns  => Pooling_3_Columns,
+        Input_Rows     => Pooling_3_Rows,
+        Input_Values   => Pooling_3_Values,
+        Filter_Columns => Pooling_3_Filter_X,
+        Filter_Rows    => Pooling_3_Filter_Y,
+        Strides        => Pooling_3_Strides,
+        Padding        => Pooling_3_Padding,
+        Input_Cycles   => 8,
+        Value_Cycles   => 8,
+        Filter_Cycles  => 8,
+        Filter_Delay   => NN_Layer_1_Outputs,
+
+        iStream        => oStream_32,
+        iData          => oData_32,
+        oStream        => oStream_P32,
+        oData          => oData_P32,
+    );
+    
+    SIGNAL oStream_F : CNN_Stream_T;
+    SIGNAL oData_F   : CNN_Values_T(0 downto 0);
+    
+    oStream_F <= oStream_P32;
+    oData_F   <= oData_P32;
+
+    Process()
+    {
+        If(rising_edge(oStream_F.Data_CLK))
+        {
+            iCycle_1N             <= (oStream_F.Row*Flatten_Columns+oStream_F.Column)*Flatten_Values + oStream_F.Filter;
+            iStream_1N.Data_Valid <= oStream_F.Data_Valid;
+            iData_1N              <= oData_F;
+        }
+    }
+    
+    iStream_1N.Data_CLK <= oStream_F.Data_CLK;
+    
+    SIGNAL iStream_1N : CNN_Stream_T;
+    SIGNAL iData_1N   : CNN_Values_T(0 downto 0);
+    SIGNAL oStream_1N : CNN_Stream_T;
+    SIGNAL oData_1N  : CNN_Values_T(NN_Layer_1_Outputs/10-1 downto 0);
+    SIGNAL iCycle_1N : NATURAL range 0 to Flatten_Columns*Flatten_Rows*8 - 1;
+    SIGNAL oCycle_1N : NATURAL range 0 to NN_Layer_1_Outputs-1;
+    NewComponent NN_Layer
+    (
+        Inputs          => NN_Layer_1_Inputs,
+        Outputs         => NN_Layer_1_Outputs,
+        Activation      => NN_Layer_1_Activation,
+        Calc_Cycles_In  => Flatten_Columns*Flatten_Rows*8,
+        Out_Cycles      => NN_Layer_1_Outputs,
+        Calc_Cycles_Out => NN_Layer_1_Outputs,
+        Offset_In       => Layer_3_Out_Offset,
+        Offset_Out      => NN_Layer_1_Out_Offset,
+        Offset          => NN_Layer_1_Offset,
+        Weights         => NN_Layer_1,
+
+        iStream         => iStream_1N,
+        iData           => iData_1N,
+        iCycle          => iCycle_1N,
+        oStream         => oStream_1N,
+        oData           => oData_1N,
+        oCycle          => oCycle_1N,
+    );
+
+    Process()
+    {
+        If(rising_edge(oStream_1N.Data_CLK))
+        {
+            If(oStream_1N.Data_Valid = '1')
+            {
+                VARIABLE max        : CNN_Value_T;
+                VARIABLE max_number : NATURAL range 0 to NN_Layer_1_Outputs-1;
+                If(oCycle_1N = 0)
+                {
+                    max := 0;
+                    max_number := 0;
+                }
+                If(oData_1N(0) > max)
+                {
+                    max        := oData_1N(0);
+                    max_number := oCycle_1N;
+                }
+                If(oCycle_1N = NN_Layer_1_Outputs-1)
+                {
+                    SIGNAL max_o        : CNN_Value_T;
+                    SIGNAL max_number_o : NATURAL range 0 to NN_Layer_1_Outputs-1;
+                    
+                    max_number_o <= max_number;
+                    max_o        <= max;
+                }
+            }
+        }
+    }
+    
+    Prediction  <= max_number_o;
+    Probability <= max_o;
+}
