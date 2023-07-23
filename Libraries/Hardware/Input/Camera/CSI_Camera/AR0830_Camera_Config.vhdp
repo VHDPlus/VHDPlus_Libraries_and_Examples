@@ -291,6 +291,10 @@ Component AR0830_Cam_Config
         SCL           => SCL,
     );
 
+    CONSTANT Line_Length  : INTEGER := (4400*30)/Image_FPS;
+    CONSTANT Frame_Length : INTEGER := (((750*Image_Height)/483)*Image_Width)/646;
+    CONSTANT Integration  : INTEGER := (((720*Image_Exposure)/100)*Image_Height)/483;
+
     CONSTANT default_init_length : NATURAL := 727;
 
     SIGNAL d_address : NATURAL range 0 to default_init_length := 0;
@@ -972,9 +976,9 @@ Component AR0830_Cam_Config
         (x"0900",x"0000", x"0000"),
         (x"0901",x"0011", x"0000"),
         (x"0100",x"0000", x"0000"),
-        (x"0342",STD_LOGIC_VECTOR(TO_UNSIGNED((4400*30)/Image_FPS, 16)), x"0001"),
-        (x"0340",STD_LOGIC_VECTOR(TO_UNSIGNED((((750*Image_Height)/483)*Image_Width)/646, 16)), x"0001"),
-        (x"0202",STD_LOGIC_VECTOR(TO_UNSIGNED((((720*Image_Exposure)/100)*Image_Height)/483,16)), x"0001"),
+        (x"0342",STD_LOGIC_VECTOR(TO_UNSIGNED(Line_Length, 16)), x"0001"),
+        (x"0340",STD_LOGIC_VECTOR(TO_UNSIGNED(Frame_Length, 16)), x"0001"),
+        (x"0202",STD_LOGIC_VECTOR(TO_UNSIGNED(Integration,16)), x"0001"),
         (x"0112",x"0808", x"0001"), --8 Bit
         
         (x"0206",x"0100", x"0001"),
