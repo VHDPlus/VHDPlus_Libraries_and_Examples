@@ -16,6 +16,8 @@ Component AR0830_Cam_Config
     SDA         : INOUT STD_LOGIC;
     
     iStream     : IN  rgb_stream; --Brighness Adjust
+    
+    debug       : OUT STD_LOGIC_VECTOR(7 downto 0);
 )
 {
     SIGNAL Gain : NATURAL range 0 to 127 := 20;
@@ -68,6 +70,8 @@ Component AR0830_Cam_Config
             }
         }
     }
+    
+    CONSTANT debug_en : BOOLEAN := false;
     
     --Send initial data on startup
     Process Cam_Init
@@ -185,47 +189,57 @@ Component AR0830_Cam_Config
                 }
                 Else
                 {
-                    VARIABLE set_table      : BOOLEAN := false;
-                    VARIABLE brightness_cnt : NATURAL range 0 to CLK_Frequency/20 := 0;
                     
-                    If(set_table)
+                    VARIABLE ISSP_reg : STD_LOGIC := '0';
+                    If(debug_en AND ISSP_source(32) = '1' AND ISSP_reg = '0')
                     {
-                        d_address <= d_address + 1;
-                        set_table := false;
                         state := 9;
                     }
                     Else
                     {
-                        d_address <= default_init_length-3;
+                        VARIABLE set_table      : BOOLEAN := false;
+                        VARIABLE brightness_cnt : NATURAL range 0 to CLK_Frequency/20 := 0;
                         
-                        If(brightness_cnt < CLK_Frequency/20)
+                        If(set_table)
                         {
-                            brightness_cnt := brightness_cnt + 1;
+                            d_address <= d_address + 1;
+                            set_table := false;
+                            state := 9;
                         }
                         Else
                         {
-                            brightness_cnt := 0;
-                            If(Correct_B > 0)
+                            d_address <= default_init_length-3;
+                            
+                            If(brightness_cnt < CLK_Frequency/20)
                             {
-                                If(Correct_B = 2)
+                                brightness_cnt := brightness_cnt + 1;
+                            }
+                            Else
+                            {
+                                brightness_cnt := 0;
+                                If(Correct_B > 0)
                                 {
-                                    If(Gain > 0)
+                                    If(Correct_B = 2)
                                     {
-                                        Gain <= Gain - 1;
+                                        If(Gain > 0)
+                                        {
+                                            Gain <= Gain - 1;
+                                        }
                                     }
-                                }
-                                Else
-                                {
-                                    If(Gain < 127)
+                                    Else
                                     {
-                                        Gain <= Gain + 1;
+                                        If(Gain < 127)
+                                        {
+                                            Gain <= Gain + 1;
+                                        }
                                     }
+                                    state := 9;
+                                    set_table := true;
                                 }
-                                state := 9;
-                                set_table := true;
                             }
                         }
                     }
+                    ISSP_reg := ISSP_source(32);
                     
                 }
             }
@@ -264,6 +278,17 @@ Component AR0830_Cam_Config
             
         }
     }
+    
+    SIGNAL ISSP_source: std_logic_vector(32 downto 0) := (others => '0');
+    Generate(if debug_en)
+    {
+        /*
+        NewComponent ISSP
+        (
+            source => ISSP_source,
+        );
+        */
+    }
 
     SIGNAL I2C_Master_Interface_Enable        : STD_LOGIC := '0';
     SIGNAL I2C_Master_Interface_Address       : STD_LOGIC_VECTOR (6 DOWNTO 0) := (others => '0');
@@ -290,7 +315,7 @@ Component AR0830_Cam_Config
         SDA           => SDA,
         SCL           => SCL,
     );
-
+    
     CONSTANT Line_Length  : INTEGER := (4400*30)/Image_FPS;
     CONSTANT Frame_Length : INTEGER := (((750*Image_Height)/483)*Image_Width)/646;
     CONSTANT Integration  : INTEGER := (((720*Image_Exposure)/100)*Image_Height)/483;
@@ -302,9 +327,18 @@ Component AR0830_Cam_Config
     SIGNAL d_data    : STD_LOGIC_VECTOR(15 downto 0) := x"0000";
     SIGNAL d_dat2_en : STD_LOGIC := '1';
 
-    d_sreg <= default_init(d_address)(0);
-    d_data <= default_init(d_address)(1);
-    d_dat2_en <= default_init(d_address)(2)(0);
+    Generate(if debug_en)
+    {
+        d_sreg <= default_init(d_address)(0) when ISSP_source(32) = '0' else ISSP_source(31 downto 16);
+        d_data <= default_init(d_address)(1) when ISSP_source(32) = '0' else ISSP_source(15 downto 0);
+        d_dat2_en <= default_init(d_address)(2)(0) when ISSP_source(32) = '0' else '1';
+    }
+    Generate(if NOT debug_en)
+    {
+        d_sreg <= default_init(d_address)(0);
+        d_data <= default_init(d_address)(1);
+        d_dat2_en <= default_init(d_address)(2)(0);
+    }
 
     TYPE s IS ARRAY (0 to 2) OF STD_LOGIC_VECTOR(15 downto 0);
     TYPE ds IS ARRAY (0 to default_init_length-1) OF s;
@@ -1045,9 +1079,7 @@ Component AR0830_Cam_Config
         (x"54DE",x"54E3", x"0001"),
         
         (x"3062",x"1414", x"0001"), --Gain
-        --(x"3060",x"FF07", x"0001"),
         (x"3060",x"0007", x"0001"),
-        --(x"3060",x"FF01", x"0001"),
         
         --delay 5o
         (x"0100",x"0001", x"0000")
