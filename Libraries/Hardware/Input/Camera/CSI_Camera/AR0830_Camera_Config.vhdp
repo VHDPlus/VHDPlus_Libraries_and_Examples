@@ -26,10 +26,10 @@ Component AR0830_Cam_Config
     {
         If(rising_edge(iStream.New_Pixel))
         {
-            CONSTANT Bright_Max : NATURAL := ((30*Image_Width)/100)*Image_Height;
-            CONSTANT Dark_Max : NATURAL := ((10*Image_Width)/100)*Image_Height;
+            CONSTANT Bright_Max : NATURAL := ((Darker_Threshold*Image_Width)/100)*Image_Height;
+            CONSTANT Dark_Max : NATURAL := ((Good_Threshold*Image_Width)/100)*Image_Height;
             VARIABLE Bright_Cnt : NATURAL range 0 to Bright_Max := 0;
-            VARIABLE Dark_Cnt : NATURAL range 0 to Dark_Max := 100;
+            VARIABLE Dark_Cnt : NATURAL range 0 to Dark_Max := 0;
             SIGNAL Correct_B : NATURAL range 0 to 2 := 0;
             If(iStream.Row = 0 AND iStream.Column = 0)
             {
@@ -53,14 +53,14 @@ Component AR0830_Cam_Config
                     Bright_Cnt := 0;
                     Dark_Cnt   := 0;
                 }
-                if (UNSIGNED(iStream.R) > 250 OR UNSIGNED(iStream.G) > 250 OR UNSIGNED(iStream.B) > 250)
+                if (UNSIGNED(iStream.R) > Too_Bright_Min_R OR UNSIGNED(iStream.G) > Too_Bright_Min_G OR UNSIGNED(iStream.B) > Too_Bright_Min_B)
                 {
                     If(Bright_Cnt < Bright_Max)
                     {
                         Bright_Cnt := Bright_Cnt + 1;
                     }
                 }
-                if (UNSIGNED(iStream.R) > 220 OR UNSIGNED(iStream.G) > 220 OR UNSIGNED(iStream.B) > 220)
+                if (UNSIGNED(iStream.R) > Bright_Min_R OR UNSIGNED(iStream.G) > Bright_Min_G OR UNSIGNED(iStream.B) > Bright_Min_B)
                 {
                     If(Dark_Cnt < Dark_Max)
                     {
