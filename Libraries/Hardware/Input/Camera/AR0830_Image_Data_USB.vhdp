@@ -49,9 +49,9 @@ Package Image_Data_Package
     CONSTANT Too_Bright_Min_R : NATURAL := (Too_Bright_Min_G*2)/3; --Minimum value for the Red Pixels to be categorized as "too bright"
     CONSTANT Too_Bright_Min_B : NATURAL := (Too_Bright_Min_G*3)/5; --Minimum value for the Blue Pixels to be categorized as "too bright"
     
-    CONSTANT Bright_Min_G     : NATURAL := 200; --Minimum value for the Green Pixels to be categorized as "too bright"
-    CONSTANT Bright_Min_R     : NATURAL := (Bright_Min_G*2)/3; --Minimum value for the Red Pixels to be categorized as "too bright"
-    CONSTANT Bright_Min_B     : NATURAL := (Bright_Min_G*3)/5; --Minimum value for the Blue Pixels to be categorized as "too bright"
+    CONSTANT Bright_Min_G     : NATURAL := 200; --Minimum value for the Green Pixels to be categorized as "bright enought"
+    CONSTANT Bright_Min_R     : NATURAL := (Bright_Min_G*2)/3; --Minimum value for the Red Pixels to be categorized as "bright enought"
+    CONSTANT Bright_Min_B     : NATURAL := (Bright_Min_G*3)/5; --Minimum value for the Blue Pixels to be categorized as "bright enought"
 
     --HDMI Timing
     --https://www.digi.com/resources/documentation/digidocs/90001945-13/reference/yocto/r_an_adding_custom_display.htm
