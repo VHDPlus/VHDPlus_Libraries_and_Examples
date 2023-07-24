@@ -61,8 +61,6 @@ Component Camera_Capture_SDRAM
     sdram_dqm    : OUT std_logic_vector (1 downto 0);
     sdram_ras_n  : OUT std_logic;
     sdram_we_n   : OUT std_logic;
-    
-    debug : OUT STD_LOGIC_VECTOR (3 downto 0);
 )
 {
     Connections
@@ -133,8 +131,6 @@ Component Camera_Capture_SDRAM
     RAM_Out_Col <= Read_Column;
     RAM_Out_Row <= Read_Row mod 2;
     
-    debug(3) <= '1' when RAM_Out_Row = 1 else '0';
-    
     RAM_Data_Out <= o_image(RAM_Out_Row)(RAM_Out_Col);
 
     Read_Data <=  RAM_Data_Out(15 downto 11) & "000" & RAM_Data_Out(10 downto 5) & "00" & RAM_Data_Out(4 downto 0) & "000";
@@ -200,11 +196,8 @@ Component Camera_Capture_SDRAM
                     col    := 0;
                     rd_col := 0;
                     
-                    debug(2 downto 0) <= "000";
-                    
                     If(RAM_Out_Row_reg /= RAM_Out_Row)
                     {
-                        debug(2 downto 0) <= "001";
                         states := read;
                         Full_Out_Row_reg   := Read_Row;
                         SDRAM_Read_Enable <= '1';
@@ -212,7 +205,6 @@ Component Camera_Capture_SDRAM
                     }
                     Elsif(RAM_In_Row_reg /= RAM_In_Row)
                     {
-                        debug(2 downto 0) <= "101";
                         If (Enable = '1' OR Full_In_Row_reg > 0)
                         {
                             states := write;
@@ -227,8 +219,6 @@ Component Camera_Capture_SDRAM
                 }
                 When(read)
                 {
-                    debug(2 downto 0) <= "010";
-                    
                     If(SDRAM_Busy = '0')
                     {
                         If(col < Image_Width-1)
@@ -258,9 +248,6 @@ Component Camera_Capture_SDRAM
                 }
                 When(write)
                 {
-                    debug(2 downto 0) <= "110";
-                    --states := write;
-                    
                     If(SDRAM_Busy = '0')
                     {
                         SDRAM_Write_Enable <= '1';
