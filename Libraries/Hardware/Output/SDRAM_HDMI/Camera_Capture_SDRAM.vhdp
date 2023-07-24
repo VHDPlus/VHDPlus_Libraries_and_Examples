@@ -61,6 +61,8 @@ Component Camera_Capture_SDRAM
     sdram_dqm    : OUT std_logic_vector (1 downto 0);
     sdram_ras_n  : OUT std_logic;
     sdram_we_n   : OUT std_logic;
+    
+    debug : OUT STD_LOGIC_VECTOR (3 downto 0);
 )
 {
     Connections
@@ -131,6 +133,8 @@ Component Camera_Capture_SDRAM
     RAM_Out_Col <= Read_Column;
     RAM_Out_Row <= Read_Row mod 2;
     
+    debug(3) <= '1' when RAM_Out_Row = 1 else '0';
+    
     RAM_Data_Out <= o_image(RAM_Out_Row)(RAM_Out_Col);
 
     Read_Data <=  RAM_Data_Out(15 downto 11) & "000" & RAM_Data_Out(10 downto 5) & "00" & RAM_Data_Out(4 downto 0) & "000";
@@ -183,32 +187,35 @@ Component Camera_Capture_SDRAM
             VARIABLE Full_Out_Row_reg : NATURAL range 0 to Image_Height-1 := 0;
             VARIABLE Full_In_Row_reg  : NATURAL range 0 to Image_Height-1 := 0;
             
-            TYPE states_t IS (idle, read, write_load, read_save, write);
+            TYPE states_t IS (idle, read, write);
             VARIABLE states : states_t := idle;
             
-            VARIABLE col : NATURAL range 0 to Image_Width := 0;
+            VARIABLE col    : NATURAL range 0 to Image_Width := 0;
+            VARIABLE rd_col : NATURAL range 0 to Image_Width := 0;
             
             Case(states)
             {
                 When(idle)
                 {
-                    col := 0;
+                    col    := 0;
+                    rd_col := 0;
+                    
+                    debug(2 downto 0) <= "000";
                     
                     If(RAM_Out_Row_reg /= RAM_Out_Row)
                     {
-                        If(SDRAM_Busy = '1')
-                        {
-                            states := read;
-                        }
+                        debug(2 downto 0) <= "001";
+                        states := read;
                         Full_Out_Row_reg   := Read_Row;
                         SDRAM_Read_Enable <= '1';
                         SDRAM_Address <= STD_LOGIC_VECTOR(TO_UNSIGNED(Full_Out_Row_reg*Image_Width + col, SDRAM_Address'LENGTH));
                     }
                     Elsif(RAM_In_Row_reg /= RAM_In_Row)
                     {
+                        debug(2 downto 0) <= "101";
                         If (Enable = '1' OR Full_In_Row_reg > 0)
                         {
-                            states := write_load;
+                            states := write;
                             
                             Full_In_Row_reg := Full_In_Row;
                             Full_In_Row     := iStream.Row;
@@ -220,51 +227,49 @@ Component Camera_Capture_SDRAM
                 }
                 When(read)
                 {
+                    debug(2 downto 0) <= "010";
+                    
+                    If(SDRAM_Busy = '0')
+                    {
+                        If(col < Image_Width-1)
+                        {
+                            col    := col + 1;
+                            SDRAM_Address <= STD_LOGIC_VECTOR(TO_UNSIGNED(Full_Out_Row_reg*Image_Width + col, SDRAM_Address'LENGTH));
+                        }
+                    }
+                    
                     If(SDRAM_Read_Valid = '1')
                     {
                         RAM_Out_Row_i  <= (RAM_Out_Row_reg) mod 2;
-                        RAM_Out_Col_i  <= col;
+                        RAM_Out_Col_i  <= rd_col;
                         RAM_Data_Out_i <= SDRAM_Read_Data;
                         
-                        SDRAM_Read_Enable <= '0';
-                        
-                        If(col < Image_Width-1)
+                        If(rd_col < Image_Width-1)
                         {
-                            col    := col + 1;
-                            states := read_save;
-                        }
-                        Else
-                        {
-                            states := idle;
-                            RAM_Out_Row_reg := RAM_Out_Row;
+                            rd_col := rd_col + 1;
                         }
                     }
-                }
-                When(read_save)
-                {
-                    states := read;
-                    
-                    SDRAM_Read_Enable <= '1';
-                    SDRAM_Address <= STD_LOGIC_VECTOR(TO_UNSIGNED(Full_Out_Row_reg*Image_Width + col, SDRAM_Address'LENGTH));
-                }
-                When(write_load)
-                {
-                    states := write;
-                    
-                    SDRAM_Write_Enable <= '1';
-                    SDRAM_Write_Data   <= RAM_Data_In_o;
-                    SDRAM_Address      <= STD_LOGIC_VECTOR(TO_UNSIGNED(Full_In_Row_reg*Image_Width + col, SDRAM_Address'LENGTH));
+                    Elsif(rd_col = Image_Width-1)
+                    {
+                        states := idle;
+                        RAM_Out_Row_reg := RAM_Out_Row;
+                        SDRAM_Read_Enable <= '0';
+                    }
                 }
                 When(write)
                 {
+                    debug(2 downto 0) <= "110";
+                    --states := write;
+                    
                     If(SDRAM_Busy = '0')
                     {
-                        SDRAM_Write_Enable <= '0';
+                        SDRAM_Write_Enable <= '1';
+                        SDRAM_Write_Data   <= RAM_Data_In_o;
+                        SDRAM_Address      <= STD_LOGIC_VECTOR(TO_UNSIGNED(Full_In_Row_reg*Image_Width + col, SDRAM_Address'LENGTH));
                         
                         If(col < Image_Width-1)
                         {
                             col    := col + 1;
-                            states := write_load;
                             
                             RAM_In_Col_o    <= col;
                             RAM_In_Row_o    <= RAM_In_Row_reg;
@@ -273,6 +278,7 @@ Component Camera_Capture_SDRAM
                         {
                             states := idle;
                             RAM_In_Row_reg := RAM_In_Row;
+                            SDRAM_Write_Enable <= '0';
                         }
                     }
                 }
