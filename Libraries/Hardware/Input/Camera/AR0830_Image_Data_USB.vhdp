@@ -40,16 +40,16 @@ Package Image_Data_Package
     CONSTANT Image_Width    : NATURAL := 1920;
     CONSTANT Image_Height   : NATURAL := 1080;
     CONSTANT Image_FPS      : NATURAL := 5;
-    CONSTANT Image_Exposure : NATURAL := 100;   -- 1-100 (in percent of maximum exposure)
+    CONSTANT Image_Exposure : NATURAL := 50;   -- 1-100 (in percent of maximum exposure)
     
-    CONSTANT Darker_Threshold : NATURAL := 10;  --Minimum percent of image that is "too bright", to make the image darker (0-100)
-    CONSTANT Good_Threshold   : NATURAL := 5;  --Minimum percent of image that is "bright enought", otherwise the image gets brighter (0-100)
+    CONSTANT Darker_Threshold : NATURAL := 5;  --Minimum percent of image that is "too bright", to make the image darker (0-100)
+    CONSTANT Good_Threshold   : NATURAL := 3;  --Minimum percent of image that is "bright enought", otherwise the image gets brighter (0-100)
     
     CONSTANT Too_Bright_Min_G : NATURAL := 250; --Minimum value for the Green Pixels to be categorized as "too bright"
     CONSTANT Too_Bright_Min_R : NATURAL := (Too_Bright_Min_G*2)/3; --Minimum value for the Red Pixels to be categorized as "too bright"
     CONSTANT Too_Bright_Min_B : NATURAL := (Too_Bright_Min_G*3)/5; --Minimum value for the Blue Pixels to be categorized as "too bright"
     
-    CONSTANT Bright_Min_G     : NATURAL := 200; --Minimum value for the Green Pixels to be categorized as "bright enought"
+    CONSTANT Bright_Min_G     : NATURAL := 180; --Minimum value for the Green Pixels to be categorized as "bright enought"
     CONSTANT Bright_Min_R     : NATURAL := (Bright_Min_G*2)/3; --Minimum value for the Red Pixels to be categorized as "bright enought"
     CONSTANT Bright_Min_B     : NATURAL := (Bright_Min_G*3)/5; --Minimum value for the Blue Pixels to be categorized as "bright enought"
 
