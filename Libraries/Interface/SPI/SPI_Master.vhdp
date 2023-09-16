@@ -116,15 +116,15 @@ Component SPI_Master
                     {
                         Busy <= '1';                        --set busy signal
                         
-                        if(CLK_Frequency/SPI_CLK = 0)                       --check for valid spi speed
+                        if(CLK_Frequency/(SPI_CLK*2) = 0)                       --check for valid spi speed
                         {
                             clk_ratio <= 1;                 --set to maximum speed if zero
                             count <= 1;                     --initiate system-to-spi clock counter
                         }
                         else
                         {
-                            clk_ratio <= CLK_Frequency/SPI_CLK;  --set to input selection if valid
-                            count <= CLK_Frequency/SPI_CLK;      --initiate system-to-spi clock counter
+                            clk_ratio <= CLK_Frequency/(SPI_CLK*2);  --set to input selection if valid
+                            count <= CLK_Frequency/(SPI_CLK*2);      --initiate system-to-spi clock counter
                         }
                         
                         SCLK <= CPol;                       --set spi clock polarity
