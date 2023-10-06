@@ -58,7 +58,7 @@ Component SPI_Master
     
     MISO        : IN  STD_LOGIC         := '0';
     SCLK        : BUFFER STD_LOGIC      := '0';
-    SS          : BUFFER STD_LOGIC      := '0';
+    SS          : BUFFER STD_LOGIC      := '1';
     MOSI        : OUT STD_LOGIC         := '0';
     
     TX_Data     : IN  STD_LOGIC_VECTOR(Bits-1 downto 0) := (others => '0'); --data to send
@@ -71,7 +71,7 @@ Component SPI_Master
     AttributeDeclaration
     {
         TYPE machine IS(ready, execute);                           --state machine data type
-        SIGNAL state       : machine;                              --current state
+        SIGNAL state       : machine := ready;                     --current state
         SIGNAL clk_ratio   : INTEGER;                              --current clk_div
         SIGNAL count       : INTEGER;                              --counter to trigger sclk from system clock
         SIGNAL clk_toggles : INTEGER RANGE 0 TO Bits*2 + 1;        --count spi clock toggles
