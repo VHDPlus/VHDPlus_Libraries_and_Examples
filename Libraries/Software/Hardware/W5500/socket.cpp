@@ -441,7 +441,7 @@ uint16_t EthernetClass::socketSend(uint8_t s, const uint8_t * buf, uint16_t len)
             ret = 0;
             break;
         }
-        yield();
+        //yield();
     } while (freesize < ret);
 
     // copy data
@@ -457,7 +457,7 @@ uint16_t EthernetClass::socketSend(uint8_t s, const uint8_t * buf, uint16_t len)
             return 0;
         }
         SPI.endTransaction();
-        yield();
+        //yield();
         SPI.beginTransaction(SPI_ETHERNET_SETTINGS);
     }
     /* +2008.01 bj */
