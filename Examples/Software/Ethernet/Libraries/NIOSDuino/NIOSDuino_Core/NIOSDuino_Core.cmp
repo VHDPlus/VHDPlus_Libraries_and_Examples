@@ -1,0 +1,25 @@
+	component NIOSDuino_Core is
+		port (
+			clk_in_clk    : in    std_logic                     := 'X';             -- clk
+			pi_export     : in    std_logic_vector(31 downto 0) := (others => 'X'); -- export
+			po_export     : out   std_logic_vector(31 downto 0);                    -- export
+			reset_reset_n : in    std_logic                     := 'X';             -- reset_n
+			sdram_addr    : out   std_logic_vector(11 downto 0);                    -- addr
+			sdram_ba      : out   std_logic_vector(1 downto 0);                     -- ba
+			sdram_cas_n   : out   std_logic;                                        -- cas_n
+			sdram_cke     : out   std_logic;                                        -- cke
+			sdram_cs_n    : out   std_logic;                                        -- cs_n
+			sdram_dq      : inout std_logic_vector(15 downto 0) := (others => 'X'); -- dq
+			sdram_dqm     : out   std_logic_vector(1 downto 0);                     -- dqm
+			sdram_ras_n   : out   std_logic;                                        -- ras_n
+			sdram_we_n    : out   std_logic;                                        -- we_n
+			sdram_clk_clk : out   std_logic;                                        -- clk
+			spi_MISO      : in    std_logic                     := 'X';             -- MISO
+			spi_MOSI      : out   std_logic;                                        -- MOSI
+			spi_SCLK      : out   std_logic;                                        -- SCLK
+			spi_SS_n      : out   std_logic;                                        -- SS_n
+			uart_rxd      : in    std_logic                     := 'X';             -- rxd
+			uart_txd      : out   std_logic                                         -- txd
+		);
+	end component NIOSDuino_Core;
+

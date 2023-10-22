@@ -1,0 +1,47 @@
+Main
+(
+    sdram_addr: out STD_LOGIC_VECTOR(11 downto 0);
+    sdram_ba: out STD_LOGIC_VECTOR(1 downto 0);
+    sdram_cas_n: out STD_LOGIC;
+    sdram_dq: inout STD_LOGIC_VECTOR(15 downto 0) := (others => 'X');
+    sdram_dqm: out STD_LOGIC_VECTOR(1 downto 0);
+    sdram_ras_n: out STD_LOGIC;
+    sdram_we_n: out STD_LOGIC;
+    sdram_clk_clk: out STD_LOGIC;
+    
+    uart_rxd: in STD_LOGIC := 'X';
+    uart_txd: out STD_LOGIC;
+    
+    Ethernet_MISO : in  STD_LOGIC := 'X';
+    Ethernet_MOSI : out STD_LOGIC;
+    Ethernet_SCLK : out STD_LOGIC;
+    Ethernet_SS   : out STD_LOGIC;
+    
+    LED : OUT STD_LOGIC;
+)
+{
+    Ethernet_SS <= NIOSDuino_Processor_po_export(0);
+    
+    LED <= NIOSDuino_Processor_po_export(1);
+    
+    SIGNAL NIOSDuino_Processor_pi_export: STD_LOGIC_VECTOR(31 downto 0) := (others => 'X');
+    SIGNAL NIOSDuino_Processor_po_export: STD_LOGIC_VECTOR(31 downto 0) := (others => 'X');
+    NewComponent NIOSDuino_Processor
+    (
+        sdram_addr    => sdram_addr,
+        sdram_ba      => sdram_ba,
+        sdram_cas_n   => sdram_cas_n,
+        sdram_dq      => sdram_dq,
+        sdram_dqm     => sdram_dqm,
+        sdram_ras_n   => sdram_ras_n,
+        sdram_we_n    => sdram_we_n,
+        sdram_clk_clk => sdram_clk_clk,
+        pi_export     => NIOSDuino_Processor_pi_export,
+        po_export     => NIOSDuino_Processor_po_export,
+        uart_rxd      => uart_rxd,
+        uart_txd      => uart_txd,
+        spi_MISO      => Ethernet_MISO,
+        spi_MOSI      => Ethernet_MOSI,
+        spi_SCLK      => Ethernet_SCLK,
+    );
+}

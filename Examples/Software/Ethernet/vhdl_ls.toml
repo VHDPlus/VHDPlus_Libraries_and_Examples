@@ -1,0 +1,12 @@
+# auto-generated
+[Libraries]
+work.files = [
+	'Generated/NIOSDuino_Processor.vhd',
+	'Generated/PLC_ONE_ETH.vhd'
+]
+[libraries.work]
+files = [
+	'Generated/NIOSDuino_Processor.vhd',
+	'Generated/PLC_ONE_ETH.vhd'
+]
+# auto-generated-end

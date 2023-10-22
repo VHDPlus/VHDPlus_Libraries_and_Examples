@@ -1,0 +1,179 @@
+/*
+    Copyright (c) 2019 Protop Solutions UG. All right reserved.
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this hdl code and associated documentation files (the "HDL Code"), to deal in the
+    HDL Code without restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+    HDL Code, and to permit persons to whom the HDL Code is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the HDL Code.
+
+    THE HDL Code IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+    AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE HDL Code OR THE USE OR OTHER DEALINGS IN THE HDL Code.
+
+    1. Hardware Project:
+    -Add NewComponent of NIOSDuino_Processor in your code
+    -Right click the name "NIOSDuino_Processor" of the NewComponent and click on Create Signals
+    -Compile the project (and connect the signals with the FPGA I/Os)
+
+    2. Software Project:
+    -Click on Tools/New NIOSDuino Project and the Software folder is created in the project
+
+    3. Program Software:
+    -Go to Software/NIOSDuino/NIOSDuino.cpp and program your code
+    -You can use the Arduino libraries and you can find more information here: https://github.com/dimag0g/nios_duino
+    -Click on NIOS/NIOS II Make and Download
+
+    For JTAG UART:
+    -Click on NIOS/NIOS II JTAG Terminal
+    For Standard UART:
+    -NIOS/BSP Editor -> select uart_0 for stdin/stdout
+    -Use the Serial Monitor with the baudrate you selected when creating the processor (9600 as default)
+
+    4. Non-Volatile Programming:
+    -Test your code
+    -Use an UART interface instead of JTAG UART: NIOS/BSP Editor -> select uart_0 for stdin/stdout
+    -Right click the Project and click on "Make Targets"
+    -Double click in your project Libraries/NIOSDuino/NIOSDuino_Core.qsys
+    -Click on finish, close the window and compile the VHDP project again
+    -If you program the FPGA with Programming Mode 2, the software and hardware is saved on the FPGA
+ */
+
+Component NIOSDuino_Processor
+(
+    --NIOSDuino Onboard
+    Reset                      : IN    STD_LOGIC := '0';
+    sdram_addr                 : OUT   STD_LOGIC_VECTOR(11 downto 0);
+    sdram_ba                   : OUT   STD_LOGIC_VECTOR(1 downto 0);
+    sdram_cas_n                : OUT   STD_LOGIC;
+    sdram_dq                   : INOUT STD_LOGIC_VECTOR(15 downto 0) := (others => 'X');
+    sdram_dqm                  : OUT   STD_LOGIC_VECTOR(1 downto 0);
+    sdram_ras_n                : OUT   STD_LOGIC;
+    sdram_we_n                 : OUT   STD_LOGIC;
+    sdram_clk_clk              : OUT   STD_LOGIC;
+    --NIOSDuino External
+    pi_export                  : IN    STD_LOGIC_VECTOR(31 downto 0) := (others => 'X');
+    po_export                  : OUT   STD_LOGIC_VECTOR(31 downto 0) := (others => 'X');
+    uart_rxd                   : IN    STD_LOGIC := 'X';
+    uart_txd                   : OUT   STD_LOGIC;
+    spi_MISO                   : IN    STD_LOGIC := 'X';
+    spi_MOSI                   : OUT   STD_LOGIC;
+    spi_SCLK                   : OUT   STD_LOGIC;
+)
+{
+    Connections
+    {
+        CLK            => CLK,
+        Reset          => BTN_1,
+        sdram_addr[0]  => SDRAM_ADD_1,
+        sdram_addr[1]  => SDRAM_ADD_2,
+        sdram_addr[2]  => SDRAM_ADD_3,
+        sdram_addr[3]  => SDRAM_ADD_4,
+        sdram_addr[4]  => SDRAM_ADD_5,
+        sdram_addr[5]  => SDRAM_ADD_6,
+        sdram_addr[6]  => SDRAM_ADD_7,
+        sdram_addr[7]  => SDRAM_ADD_8,
+        sdram_addr[8]  => SDRAM_ADD_9,
+        sdram_addr[9]  => SDRAM_ADD_10,
+        sdram_addr[10] => SDRAM_ADD_11,
+        sdram_addr[11] => SDRAM_ADD_12,
+        sdram_addr[12] => SDRAM_ADD_13,
+        sdram_ba[0]    => SDRAM_BAN_1,
+        sdram_ba[1]    => SDRAM_BAN_2,
+        sdram_cas_n    => SDRAM_CAS,
+        sdram_clk_clk  => SDRAM_CLK,
+        sdram_ras_n    => SDRAM_RAS,
+        sdram_we_n     => SDRAM_WEN,
+        sdram_dqm[0]   => SDRAM_DQM_1,
+        sdram_dqm[1]   => SDRAM_DQM_2,
+        sdram_dq[0]    => SDRAM_DAT_1,
+        sdram_dq[1]    => SDRAM_DAT_2,
+        sdram_dq[2]    => SDRAM_DAT_3,
+        sdram_dq[3]    => SDRAM_DAT_4,
+        sdram_dq[4]    => SDRAM_DAT_5,
+        sdram_dq[5]    => SDRAM_DAT_6,
+        sdram_dq[6]    => SDRAM_DAT_7,
+        sdram_dq[7]    => SDRAM_DAT_8,
+        sdram_dq[8]    => SDRAM_DAT_9,
+        sdram_dq[9]    => SDRAM_DAT_10,
+        sdram_dq[10]   => SDRAM_DAT_11,
+        sdram_dq[11]   => SDRAM_DAT_12,
+        sdram_dq[12]   => SDRAM_DAT_13,
+        sdram_dq[13]   => SDRAM_DAT_14,
+        sdram_dq[14]   => SDRAM_DAT_15,
+        sdram_dq[15]   => SDRAM_DAT_16,
+        uart_rxd       => UART_TXD,
+        uart_txd       => UART_RXD,
+
+        spi_MISO,
+        spi_MOSI,
+        spi_SCLK,
+    }
+    
+    
+    SIGNAL reset_reset_n : STD_LOGIC;
+    reset_reset_n <= NOT Reset;
+    
+    AttributeDeclaration
+    {
+        VHDL
+        {
+            component NIOSDuino_Core
+            port (
+                clk_in_clk            : in    std_logic                     := '0';             --         clk_in.clk
+                pi_export             : in    std_logic_vector(31 downto 0) := (others => '0'); --        pio_led.export
+                po_export             : out   std_logic_vector(31 downto 0) := (others => '0'); --        pio_led.export
+                reset_reset_n         : in    std_logic                     := '1';             --          reset.reset_n
+                sdram_addr            : out   std_logic_vector(11 downto 0);                    --          sdram.addr
+                sdram_ba              : out   std_logic_vector(1 downto 0);                     --               .ba
+                sdram_cas_n           : out   std_logic;                                        --               .cas_n
+                sdram_cke             : out   std_logic := '1';  --NOT USED WITH CORE MAX10
+                sdram_cs_n            : out   std_logic := '0';  --NOT USED WITH CORE MAX10
+                sdram_dq              : inout std_logic_vector(15 downto 0) := (others => '0'); --               .dq
+                sdram_dqm             : out   std_logic_vector(1 downto 0);                     --               .dqm
+                sdram_ras_n           : out   std_logic;                                        --               .ras_n
+                sdram_we_n            : out   std_logic;                                        --               .we_n
+                sdram_clk_clk         : out   std_logic;                                        --      sdram_clk.clk
+                spi_MISO              : in    std_logic                     := '0';             --      spi_0_ext.MISO
+                spi_MOSI              : out   std_logic;                                        --               .MOSI
+                spi_SCLK              : out   std_logic;                                        --               .SCLK
+                uart_rxd              : in    std_logic                     := '0';             --           uart.rxd
+                uart_txd              : out   std_logic                                        -- txd
+            );
+            end component;
+        }
+    }
+    
+    VHDL
+    {
+        u1: NIOSDuino_Core port map
+        (
+            clk_in_clk            => CLK,
+            pi_export             => pi_export,
+            po_export             => po_export,
+            reset_reset_n         => reset_reset_n,
+            sdram_addr            => sdram_addr,
+            sdram_ba              => sdram_ba,
+            sdram_cas_n           => sdram_cas_n,
+            sdram_cke             => open,
+            sdram_cs_n            => open,
+            sdram_dq              => sdram_dq,
+            sdram_dqm             => sdram_dqm,
+            sdram_ras_n           => sdram_ras_n,
+            sdram_we_n            => sdram_we_n,
+            sdram_clk_clk         => sdram_clk_clk,
+            spi_MISO              => spi_MISO,
+            spi_MOSI              => spi_MOSI,
+            spi_SCLK              => spi_SCLK,
+            uart_rxd              => uart_rxd,
+            uart_txd              => uart_txd
+        );
+    }
+}
