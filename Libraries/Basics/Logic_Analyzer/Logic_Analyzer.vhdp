@@ -30,6 +30,7 @@
 
 Component Logic_Analyzer
 (
+    Include();
     Generic
     (
         Max_Samples    : NATURAL := 25000;    --25,000 samples

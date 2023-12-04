@@ -1,6 +1,6 @@
 Component ADC_QSYS
 (
-
+	Include();
 			clk_clk                    : in  std_logic                     := 'X';             -- clk
 			reset_reset_n              : in  std_logic                     := 'X';             -- reset_n
 			adc_command_valid          : in  std_logic                     := 'X';             -- valid

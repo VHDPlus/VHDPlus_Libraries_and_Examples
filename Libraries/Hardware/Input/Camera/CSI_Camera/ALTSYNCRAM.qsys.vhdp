@@ -1,5 +1,6 @@
 Component ALTSYNCRAM
 (
+    Include();
     Generic
     (
         address_aclr_a         : string := "UNUSED";

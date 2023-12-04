@@ -1,5 +1,6 @@
 Component OLS_Logic_Analyzer
 (
+    Include();
     Generic
     (
         Sample_CLK_Freq : INTEGER := 200000000;    --frequency of system clock in Hertz

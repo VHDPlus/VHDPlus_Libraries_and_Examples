@@ -1,6 +1,6 @@
 Component Video_Filter
 (
-
+	Include();
 			clk_clk               : in  std_logic                     := 'X';             -- clk
 			reset_reset_n         : in  std_logic                     := 'X';             -- reset_n
 			in_vid_clk            : in  std_logic                     := 'X';             -- vid_clk

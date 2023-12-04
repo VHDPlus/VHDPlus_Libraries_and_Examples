@@ -1,6 +1,6 @@
 Component Dual_Config
 (
-
+	Include();
 			clk                : in  std_logic                     := 'X';             -- clk
 			nreset             : in  std_logic                     := 'X';             -- reset_n
 			avmm_rcv_address   : in  std_logic_vector(2 downto 0)  := (others => 'X'); -- address

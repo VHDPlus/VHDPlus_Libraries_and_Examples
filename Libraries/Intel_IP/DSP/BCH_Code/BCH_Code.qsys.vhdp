@@ -1,6 +1,6 @@
 Component BCH_Code
 (
-
+	Include();
 			clk        : in  std_logic                     := 'X';             -- clk
 			reset      : in  std_logic                     := 'X';             -- reset
 			load       : in  std_logic                     := 'X';             -- valid

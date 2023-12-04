@@ -29,6 +29,7 @@
 
 Component Fast_Logic_Analyzer_SDRAM
 (
+    Include();
     Generic
     (
         Max_Samples    : NATURAL := 3000000; --3Mio samples

@@ -1,5 +1,10 @@
 Component CNN
 (
+    Include
+    (
+        Image_Data_Package.all,
+        CNN_Config_Package.all,
+    );
     Generic
     (
         Input_Columns  : NATURAL := 448; --Size in x direction of input

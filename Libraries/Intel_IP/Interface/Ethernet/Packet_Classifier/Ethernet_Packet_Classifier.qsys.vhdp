@@ -1,6 +1,6 @@
 Component Ethernet_Packet_Classifier
 (
-
+	Include();
 			clk                                                : in  std_logic                     := 'X';             -- clk
 			reset                                              : in  std_logic                     := 'X';             -- reset
 			data_sink_sop                                      : in  std_logic                     := 'X';             -- startofpacket

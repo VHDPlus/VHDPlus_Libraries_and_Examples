@@ -159,6 +159,7 @@
 
 Component NIOSDuino_Core
 (
+    Include();
     clk_in_clk            : in    std_logic                     := '0';             --         clk_in.clk
     i2c_sda_in            : in    std_logic                     := '0';             --      i2c_0_ext.sda_in
     i2c_scl_in            : in    std_logic                     := '0';             --               .scl_in

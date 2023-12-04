@@ -1,6 +1,6 @@
 Component CIC_Filter
 (
-
+	Include();
 			clk       : in  std_logic                     := 'X';             -- clk
 			reset_n   : in  std_logic                     := 'X';             -- reset_n
 			in_error  : in  std_logic_vector(1 downto 0)  := (others => 'X'); -- error

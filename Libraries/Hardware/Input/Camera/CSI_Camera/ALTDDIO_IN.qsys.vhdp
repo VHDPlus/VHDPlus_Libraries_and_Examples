@@ -1,5 +1,6 @@
 Component ALTDDIO_IN
 (
+    Include();
     Generic
     (
         intended_device_family   : String := "MAX 10";

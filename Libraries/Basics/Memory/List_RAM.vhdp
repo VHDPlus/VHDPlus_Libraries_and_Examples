@@ -53,6 +53,10 @@
 
 Component List_RAM
 (
+    Include
+    (
+        List_Operation_Package.all,
+    );
     Package List_Operation_Package
     (
         TYPE List_Operation IS (None, Add, Insert, Remove, Clear, Read);

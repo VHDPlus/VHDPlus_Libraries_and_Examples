@@ -1,6 +1,6 @@
 Component Ethernet_MDIO
 (
-
+	Include();
 			clk             : in  std_logic                     := 'X';             -- clk
 			reset           : in  std_logic                     := 'X';             -- reset
 			csr_write       : in  std_logic                     := 'X';             -- write

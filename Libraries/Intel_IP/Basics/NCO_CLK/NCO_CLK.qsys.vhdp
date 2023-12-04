@@ -1,6 +1,6 @@
 Component NCO_CLK
 (
-
+	Include();
 			clk       : in  std_logic                     := 'X';             -- clk
 			reset_n   : in  std_logic                     := 'X';             -- reset_n
 			clken     : in  std_logic                     := 'X';             -- clken

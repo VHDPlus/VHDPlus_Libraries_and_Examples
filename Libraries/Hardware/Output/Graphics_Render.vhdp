@@ -46,6 +46,10 @@
 
 Component Graphics_Render
 (
+    Include
+    (
+        Image_Data_Package.all,
+    );
     Package Graphics_Render_Package
     (
         TYPE render_functions IS (point, lines, rectangle, circle, triangle, bitmap, characters, fill, none);

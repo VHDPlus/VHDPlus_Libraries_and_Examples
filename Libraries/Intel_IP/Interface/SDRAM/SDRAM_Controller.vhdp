@@ -29,6 +29,7 @@
 
 Component SDRAM_Interface
 (
+    Include();
     Generic
     (
         Sim : BOOLEAN := false;

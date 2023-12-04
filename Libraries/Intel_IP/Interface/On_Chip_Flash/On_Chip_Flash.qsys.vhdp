@@ -1,6 +1,6 @@
 Component On_Chip_Flash
 (
-
+	Include();
 			clock                   : in  std_logic                     := 'X';             -- clk
 			reset_n                 : in  std_logic                     := 'X';             -- reset_n
 			avmm_data_addr          : in  std_logic_vector(14 downto 0) := (others => 'X'); -- address

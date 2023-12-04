@@ -36,6 +36,10 @@
 
 Component Serial_Plotter_Interface
 (
+    Include
+    (
+        String_Type_Package.all,
+    );
     Generic
     (
         UseTime         : BOOLEAN     := false;       --If false the plotter just uses the time it received the message

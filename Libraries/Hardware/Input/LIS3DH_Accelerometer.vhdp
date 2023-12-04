@@ -40,6 +40,7 @@
 
 Component LIS3DH_Interface
 (
+    Include();
     Generic
     (
         CLK_Frequency   : NATURAL   := 12000000;

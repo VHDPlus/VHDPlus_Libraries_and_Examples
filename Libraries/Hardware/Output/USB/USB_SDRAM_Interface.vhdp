@@ -30,6 +30,7 @@
 
 Component USB_SDRAM_Interface
 (
+    Include();
     Generic
     (
         Baud_Rate  : INTEGER := 12000000; --data link baud rate in bits/second
