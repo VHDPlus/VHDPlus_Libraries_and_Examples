@@ -1,143 +1,31 @@
-<?xml version="1.0"?>
-<ProjectRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <Header>Object_Recognition</Header>
-  <fileWatcherIgnore />
-  <Items xsi:type="ProjectFolder">
-    <Header>CSI_Camera</Header>
-    <fileWatcherIgnore />
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>ALTDDIO_IN.qsys.vhdp</Header>
-    </Items>
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>ALTSYNCRAM.qsys.vhdp</Header>
-    </Items>
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>Camera_Capture.vhdp</Header>
-    </Items>
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>CSI_Camera.vhdp</Header>
-    </Items>
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>I2C.vhdp</Header>
-    </Items>
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>Image_Data.vhdp</Header>
-    </Items>
-  </Items>
-  <Items xsi:type="ProjectFolder">
-    <Header>Drawing</Header>
-    <fileWatcherIgnore />
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>Crosses.vhdp</Header>
-    </Items>
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>Squares.vhdp</Header>
-    </Items>
-  </Items>
-  <Items xsi:type="ProjectFolder">
-    <Header>Filter</Header>
-    <fileWatcherIgnore />
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>AreaLimitedCompression.vhdp</Header>
-    </Items>
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>Blob_Detect.vhdp</Header>
-    </Items>
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>Color_Correction.vhdp</Header>
-    </Items>
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>Color_Threshold_HSV.vhdp</Header>
-    </Items>
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>RGB2HSV.vhdp</Header>
-    </Items>
-  </Items>
-  <Items xsi:type="ProjectFolder">
-    <Header>Generated</Header>
-    <fileWatcherIgnore />
-    <Items xsi:type="ProjectFile">
-      <Header>AreaLimitedCompression.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>Blob_Detect.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>Camera_Capture.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>Color_Correction_Filter.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>Color_Threshold_HSV_Filter.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>Cone_Detection.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>CRT_Controller.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>CSI_Camera.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>Draw_Crosses.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>Draw_Squares.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>HDMI_Out.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>I2C_Master_Interface.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>Image_Data_Package.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>Object_Recognition.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>RGB2HSV_Filter.vhd</Header>
-    </Items>
-  </Items>
-  <Items xsi:type="ProjectFolder">
-    <Header>HDMI</Header>
-    <fileWatcherIgnore />
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>CRT_Controller.vhdp</Header>
-    </Items>
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>HDMI_Out.vhdp</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>VS_PLL.vhd</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>VS_PLL.qip</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>DVI_OUT.v</Header>
-    </Items>
-    <Items xsi:type="ProjectFile">
-      <Header>TMDS_ENCODE.v</Header>
-    </Items>
-  </Items>
-  <Items xsi:type="ProjectFolder">
-    <Header>Libraries</Header>
-    <fileWatcherIgnore />
-    <Items xsi:type="ProjectFile">
-      <Header>ISSP.qsys</Header>
-    </Items>
-    <Items xsi:type="ProjectFileVHDP">
-      <Header>ISSP.qsys.vhdp</Header>
-    </Items>
-  </Items>
-  <Items xsi:type="ProjectFileVHDP">
-    <Header>Cone_Detection.vhdp</Header>
-  </Items>
-  <Items xsi:type="ProjectFileVHDP">
-    <Header>Object_Recognition.vhdp</Header>
-  </Items>
-</ProjectRoot>
+﻿<Project>
+  <ItemGroup>
+    <File Include="CSI_Camera/ALTDDIO_IN.qsys.vhdp" />
+    <File Include="CSI_Camera/ALTSYNCRAM.qsys.vhdp" />
+    <File Include="CSI_Camera/CSI_Camera.vhdp" />
+    <File Include="CSI_Camera/Camera_Capture.vhdp" />
+    <File Include="CSI_Camera/I2C.vhdp" />
+    <File Include="CSI_Camera/Image_Data.vhdp" />
+    <File Include="Drawing/Crosses.vhdp" />
+    <File Include="Drawing/Squares.vhdp" />
+    <File Include="Filter/AreaLimitedCompression.vhdp" />
+    <File Include="Filter/Blob_Detect.vhdp" />
+    <File Include="Filter/Color_Correction.vhdp" />
+    <File Include="Filter/Color_Threshold_HSV.vhdp" />
+    <File Include="Filter/RGB2HSV.vhdp" />
+    <File Include="HDMI/CRT_Controller.vhdp" />
+    <File Include="HDMI/DVI_OUT.v" />
+    <File Include="HDMI/HDMI_Out.vhdp" />
+    <File Include="HDMI/TMDS_ENCODE.v" />
+    <File Include="HDMI/VS_PLL.qip" />
+    <File Include="HDMI/VS_PLL.vhd" />
+    <File Include="Libraries/ISSP.qsys" />
+    <File Include="Libraries/ISSP.qsys.vhdp" />
+    <File Include="Cone_Detection.vhdp" />
+    <File Include="Object_Recognition.vhdp" />
+  </ItemGroup>
+  <PropertyGroup>
+    <SelectedFpga>Core MAX10 Ultra</SelectedFpga>
+    <IoVoltage>3.3V</IoVoltage>
+  </PropertyGroup>
+</Project>

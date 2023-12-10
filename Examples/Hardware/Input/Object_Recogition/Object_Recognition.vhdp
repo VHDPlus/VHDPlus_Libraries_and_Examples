@@ -373,7 +373,7 @@ Main
                 iBlob_Y1_2      => blob_data_array(i*2+1).Y1,
                 
                 oBusy           => cone_data_array(i).Busy,
-                oCones          => cone_data_array(i).Cones
+                oCones          => cone_data_array(i).Cones,
                 oCones_Addr     => cone_data_array(i).Addr,
                 oCones_X        => cone_data_array(i).X,
                 oCones_Y        => cone_data_array(i).Y,
