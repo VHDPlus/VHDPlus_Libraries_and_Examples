@@ -25,7 +25,7 @@
    
  */
 
-Component MAX_Pooling
+Component Average_Pooling
 (
     Include
     (
@@ -76,7 +76,9 @@ Component MAX_Pooling
     {
         If(rising_edge(iStream.New_Pixel))
         {
-            VARIABLE max_Col_Buf : rgb_data;
+            VARIABLE avg_Buf_r   : NATURAL range 0 to 255*Filter_Columns := 0;
+            VARIABLE avg_Buf_g   : NATURAL range 0 to 255*Filter_Columns := 0;
+            VARIABLE avg_Buf_b   : NATURAL range 0 to 255*Filter_Columns := 0;
             VARIABLE max_Col_Cnt : NATURAL range 0 to Filter_Columns-1 := Filter_Columns-1;
             SIGNAL   Col_Reg     : NATURAL range 0 to Image_Width-1;
             
@@ -121,54 +123,61 @@ Component MAX_Pooling
                 
                 If(max_Col_Cnt = 0)
                 {
-                    max_Col_Buf.R := iStream_Buf.R;
-                    max_Col_Buf.G := iStream_Buf.G;
-                    max_Col_Buf.B := iStream_Buf.B;
+                    avg_Buf_r := TO_INTEGER(UNSIGNED(iStream_Buf.R));
+                    avg_Buf_g := TO_INTEGER(UNSIGNED(iStream_Buf.G));
+                    avg_Buf_b := TO_INTEGER(UNSIGNED(iStream_Buf.B));
                 }
                 Else
                 {
-                    If(iStream_Buf.R > max_Col_Buf.R)
+                    avg_Buf_r := avg_Buf_r + TO_INTEGER(UNSIGNED(iStream_Buf.R));
+                    If(Input_Values > 1)
                     {
-                        max_Col_Buf.R := iStream_Buf.R;
+                        avg_Buf_g := avg_Buf_g + TO_INTEGER(UNSIGNED(iStream_Buf.G));
                     }
-                    If(Input_Values > 1 AND iStream_Buf.G > max_Col_Buf.G)
+                    If(Input_Values > 2)
                     {
-                        max_Col_Buf.G := iStream_Buf.G;
-                    }
-                    If(Input_Values > 2 AND iStream_Buf.B > max_Col_Buf.B)
-                    {
-                        max_Col_Buf.B := iStream_Buf.B;
+                        avg_Buf_b := avg_Buf_b + TO_INTEGER(UNSIGNED(iStream_Buf.B));
                     }
                 }
                 
                 If(max_Col_Cnt = Filter_Columns-1)
                 {
-                    If(iStream_Buf.Row mod Filter_Rows > 0)
+                    VARIABLE calc_row : NATURAL range 0 to Filter_Rows-1 := 0;
+                    calc_row := iStream_Buf.Row mod Filter_Rows;
+                    
+                    avg_Buf_r := (avg_Buf_r/Filter_Columns);
+                    If(Input_Values > 1)
                     {
-                        If(UNSIGNED(RAM_Data_Out(7 downto 0)) > UNSIGNED(max_Col_Buf.R))
-                        {
-                            max_Col_Buf.R := RAM_Data_Out(7 downto 0);
-                        }
-                        If(Input_Values > 1 AND UNSIGNED(RAM_Data_Out(15 downto 8)) > UNSIGNED(max_Col_Buf.G))
-                        {
-                            max_Col_Buf.G := RAM_Data_Out(15 downto 8);
-                        }
-                        If(Input_Values > 2 AND UNSIGNED(RAM_Data_Out(23 downto 16)) > UNSIGNED(max_Col_Buf.B))
-                        {
-                            max_Col_Buf.B := RAM_Data_Out(23 downto 16);
-                        }
+                        avg_Buf_g := (avg_Buf_g/Filter_Columns);
+                    }
+                    If(Input_Values > 2)
+                    {
+                        avg_Buf_b := (avg_Buf_b/Filter_Columns);
                     }
                     
-                    If(iStream_Buf.Row mod Filter_Rows = Filter_Rows-1)
+                    If(calc_row > 0)
                     {
-                        oStream_Buf.R <= max_Col_Buf.R;
+                        avg_Buf_r := (avg_Buf_r + TO_INTEGER(UNSIGNED(RAM_Data_Out(7 downto 0)))*calc_row)/(calc_row+1);
                         If(Input_Values > 1)
                         {
-                            oStream_Buf.G <= max_Col_Buf.G;
+                            avg_Buf_g := (avg_Buf_g + TO_INTEGER(UNSIGNED(RAM_Data_Out(15 downto 8)))*calc_row)/(calc_row+1);
                         }
                         If(Input_Values > 2)
                         {
-                            oStream_Buf.B <= max_Col_Buf.B;
+                            avg_Buf_b := (avg_Buf_b + TO_INTEGER(UNSIGNED(RAM_Data_Out(23 downto 16)))*calc_row)/(calc_row+1);
+                        }
+                    }
+                    
+                    If(calc_row = Filter_Rows-1)
+                    {
+                        oStream_Buf.R <= STD_LOGIC_VECTOR(TO_UNSIGNED(avg_Buf_r, oStream_Buf.R'LENGTH));
+                        If(Input_Values > 1)
+                        {
+                            oStream_Buf.G <= STD_LOGIC_VECTOR(TO_UNSIGNED(avg_Buf_g, oStream_Buf.G'LENGTH));
+                        }
+                        If(Input_Values > 2)
+                        {
+                            oStream_Buf.B <= STD_LOGIC_VECTOR(TO_UNSIGNED(avg_Buf_b, oStream_Buf.B'LENGTH));
                         }
                         
                         oStream_Buf.Column <= iStream_Buf.Column/Filter_Columns;
@@ -176,14 +185,14 @@ Component MAX_Pooling
                     }
                     Else
                     {
-                        RAM_Data_In(7 downto 0) <= max_Col_Buf.R;
+                        RAM_Data_In(7 downto 0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(avg_Buf_r, 8));
                         If(Input_Values > 1)
                         {
-                            RAM_Data_In(15 downto 8) <= max_Col_Buf.G;
+                            RAM_Data_In(15 downto 8) <= STD_LOGIC_VECTOR(TO_UNSIGNED(avg_Buf_g, 8));
                         }
                         If(Input_Values > 2)
                         {
-                            RAM_Data_In(23 downto 16) <= max_Col_Buf.B;
+                            RAM_Data_In(23 downto 16) <= STD_LOGIC_VECTOR(TO_UNSIGNED(avg_Buf_g, 8));
                         }
                         RAM_Enable <= '1';
                     }
